@@ -59,15 +59,16 @@ def get_var_offset(expr):
 
 def get_int(expr):
 	if expr.op == idaapi.cot_cast:
-		c = expr.x
-		if c.op == idaapi.cot_ref and c.x.op == idaapi.cot_obj:
-			return c.x.obj_ea
+		return get_int(expr.x)
 
 	if expr.op == idaapi.cot_ref and expr.x.op == idaapi.cot_obj:
 		return expr.x.obj_ea
 
 	if expr.op == idaapi.cot_obj:
 		return expr.obj_ea
+
+	if expr.op == idaapi.cot_num:
+		return expr.n._value
 
 	return None
 
