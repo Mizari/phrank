@@ -79,7 +79,7 @@ class FuncWrapper(object):
 		rv = idaapi.modify_user_lvar_info(self.__func.start_ea, idaapi.MLI_TYPE, info)
 		assert rv, "Failed to modify lvar"
 
-		self.__cfunc = idaapi.decompile(self.__func.start_ea)
+		self.__cfunc = None
 
 	def get_arg_type(self, arg_id):
 		# XXX do not refactor this into one liner, 
@@ -98,7 +98,7 @@ class FuncWrapper(object):
 		rv = idaapi.apply_tinfo(self.__func.start_ea, new_func_tinfo, 0)
 		assert rv, "Failed to apply new tinfo to function"
 
-		self.__cfunc = idaapi.decompile(self.__func.start_ea)
+		self.__cfunc = None
 
 	def get_start(self):
 		return self.__func.start_ea
