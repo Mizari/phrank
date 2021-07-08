@@ -26,10 +26,12 @@ def get_var_offset(expr):
 		return expr.v, 0
 
 	# form ((CASTTYPE*)var) + N
-	elif expr.op == idaapi.cot_add:
+	elif expr.op in [idaapi.cot_add, idaapi.cot_sub]:
 		if expr.y.op != idaapi.cot_num:
 			return None
 		offset = expr.y.n._value
+		if expr.op == idaapi.cot_sub:
+			offset = - offset
 
 		add_x = expr.x
 		if add_x.op == idaapi.cot_var:
@@ -238,7 +240,7 @@ class ThisUsesVisitor(idaapi.ctree_visitor_t):
 			call_sz = func_call.get_arg_use_size(0)
 			if offset + call_sz > max_func_sz:
 				max_func_sz = offset + call_sz
-		return max(max_write_sz, max_func_sz)
+		return max(0, max_write_sz, max_func_sz) # zero in case only negative offsets are found
 
 	def visit_expr(self, expr):
 		if expr.op == idaapi.cot_asg:
