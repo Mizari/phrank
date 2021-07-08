@@ -121,10 +121,11 @@ class CppVtableFactory(p_cont.VtableFactory):
 		vid = 0
 		for vtbl in self._created_vtables.values():
 			if vtbl.get_class() is not None:
-				new_name = "vtable_" + str(vid)
-				new_name = p_util.get_next_available_strucname(new_name)
-				vtbl.rename(new_name)
-				vid += 1
+				continue
+			new_name = "vtable_" + str(vid)
+			new_name = p_util.get_next_available_strucname(new_name)
+			vtbl.rename(new_name)
+			vid += 1
 		
 	def create_vtable(self, *args, **kwargs):
 		vtbl_name = "cpp_vtable_" + str(len(self._created_vtables))
