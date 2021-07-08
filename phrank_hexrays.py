@@ -4,13 +4,23 @@ import phrank_func as p_func
 from typing import Optional
 
 
+def get_ptr_var_write_offset(expr):
+	if expr.op == idaapi.cot_idx:
+		if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
+		# if expr.x.opname != "var" or expr.y.opname != "num":
+			return None
+
+		return expr.x.v, expr.y.n._value
+
+	if expr.op == idaapi.cot_ptr:
+		return get_var_offset(expr.x)
+
+	return None
+
 # trying to get various forms of "var + X", where X is int
 def get_var_offset(expr):
 	if expr.op == idaapi.cot_cast:
-		cast_type = expr.type
-		cast_expr = expr.x
-
-		return get_var_offset(cast_expr)
+		return get_var_offset(expr.x)
 
 	elif expr.op == idaapi.cot_var:
 		return expr.v, 0
@@ -45,11 +55,25 @@ def get_var_offset(expr):
 	else:
 		return None
 
+def get_int(expr):
+	if expr.op == idaapi.cot_cast:
+		c = expr.x
+		if c.op == idaapi.cot_ref and c.x.op == idaapi.cot_obj:
+			return c.x.obj_ea
+
+	if expr.op == idaapi.cot_ref and expr.x.op == idaapi.cot_obj:
+		return expr.x.obj_ea
+
+	if expr.op == idaapi.cot_obj:
+		return expr.obj_ea
+
+	return None
+
 class ThisWrite:
 	__slots__ = "_offset", "_val"
-	def __init__(self):
-		self._offset : Optional[int] = None
-		self._val : Optional[idaapi.cexpr_t] = None
+	def __init__(self, val, offset):
+		self._offset : Optional[int] = offset
+		self._val : Optional[idaapi.cexpr_t] = val
 
 	def get_offset(self):
 		return self._offset
@@ -58,27 +82,17 @@ class ThisWrite:
 		return self._val
 
 	def get_int(self):
-		if self._val.op == idaapi.cot_cast:
-			c = self._val.x
-			if c.op == idaapi.cot_ref and c.x.op == idaapi.cot_obj:
-				return c.x.obj_ea
-
-		if self._val.op == idaapi.cot_ref and self._val.x.op == idaapi.cot_obj:
-			return self._val.x.obj_ea
-
-		if self._val.op == idaapi.cot_obj:
-			return self._val.obj_ea
-
-		return None
+		return get_int(self._val)
 
 	def is_int(self, val=None):
-		if self.get_int() is None:
+		intval = get_int(self._val)
+		if intval is None:
 			return False
 
 		if val is None:
 			return True
 
-		return val == self.get_int()
+		return val == intval
 
 	def get_write_size(self):
 		sz = self._val.type.get_size()
@@ -228,9 +242,9 @@ class ThisUsesVisitor(idaapi.ctree_visitor_t):
 
 	def visit_expr(self, expr):
 		if expr.op == idaapi.cot_asg:
-			rv = self.get_var_write_offset(expr.x, expr.y)
+			rv = self.handle_assignment(expr)
 		elif expr.op == idaapi.cot_call:
-			rv = self.get_var_call_offset(expr)
+			rv = self.handle_call(expr)
 		else:
 			rv = False
 
@@ -242,10 +256,10 @@ class ThisUsesVisitor(idaapi.ctree_visitor_t):
 	def check_var(self, var):
 		return var == self._func.get_cfunc().arguments[0]
 
-	def get_var_call_offset(self, expr):
+	def handle_call(self, expr):
 		tfc = ThisFuncCall(call_expr=expr)
 		for arg_id, arg in enumerate(expr.a):
-			var_offset = self.get_var_offset(arg)
+			var_offset = get_var_offset(arg)
 			if var_offset is None:
 				continue
 
@@ -259,70 +273,16 @@ class ThisUsesVisitor(idaapi.ctree_visitor_t):
 		self._calls.append(tfc)
 		return True
 
-	def get_var_write_offset(self, expr, write):
-		if expr.op == idaapi.cot_idx:
-			if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
-			# if expr.x.opname != "var" or expr.y.opname != "num":
-				return False
-
-			return self.add_write(expr.x.v, expr.y.n._value * p_util.get_ptr_size(), write)
-
-		if expr.op != idaapi.cot_ptr:
-			return False
-
-		var_offset = self.get_var_offset(expr.x)
+	def handle_assignment(self, expr):
+		var_offset = get_ptr_var_write_offset(expr.x)
 		if var_offset is None:
 			return False
-		return self.add_write(var_offset[0], var_offset[1], write)
-
-	# trying to get various forms of "var + X", where X is int
-	def get_var_offset(self, expr):
-		if expr.op == idaapi.cot_cast:
-			cast_type = expr.type
-			cast_expr = expr.x
-
-			return self.get_var_offset(cast_expr)
-
-		elif expr.op == idaapi.cot_var:
-			return expr.v, 0
-
-		# form ((CASTTYPE*)this) + N
-		elif expr.op == idaapi.cot_add:
-			if expr.y.op != idaapi.cot_num:
-				return None
-			offset = expr.y.n._value
-
-			add_x = expr.x
-			if add_x.op == idaapi.cot_var:
-				return add_x.v, offset
-
-			if add_x.op != idaapi.cot_cast:
-				return None
-
-			cast_type = add_x.type
-			cast_expr = add_x.x
-			if cast_expr.op != idaapi.cot_var:
-				return None
-
-			if cast_type.is_ptr():
-				sz = cast_type.get_pointed_object().get_size()
-				if sz == idaapi.BADSIZE: 
-					raise BaseException("Failed to get object's size")
-				return cast_expr.v, offset * sz
-
-			print(cast_expr.opname, expr.y.opname, cast_type.is_ptr())
-			raise BaseException("Not implemented: should change offset according to cast type " + idaapi.get_func_name(self._func.get_start()))
-
-		else:
-			return None
-
-	def add_write(self, var_ref, offset, write):
+		
+		var_ref, offset = var_offset
 		var = self._func.get_cfunc().lvars[var_ref.idx]
 		if var != self._func.get_cfunc().arguments[0]:
 			return False
 
-		w = ThisWrite()
-		w._offset = offset
-		w._val = write
+		w = ThisWrite(expr.y, offset)
 		self._writes.append(w)
 		return True
