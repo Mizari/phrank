@@ -122,6 +122,7 @@ class FuncWrapper(object):
 	def get_cfunc(self):
 		if self.__cfunc is None:
 			self.__cfunc = idaapi.decompile(self.__func.start_ea)
+			str(self.__cfunc)
 		return self.__cfunc
 
 	def get_nargs(self):
