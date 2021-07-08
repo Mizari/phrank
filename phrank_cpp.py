@@ -161,7 +161,7 @@ class CppClass(p_cont.Struct):
 		current_vtbl = self._vtables.get(offset, None)
 		if current_vtbl is not None:
 			if current_vtbl != vtbl:
-				print("fail", self.get_name(), hex(offset), idaapi.get_name(current_vtbl.get_ea()), idaapi.get_name(vtbl.get_ea()))
+				print("[*] ERROR", self.get_name(), hex(offset), idaapi.get_name(current_vtbl.get_ea()), idaapi.get_name(vtbl.get_ea()))
 				raise BaseException("Already have vtbl at this offset")
 			return
 

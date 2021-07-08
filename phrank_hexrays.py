@@ -99,7 +99,7 @@ class ThisWrite:
 	def get_write_size(self):
 		sz = self._val.type.get_size()
 		if sz == idaapi.BADSIZE:
-			raise BaseException("Failed to get write size")
+			raise BaseException("Failed to get write size " + self._val.opname)
 		return sz
 
 ARRAY_SET_FUNCS = {"qmemcpy", "memcpy", "strncpy", "memset"}
