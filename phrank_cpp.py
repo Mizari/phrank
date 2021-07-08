@@ -15,6 +15,8 @@ class CppVtable(p_cont.Vtable):
 		self._vdtor : Optional[int] = None
 		self._callers : Optional[dict[int, int]] = None
 		self._vdtor_calls : Optional[set[int]] = None
+		self._cpp_class = None
+		self._cpp_class_offset = idaapi.BADSIZE
 
 	def make_callers(self) -> None:
 		callers = [p_util.get_func_start(x.frm) for x in idautils.XrefsTo(self.get_ea())]
@@ -115,6 +117,15 @@ class CppVtableFactory(p_cont.VtableFactory):
 		super().__init__()
 		CppVtableFactory.__instance = self
 
+	def downgrade_classless_vtables(self):
+		vid = 0
+		for vtbl in self._created_vtables.values():
+			if vtbl.get_class() is not None:
+				new_name = "vtable_" + str(vid)
+				new_name = p_util.get_next_available_strucname(new_name)
+				vtbl.rename(new_name)
+				vid += 1
+		
 	def create_vtable(self, *args, **kwargs):
 		vtbl_name = "cpp_vtable_" + str(len(self._created_vtables))
 		vtbl_name = p_util.get_next_available_strucname(vtbl_name)
@@ -397,6 +408,7 @@ class CppClassFactory(object):
 		self.create_vtables()
 		self.create_cdtors()
 		self.create_classes()
+		CppVtableFactory().downgrade_classless_vtables()
 
 		self.analyze_class_sizes()
 		self.analyze_inheritance()

@@ -6,33 +6,6 @@ import ida_struct
 import phrank_func as p_func
 import phrank_util as p_util
 
-# TODO make multiline helper comments for functions and classes
-# TODO overall refactoring using ida_struct
-# TODO make ContainerInterface class for structure, union and vtable
-# TODO make StructureWrapper, UnionWrapper, VtableWrapper classes
-# TODO iterate structures, unions, vtables
-# TODO struct to C representation load/save? save/load it to structdb.sqlite
-# TODO is struct vtable?
-# TODO singletons for types (struct, union, container_member, vtable)
-# TODO CppClass container
-# https://www.hex-rays.com/blog/hex-rays-decompiler-primer/#visitor
-
-'''
-	might help in the future:
-		https://www.hex-rays.com/products/ida/support/idadoc/162.shtml
-		help(idaapi)
-		help(idc)
-		get_struc_idx
-		get_struc_name
-		get_struc_by_idx
-		get_struc_id
-		set_struc_idx
-		add_struc_member
-'''
-# TODO look into ida_struct
-
-
-REUSED_DELIM = '___V'
 
 
 def handle_addstrucmember_ret(ret):
@@ -520,8 +493,20 @@ class VtablesUnion(Union):
 
 class VtableFactory(object):
 	__slots__ = "_created_vtables", "_min_vtbl_size"
+	__instance = None
+	def __new__(cls, *args, **kwargs):
+		if VtableFactory.__instance is not None:
+			return VtableFactory.__instance
+
+		return super().__new__(cls, *args, **kwargs)
+
 	def __init__(self):
-		# TODO parameters
+		if VtableFactory.__instance is not None:
+			return
+
+		super().__init__()
+		VtableFactory.__instance = self
+
 		self._created_vtables : dict[int, Vtable] = {}
 		self._min_vtbl_size = 2
 
