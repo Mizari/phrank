@@ -124,7 +124,19 @@ class FuncWrapper(object):
 		if self.__cfunc is None:
 			# first try creating all cfuncs for calls from here
 			# this way args for called functions will be generated
-			for xr in p_util.get_func_calls_from(self.get_start()):
+			subcalls = set()
+			new_xrefs = set(p_util.get_func_calls_from(self.get_start()))
+			while len(new_xrefs) != 0:
+				xr = new_xrefs.pop()
+				if xr in subcalls:
+					continue
+
+				subcalls.add(xr)
+				new_xrefs.update(p_util.get_func_calls_from(xr))
+
+			subcalls.discard(self.get_start())
+
+			for xr in subcalls:
 				try:
 					_ = get_func_cfunc(xr)
 				except idaapi.DecompilationFailure:
