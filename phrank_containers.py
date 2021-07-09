@@ -405,6 +405,8 @@ class Vtable(Struct):
 			# try to analyze new function here
 			if not idaapi.add_func(value, idaapi.BADADDR):
 				return []
+			else:
+				print("[*] WARNING", "created new function at", hex(value))
 
 		if len([x for x in idautils.XrefsTo(addr)]) == 0:
 			return []
@@ -419,6 +421,8 @@ class Vtable(Struct):
 				# try to analyze new function here
 				if not idaapi.add_func(value, idaapi.BADADDR):
 					break
+				else:
+					print("[*] WARNING", "created new function at", hex(value))
 
 			# normal vtable has only cross reference to its start
 			if len([x for x in idautils.XrefsTo(addr)]) != 0:
