@@ -7,7 +7,6 @@ from typing import Optional
 def get_ptr_var_write_offset(expr):
 	if expr.op == idaapi.cot_idx:
 		if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
-		# if expr.x.opname != "var" or expr.y.opname != "num":
 			return None
 
 		return expr.x.v, expr.y.n._value
@@ -201,28 +200,13 @@ class ThisUsesVisitor(idaapi.ctree_visitor_t):
 		if not self._is_visited: self.visit()
 		return list(self._calls)
 
-	def check_cfunc(self):
-		if self._func.get_cfunc() is None:
-			raise BaseException("Invalid function addr")
-
-		functype = str(self._func.get_tinfo())
-		if "__this" not in functype and "__fastcall" not in functype:
-			fstart = self._func.get_start()
-			fname = idaapi.get_name(fstart)
-			print("[*] WARNING:", "attempting to analyze function with bad type", functype, fname, hex(fstart))
-			return False
-
-		return True
-
 	def visit(self):
 		self._is_visited = True
 
-		if self.check_cfunc():
-			self.apply_to(self._func.get_cfunc().body, None)
+		if self._func.get_cfunc() is None:
+			raise BaseException("Function decompilation failed")
 
-		if len(self._writes) == 0 and len(self._calls) == 0:
-			fname = idaapi.get_name(self._func.get_start())
-			print("[*] WARNING:", "No this uses detected in", fname, hex(self._func.get_start()))
+		self.apply_to(self._func.get_cfunc().body, None)
 
 	def get_max_size(self):
 		if not self._is_visited:
