@@ -120,6 +120,15 @@ class ThisFuncCall:
 
 		self._this_args : dict[int, int] = {}
 
+	def get_nargs(self):
+		return len(self._call_expr.a)
+
+	def get_args(self):
+		return self._call_expr.a
+
+	def get_name(self):
+		return self._func_name
+
 	def set_offset(self, arg_id, offset):
 		self._this_args[arg_id] = offset
 
@@ -181,6 +190,23 @@ class ThisUsesVisitor(idaapi.ctree_visitor_t):
 		self._func = p_func.FuncWrapper(*args, **kwargs)
 		self._is_visited = False
 
+	def clear(self):
+		self._writes.clear()
+		self._calls.clear()
+
+	def print_uses(self):
+		if self._is_visited is False:
+			self.visit()
+
+		for w in self._writes:
+			if w.get_int() is not None:
+				print("write", hex(w.get_offset()), hex(w.get_int()))
+			else:
+				print("write", hex(w.get_offset()), w.get_val().opname)
+
+		for c in self._calls:
+			print("call", c.get_name(), c.get_nargs(), [a.opname for a in c.get_args()])
+
 	def get_writes(self, offset=None, val=None):
 		if not self._is_visited: self.visit()
 
@@ -201,6 +227,7 @@ class ThisUsesVisitor(idaapi.ctree_visitor_t):
 		return list(self._calls)
 
 	def visit(self):
+		self.clear()
 		self._is_visited = True
 
 		if self._func.get_cfunc() is None:
