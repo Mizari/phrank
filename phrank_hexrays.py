@@ -9,7 +9,7 @@ def get_ptr_var_write_offset(expr):
 		if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
 			return None
 
-		return expr.x.v, expr.y.n._value
+		return expr.x.v, expr.y.n._value * expr.x.type.get_size()
 
 	if expr.op == idaapi.cot_ptr:
 		return get_var_offset(expr.x)
