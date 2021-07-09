@@ -402,7 +402,9 @@ class Vtable(Struct):
 	def get_vtable_functions_at_addr(addr):
 		value = p_util.read_ptr(addr)
 		if p_util.get_func_start(value) == idaapi.BADADDR:
-			return []
+			# try to analyze new function here
+			if not idaapi.add_func(value, idaapi.BADADDR):
+				return []
 
 		if len([x for x in idautils.XrefsTo(addr)]) == 0:
 			return []
@@ -413,7 +415,10 @@ class Vtable(Struct):
 		while True:
 			value = p_util.read_ptr(addr)
 			if p_util.get_func_start(value) == idaapi.BADADDR:
-				break
+
+				# try to analyze new function here
+				if not idaapi.add_func(value, idaapi.BADADDR):
+					break
 
 			# normal vtable has only cross reference to its start
 			if len([x for x in idautils.XrefsTo(addr)]) != 0:
