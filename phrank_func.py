@@ -1,5 +1,6 @@
 import idc
 import idaapi
+import phrank_util as p_util
 from typing import Optional
 
 class FuncWrapper(object):
@@ -121,6 +122,14 @@ class FuncWrapper(object):
 
 	def get_cfunc(self):
 		if self.__cfunc is None:
+			# first try creating all cfuncs for calls from here
+			# this way args for called functions will be generated
+			for xr in p_util.get_func_calls_from(self.get_start()):
+				try:
+					_ = get_func_cfunc(xr)
+				except idaapi.DecompilationFailure:
+					pass
+
 			self.__cfunc = idaapi.decompile(self.__func.start_ea)
 			str(self.__cfunc)
 		return self.__cfunc
@@ -148,7 +157,7 @@ def get_func_ptr_tinfo(func_addr):
 def get_func_start(func_addr):
 	return FuncWrapper.get_func_start(addr=func_addr)
 
-def get_cfunc(addr):
+def get_func_cfunc(addr):
 	f = FuncWrapper(addr=addr, noraise=True)
 	if f is None:
 		return None
