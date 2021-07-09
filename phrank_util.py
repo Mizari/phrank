@@ -1,12 +1,21 @@
 import idaapi
 import idautils
+import idc
 
 ptr_size = None
 get_data = None
 
 
 def is_func_import(func_ea):
-	return
+	for segea in idautils.Segments():
+		if idc.get_segm_name(segea) != ".idata":
+			continue
+
+		segstart, segend = idc.get_segm_start(segea), idc.get_segm_end(segea)
+		if func_ea >= segstart and func_ea < segend:
+			return True
+
+	return False
 
 def get_next_available_strucname(strucname):
 	while idaapi.get_struc_id(strucname) != idaapi.BADADDR:
