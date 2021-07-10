@@ -34,23 +34,22 @@ def get_var_offset(expr):
 
 		add_x = expr.x
 		if add_x.op == idaapi.cot_var:
-			return add_x.v, offset
+			var = add_x.v
 
-		if add_x.op != idaapi.cot_cast:
+		elif add_x.op == idaapi.cot_cast and add_x.x.op == idaapi.cot_var:
+			var = add_x.x.v
+
+		else:
 			return None
 
 		cast_type = add_x.type
-		cast_expr = add_x.x
-		if cast_expr.op != idaapi.cot_var:
-			return None
-
 		if cast_type.is_ptr():
 			sz = cast_type.get_pointed_object().get_size()
 			if sz == idaapi.BADSIZE: 
 				raise BaseException("Failed to get object's size")
-			return cast_expr.v, offset * sz
+			return var, offset * sz
 
-		print(cast_expr.opname, expr.y.opname, cast_type.is_ptr())
+		print(add_x.opname, add_x.type, expr.y.opname)
 		raise BaseException("Not implemented: should change offset according to cast type")
 
 	else:
