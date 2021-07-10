@@ -438,6 +438,8 @@ class CppClassFactory(object):
 	def create_classes(self):
 		for cdtor in self._cctx.cdtors():
 			self.analyze_cdtor(cdtor)
+
+		for cdtor in self._cctx.cdtors():
 			self.create_class_per_cdtor(cdtor)
 		self.analyze_unfinished_cdtors()
 
