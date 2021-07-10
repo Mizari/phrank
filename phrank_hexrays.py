@@ -42,8 +42,8 @@ def get_var_offset(expr):
 		else:
 			return None
 
-		if op_x.is_ptr():
-			sz = op_x.get_pointed_object().get_size()
+		if op_x.type.is_ptr():
+			sz = op_x.type.get_pointed_object().get_size()
 			if sz == idaapi.BADSIZE: 
 				raise BaseException("Failed to get object's size")
 			offset = offset * sz
