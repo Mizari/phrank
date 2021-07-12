@@ -1,3 +1,4 @@
+from phrank import main
 import idaapi
 import idautils
 import idc
@@ -315,6 +316,10 @@ class CDtor(object):
 			if main_vtable is None:
 				continue
 
+			# only analyze first vtbl write for doubling vtbls
+			if main_vtable in main_vtables.values():
+				continue
+
 			main_vtables[offset] = main_vtable
 		return main_vtables
 
@@ -453,8 +458,16 @@ class CppClassFactory(object):
 		for cdtor in self._cctx.cdtors():
 			self.analyze_cdtor(cdtor)
 
+		# first analyze constructors, because destructors might need
+		# information about classes in case negative offsets are used
 		for cdtor in self._cctx.cdtors():
-			self.create_class_per_cdtor(cdtor)
+			if cdtor._is_ctor:
+				self.create_class_per_cdtor(cdtor)
+
+		for cdtor in self._cctx.cdtors():
+			if not cdtor._is_ctor:
+				self.create_class_per_cdtor(cdtor)
+
 		self.analyze_unfinished_cdtors()
 
 	def analyze_cdtor(self, cdtor: CDtor):
@@ -486,22 +499,38 @@ class CppClassFactory(object):
 		return cpp_class
 
 	def create_class_per_cdtor(self, cdtor: CDtor):
+		tuv = p_hrays.ThisUsesVisitor(addr=cdtor.get_ea())
+		min_offset = min([write.get_offset() for write in tuv.get_writes()])
+		if min_offset < 0 and cdtor._is_ctor:
+			raise BaseException("Negative offset found in constructor")
+
 		main_vtables = cdtor.get_main_vtables()
 		if len(main_vtables) == 0:
 			return
 
-		cpp_classes = set(filter(None, [v._cpp_class for v in main_vtables.values()]))
+		cpp_classes = set()
+		distances = set()
+		for offset, vtbl in main_vtables.items():
+			if vtbl._cpp_class is None: continue
+			cpp_classes.add(vtbl._cpp_class)
+			distances.add(offset - vtbl._cpp_class_offset)
+
+		if len(distances) > 1:
+			cname = idaapi.get_name(cdtor.get_ea())
+			raise BaseException("Several distances found in " + cname)
+
 		if len(cpp_classes) == 0:
+			distance = 0
 			cpp_class = self.create_cpp_class()
 		elif len(cpp_classes) == 1:
+			distance = next(iter(distances))
 			cpp_class = next(iter(cpp_classes))
 		else:
 			raise BaseException("Several classes for one vtable conflicting")
 
 		for offset, vtbl in main_vtables.items():
-			if vtbl._cpp_class is not None: continue
-			cpp_class.add_vtable(offset, vtbl)
-			vtbl.set_class_offset(cpp_class, offset)
+			cpp_class.add_vtable(offset - distance, vtbl)
+			vtbl.set_class_offset(cpp_class, offset - distance)
 
 		cpp_class.add_cdtor(cdtor)
 		cdtor.set_class(cpp_class)
