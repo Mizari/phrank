@@ -141,12 +141,14 @@ class ThisFuncCall:
 
 		offset = self.get_offset(arg_id)
 		if offset is None:
-			return
-		
-		if idaapi.get_func(self._func_ea) is None:
 			return 0
 
+		# cant look into imported funcs, assume that args are somehow used there
 		if p_util.is_func_import(self._func_ea):
+			return 1
+
+		if idaapi.get_func(self._func_ea) is None:
+			print("no ea func", self._func_name)
 			return 0
 
 		return ThisUsesVisitor(addr=self._func_ea).get_max_size()
@@ -202,7 +204,7 @@ class ThisUsesVisitor(idaapi.ctree_visitor_t):
 				print("write", hex(w.get_offset()), w.get_val().opname)
 
 		for c in self._calls:
-			print("call", c.get_name(), c.get_nargs(), [a.opname for a in c.get_args()])
+			print("call", c.get_name(), hex(c.get_offset(0)), c.get_nargs(), c.get_arg_use_size(0), [a.opname for a in c.get_args()])
 
 	def get_writes(self, offset=None, val=None):
 		if not self._is_visited: self.visit()
