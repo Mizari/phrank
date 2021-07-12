@@ -304,6 +304,20 @@ class CDtor(object):
 				self._vtbl_writes[int_write.get_offset()] = l
 			l.append(vtbl)
 
+	def get_main_vtables(self):
+		main_vtables: dict[int, CppVtable] = {}
+		for offset, vtbls in self.vtbl_writes():
+			if len(vtbls) == 1:  main_vtable = vtbls[0]
+			elif self._is_ctor: main_vtable = vtbls[-1]
+			elif self._is_dtor: main_vtable = vtbls[0]
+			else:                main_vtable = None
+
+			if main_vtable is None:
+				continue
+
+			main_vtables[offset] = main_vtable
+		return main_vtables
+
 	def is_unfinished(self):
 		return not(self._is_ctor or self._is_dtor)
 
@@ -443,7 +457,7 @@ class CppClassFactory(object):
 			self.create_class_per_cdtor(cdtor)
 		self.analyze_unfinished_cdtors()
 
-	def analyze_cdtor(self, cdtor):
+	def analyze_cdtor(self, cdtor: CDtor):
 		offset0_vtbls = cdtor.get_vtbl_writes(0)
 		if len(offset0_vtbls) != 0:
 			vtable0 = offset0_vtbls[0]
@@ -464,34 +478,25 @@ class CppClassFactory(object):
 		if cdtor._is_dtor and cdtor._is_ctor:
 			raise BaseException("Function is both ctor and dtor")
 
-	def create_class_per_cdtor(self, cdtor):
-		main_vtables = {}
-		for offset, vtbls in cdtor.vtbl_writes():
-			if len(vtbls) == 1:  main_vtable = vtbls[0]
-			elif cdtor._is_ctor: main_vtable = vtbls[-1]
-			elif cdtor._is_dtor: main_vtable = vtbls[0]
-			else:                main_vtable = None
+	def create_cpp_class(self):
+		class_name = "cpp_class_" + str(len(self._created_classes))
+		class_name = p_util.get_next_available_strucname(class_name)
+		cpp_class = CppClass(name=class_name)
+		self._created_classes.append(cpp_class)
+		return cpp_class
 
-			if main_vtable is None:
-				continue
-
-			main_vtables[offset] = main_vtable
-
+	def create_class_per_cdtor(self, cdtor: CDtor):
+		main_vtables = cdtor.get_main_vtables()
 		if len(main_vtables) == 0:
 			return
 
 		cpp_classes = set(filter(None, [v._cpp_class for v in main_vtables.values()]))
-		if len(cpp_classes) > 1:
-			raise BaseException("Several classes for one vtable conflicting")
-
-		cpp_class = None
-		if len(cpp_classes) == 1:
+		if len(cpp_classes) == 0:
+			cpp_class = self.create_cpp_class()
+		elif len(cpp_classes) == 1:
 			cpp_class = next(iter(cpp_classes))
-		if cpp_class is None:
-			class_name = "cpp_class_" + str(len(self._created_classes))
-			class_name = p_util.get_next_available_strucname(class_name)
-			cpp_class = CppClass(name=class_name)
-			self._created_classes.append(cpp_class)
+		else:
+			raise BaseException("Several classes for one vtable conflicting")
 
 		for offset, vtbl in main_vtables.items():
 			if vtbl._cpp_class is not None: continue
