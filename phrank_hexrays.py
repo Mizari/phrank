@@ -80,11 +80,15 @@ def get_int(expr):
 
 	return None
 
-class ThisWrite:
-	__slots__ = "_offset", "_val"
-	def __init__(self, val, offset):
+class VarPtrWrite:
+	__slots__ = "_offset", "_var", "_val"
+	def __init__(self, var, val, offset):
+		self._var = var
 		self._offset : Optional[int] = offset
 		self._val : Optional[idaapi.cexpr_t] = val
+
+	def get_var(self):
+		return self._var
 
 	def get_offset(self):
 		return self._offset
@@ -111,7 +115,7 @@ class ThisWrite:
 			raise BaseException("Failed to get write size " + self._val.opname)
 		return sz
 
-class ThisFuncCall:
+class FuncCall:
 	__slots__ = "_call_expr", "_func_ea", "_func_name", "_this_args"
 	def __init__(self, call_expr):
 		self._call_expr : idaapi.cexpr_t = call_expr
@@ -135,13 +139,14 @@ class ThisFuncCall:
 	def get_name(self):
 		return self._func_name
 
-	def set_offset(self, arg_id, offset):
-		self._this_args[arg_id] = offset
+	def get_arg_var_offset(self, arg_id):
+		if len(self._call_expr.a) <= arg_id:
+			return None
 
-	def get_offset(self, arg_id):
-		return self._this_args.get(arg_id, None)
+		arg_expr = self._call_expr.a[arg_id]
+		return get_var_offset(arg_expr)
 
-	def get_arg_use_size(self, arg_id):
+	def get_arg_use_size(self, arg_id=0):
 		if arg_id == 0:
 			if self._func_name in ARRAY_FUNCS:
 				arg2 = self._call_expr.a[2]
@@ -159,21 +164,16 @@ class ThisFuncCall:
 		elif self._func_ea == idaapi.BADADDR:
 			return 0
 
-		offset = self.get_offset(arg_id)
-		if offset is None:
-			return 0
-
 		# cant look into imported funcs, assume that args are somehow used there
 		if p_util.is_func_import(self._func_ea):
 			return 1
 
 		if idaapi.get_func(self._func_ea) is None:
-			print("no ea func", self._func_name)
 			return 0
 
-		return ThisUsesVisitor(addr=self._func_ea).get_max_size()
+		return FuncAnalysisVisitor(addr=self._func_ea).get_arg_use_size(arg_id)
 
-class ThisUsesVisitor(idaapi.ctree_visitor_t):
+class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 	__slots__ = "_writes", "_calls", "_func", "_is_visited"
 	_instances = {}
 
@@ -182,7 +182,7 @@ class ThisUsesVisitor(idaapi.ctree_visitor_t):
 		if addr is None:
 			raise BaseException("Failed to get function start")
 
-		o = ThisUsesVisitor._instances.get(addr, None)
+		o = FuncAnalysisVisitor._instances.get(addr, None)
 		if o is None:
 			o = super().__new__(cls)
 		return o
@@ -193,12 +193,12 @@ class ThisUsesVisitor(idaapi.ctree_visitor_t):
 			raise BaseException("Failed to get function start")
 
 		# skip init if object was already inited
-		if ThisUsesVisitor._instances.get(addr, None) is not None: return
-		ThisUsesVisitor._instances[addr] = self
+		if FuncAnalysisVisitor._instances.get(addr, None) is not None: return
+		FuncAnalysisVisitor._instances[addr] = self
 
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
-		self._writes : list[ThisWrite] = []
-		self._calls : list[ThisFuncCall] = []
+		self._writes : list[VarPtrWrite] = []
+		self._calls : list[FuncCall] = []
 		self._func = p_func.FuncWrapper(*args, **kwargs)
 		self._is_visited = False
 
@@ -247,25 +247,6 @@ class ThisUsesVisitor(idaapi.ctree_visitor_t):
 
 		self.apply_to(self._func.get_cfunc().body, None)
 
-	def get_max_size(self):
-		if not self._is_visited:
-			self.visit()
-
-		if len(self._writes) == 0:
-			max_write_sz = 0
-		else:
-			max_write_sz = max([x.get_offset() + x.get_write_size() for x in self._writes])
-
-		max_func_sz = 0
-		for func_call in self._calls:
-			offset = func_call.get_offset(0)
-			if offset is None:
-				continue
-			call_sz = func_call.get_arg_use_size(0)
-			if offset + call_sz > max_func_sz:
-				max_func_sz = offset + call_sz
-		return max(0, max_write_sz, max_func_sz) # zero in case only negative offsets are found
-
 	def visit_expr(self, expr):
 		if expr.op == idaapi.cot_asg:
 			rv = self.handle_assignment(expr)
@@ -276,39 +257,82 @@ class ThisUsesVisitor(idaapi.ctree_visitor_t):
 
 		return 0
 
+	def get_arg_use_size(self, arg_id=0):
+		if not self._is_visited:
+			self.visit()
+
+		use_var = self.get_arg_var(arg_id)
+
+		max_write_sz = 0
+		for w in self._writes:
+			if w.get_var() != use_var:
+				continue
+			write_sz = w.get_offset() + w.get_write_size()
+			if write_sz > max_write_sz:
+				max_write_sz = write_sz
+
+		max_func_sz = 0
+		for func_call in self._calls:
+			var_offset = func_call.get_arg_var_offset(arg_id)
+			if var_offset is None:
+				continue
+			var_ref, offset = var_offset
+			arg_var = self.get_var(var_ref)
+			if arg_var != use_var:
+				continue
+
+			call_sz = func_call.get_arg_use_size(arg_id)
+			if offset + call_sz > max_func_sz:
+				max_func_sz = offset + call_sz
+		return max(0, max_write_sz, max_func_sz) # zero in case only negative offsets are found
+
+	def get_arg_var(self, arg_id):
+		return self._func.get_cfunc().arguments[arg_id]
+
 	def get_var(self, var_ref):
 		return self._func.get_cfunc().lvars[var_ref.idx]
 
-	def check_var(self, var):
-		return var == self._func.get_cfunc().arguments[0]
-
 	def handle_call(self, expr):
-		tfc = ThisFuncCall(call_expr=expr)
-		for arg_id, arg in enumerate(expr.a):
-			var_offset = get_var_offset(arg)
-			if var_offset is None:
-				continue
-
-			var_ref, offset = var_offset
-			var = self.get_var(var_ref)
-			if not self.check_var(var):
-				continue
-
-			tfc.set_offset(arg_id, offset)
-
-		self._calls.append(tfc)
+		fc = FuncCall(call_expr=expr)
+		self._calls.append(fc)
 		return True
 
 	def handle_assignment(self, expr):
 		var_offset = get_ptr_var_write_offset(expr.x)
 		if var_offset is None:
 			return False
-		
-		var_ref, offset = var_offset
-		var = self._func.get_cfunc().lvars[var_ref.idx]
-		if var != self._func.get_cfunc().arguments[0]:
-			return False
 
-		w = ThisWrite(expr.y, offset)
+		var_ref, offset = var_offset
+		var = self.get_var(var_ref)
+		w = VarPtrWrite(var, expr.y, offset)
 		self._writes.append(w)
 		return True
+
+class ThisUsesVisitor(FuncAnalysisVisitor):
+	__slots__ = "_this_var"
+
+	def __new__(cls, *args, **kwargs):
+		addr = p_func.FuncWrapper(*args, **kwargs).get_start()
+		if addr is None:
+			raise BaseException("Failed to get function start")
+
+		o = ThisUsesVisitor._instances.get(addr, None)
+		if o is None:
+			o = super().__new__(cls, *args, **kwargs)
+		return o
+
+	def __init__(self, *args, **kwargs):
+		addr = p_func.FuncWrapper(*args, **kwargs).get_start()
+		if addr is None:
+			raise BaseException("Failed to get function start")
+
+		# skip init if object was already inited
+		if ThisUsesVisitor._instances.get(addr, None) is not None: return
+		super().__init__(*args, **kwargs)
+		ThisUsesVisitor._instances[addr] = self
+
+		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
+		self._this_var = self._func.get_cfunc().arguments[0]
+
+	def check_var(self, var):
+		return var == self._this_var

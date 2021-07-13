@@ -1,4 +1,3 @@
-from phrank import main
 import idaapi
 import idautils
 import idc
@@ -573,7 +572,7 @@ class CppClassFactory(object):
 
 	def analyze_class_sizes(self):
 		for cpp_class in self._created_classes:
-			sizes = [p_hrays.ThisUsesVisitor(addr=cdtor.get_ea()).get_max_size() for cdtor in cpp_class._cdtors]
+			sizes = [p_hrays.ThisUsesVisitor(addr=cdtor.get_ea()).get_arg_use_size() for cdtor in cpp_class._cdtors]
 			new_class_sz = max(sizes)
 			cpp_class.resize(new_class_sz)
 
@@ -593,7 +592,7 @@ class CppClassFactory(object):
 
 		self.set_vtables()
 
-	def analyze_cdtor_inheritance(self, cpp_class, cdtor):
+	def analyze_cdtor_inheritance(self, cpp_class: CppClass, cdtor: CDtor):
 		for offset, vtbls in cdtor.vtbl_writes():
 			for vtbl in vtbls:
 				if vtbl == cpp_class.get_vtable(offset):
@@ -610,7 +609,8 @@ class CppClassFactory(object):
 				cpp_class.add_parent(offset, parent)
 				parent.add_child(cpp_class)
 
-		for func_call in p_hrays.ThisUsesVisitor(addr=cdtor.get_ea()).get_calls():
+		tuv = p_hrays.ThisUsesVisitor(addr=cdtor.get_ea())
+		for func_call in tuv.get_calls():
 			parent_cdtor = self._cctx.get_cdtor(func_call._func_ea)
 			if parent_cdtor is None:
 				continue
@@ -619,11 +619,16 @@ class CppClassFactory(object):
 			if parent is None:
 				continue
 
-			this_offset = func_call.get_offset(0)
-			if this_offset is None:
+			var_offset = func_call.get_arg_var_offset(0)
+			if var_offset is None:
 				continue
 
-			cpp_class.add_parent(this_offset, parent)
+			var_ref, offset = var_offset
+			var = tuv.get_var(var_ref)
+			if var != tuv.get_arg_var(0):
+				continue
+
+			cpp_class.add_parent(offset, parent)
 			parent.add_child(cpp_class)
 
 	def print_unfinished(self):
