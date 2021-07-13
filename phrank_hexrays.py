@@ -4,6 +4,18 @@ import phrank_func as p_func
 from typing import Optional
 
 
+ARRAY_FUNCS = {"qmemcpy", "memcpy", "strncpy", "memset", "memmove", "strncat", "strncmp"}
+ARRAY_FUNCS.update(['_' + s for s in ARRAY_FUNCS])
+
+WARRAY_FUNCS = {"wcsncat", "wcsncpy"}
+WARRAY_FUNCS.update(['_' + s for s in WARRAY_FUNCS])
+
+PRINTF_FUNCS = {"vsnprintf", "snprintf"}
+PRINTF_FUNCS.update(['_' + s for s in PRINTF_FUNCS])
+
+HELPER_FUNCS = {"LOWORD", "HIWORD", "LOBYTE"}
+
+
 def get_ptr_var_write_offset(expr):
 	if expr.op == idaapi.cot_idx:
 		if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
@@ -99,9 +111,6 @@ class ThisWrite:
 			raise BaseException("Failed to get write size " + self._val.opname)
 		return sz
 
-ARRAY_SET_FUNCS = {"qmemcpy", "memcpy", "strncpy", "memset"}
-ARRAY_SET_FUNCS.update(['_' + s for s in ARRAY_SET_FUNCS])
-HELPER_FUNCS = {"LOWORD", "HIWORD", "LOBYTE"}
 class ThisFuncCall:
 	__slots__ = "_call_expr", "_func_ea", "_func_name", "_this_args"
 	def __init__(self, call_expr):
@@ -133,8 +142,19 @@ class ThisFuncCall:
 		return self._this_args.get(arg_id, None)
 
 	def get_arg_use_size(self, arg_id):
-		if self._func_name in ARRAY_SET_FUNCS:
-			return self.handle_array_funcs()
+		if arg_id == 0:
+			if self._func_name in ARRAY_FUNCS:
+				arg2 = self._call_expr.a[2]
+				if arg2.op == idaapi.cot_num:
+					return arg2.n._value
+			elif self._func_name in WARRAY_FUNCS:
+				arg2 = self._call_expr.a[2]
+				if arg2.op == idaapi.cot_num:
+					return arg2.n._value * 2
+			elif self._func_name in PRINTF_FUNCS:
+				arg2 = self._call_expr.a[1]
+				if arg2.op == idaapi.cot_num:
+					return arg2.n._value
 
 		elif self._func_ea == idaapi.BADADDR:
 			return 0
@@ -152,13 +172,6 @@ class ThisFuncCall:
 			return 0
 
 		return ThisUsesVisitor(addr=self._func_ea).get_max_size()
-
-	def handle_array_funcs(self):
-		arg2 = self._call_expr.a[2]
-		if arg2.op == idaapi.cot_num:
-			return arg2.n._value
-		return 0
-
 
 class ThisUsesVisitor(idaapi.ctree_visitor_t):
 	__slots__ = "_writes", "_calls", "_func", "_is_visited"
