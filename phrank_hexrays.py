@@ -16,7 +16,24 @@ PRINTF_FUNCS.update(['_' + s for s in PRINTF_FUNCS])
 HELPER_FUNCS = {"LOWORD", "HIWORD", "LOBYTE"}
 
 
-def get_ptr_var_write_offset(expr):
+def get_var_write(expr):
+	if expr.op == idaapi.cot_var:
+		return expr.v
+
+	if expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
+		func = expr.x.helper
+		if func in HELPER_FUNCS:
+			arg0 = expr.a[0]
+			if arg0.op == idaapi.cot_var:
+				return arg0.v
+
+	if expr.op == idaapi.cot_ptr and expr.x.op == idaapi.cot_cast:
+		if expr.x.x.op == idaapi.cot_ref and expr.x.x.x.op == idaapi.cot_var:
+			return expr.x.x.x.v
+
+	return None
+
+def get_varptr_write_offset(expr):
 	if expr.op == idaapi.cot_idx:
 		if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
 			return None
@@ -79,6 +96,18 @@ def get_int(expr):
 		return expr.n._value
 
 	return None
+
+class VarWrite:
+	__slots__ = "_var", "_val"
+	def __init__(self, var, val):
+		self._var = var
+		self._val = val
+
+	def get_var(self):
+		return self._var
+
+	def get_val(self):
+		return self._val
 
 class VarPtrWrite:
 	__slots__ = "_offset", "_var", "_val"
@@ -197,20 +226,22 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 		FuncAnalysisVisitor._instances[addr] = self
 
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
-		self._writes : list[VarPtrWrite] = []
+		self._varptr_writes : list[VarPtrWrite] = []
+		self._var_writes: list[VarWrite] = []
 		self._calls : list[FuncCall] = []
 		self._func = p_func.FuncWrapper(*args, **kwargs)
 		self._is_visited = False
 
 	def clear(self):
-		self._writes.clear()
+		self._var_writes.clear()
+		self._varptr_writes.clear()
 		self._calls.clear()
 
 	def print_uses(self):
 		if self._is_visited is False:
 			self.visit()
 
-		for w in self._writes:
+		for w in self._varptr_writes:
 			if w.get_int() is not None:
 				print("write", hex(w.get_offset()), hex(w.get_int()))
 			else:
@@ -222,9 +253,9 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 	def get_writes(self, offset=None, val=None):
 		if not self._is_visited: self.visit()
 
-		rv = self._writes
+		rv = self._varptr_writes
 		if offset is not None:
-			rv = [w for w in self._writes if w.get_offset() == offset]
+			rv = [w for w in self._varptr_writes if w.get_offset() == offset]
 
 		if val is not None:
 			rv = [w for w in rv if w.get_val() == val]
@@ -264,7 +295,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 		use_var = self.get_arg_var(arg_id)
 
 		max_write_sz = 0
-		for w in self._writes:
+		for w in self._varptr_writes:
 			if w.get_var() != use_var:
 				continue
 			write_sz = w.get_offset() + w.get_write_size()
@@ -298,15 +329,22 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 		return True
 
 	def handle_assignment(self, expr):
-		var_offset = get_ptr_var_write_offset(expr.x)
-		if var_offset is None:
-			return False
+		var_offset = get_varptr_write_offset(expr.x)
+		if var_offset is not None:
+			var_ref, offset = var_offset
+			var = self.get_var(var_ref)
+			w = VarPtrWrite(var, expr.y, offset)
+			self._varptr_writes.append(w)
+			return True
 
-		var_ref, offset = var_offset
-		var = self.get_var(var_ref)
-		w = VarPtrWrite(var, expr.y, offset)
-		self._writes.append(w)
-		return True
+		var = get_var_write(expr.x)
+		if var is not None:
+			w = VarWrite(var, expr.y)
+			self._var_writes.append(w)
+			return True
+
+		return False
+
 
 class ThisUsesVisitor(FuncAnalysisVisitor):
 	__slots__ = "_this_var"
