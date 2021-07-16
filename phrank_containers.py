@@ -432,7 +432,7 @@ class Vtable(Struct):
 
 		not_addrs = set(not_addrs)
 		# create maximum one function
-		if len(not_addrs) != 1:
+		if len(not_addrs) != 1 or len(addrs) == 0:
 			return []
 
 		potential_func = not_addrs.pop()
