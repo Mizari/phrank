@@ -410,8 +410,13 @@ class CppClassFactory(object):
 
 	def undo(self):
 		print("[*] INFO:", "undoing")
+
 		for (funcea, arg_id), original_func_type in self._original_func_types.items():
-			p_func.set_func_argvar_type(funcea, arg_id, original_func_type)
+			try:
+				p_func.set_func_argvar_type(funcea, arg_id, original_func_type)
+			except idaapi.DecompilationFailure:
+				args = (idaapi.get_name(funcea), "skipping reverting arg type to", original_func_type)
+				print("[*] WARNING", "failed to decompile function", *args)
 
 		for v in self._vtable_factory.get_vtables():
 			v.delete()
@@ -723,5 +728,9 @@ class CppClassFactory(object):
 			return
 
 		original_func_arg = p_func.get_func_arg_type(func, 0)
-		p_func.set_func_argvar_type(func, 0, new_arg_tinfo)
-		self._original_func_types[(func, 0)] = original_func_arg
+		try:
+			p_func.set_func_argvar_type(func, 0, new_arg_tinfo)
+			self._original_func_types[(func, 0)] = original_func_arg
+		except idaapi.DecompilationFailure:
+			args = (idaapi.get_name(func), "skipping this arg changing to", new_arg_tinfo)
+			print("[*] WARNING", "failed to decompile function", *args)

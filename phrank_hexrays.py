@@ -273,10 +273,10 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 		self.clear()
 		self._is_visited = True
 
-		if self._func.get_cfunc() is None:
-			raise BaseException("Function decompilation failed")
-
-		self.apply_to(self._func.get_cfunc().body, None)
+		try:
+			self.apply_to(self._func.get_cfunc().body, None)
+		except idaapi.DecompilationFailure:
+			print("[*] WARNING", "failed to decompile function", idaapi.get_name(self._func.get_start()), "aborting analysis")
 
 	def visit_expr(self, expr):
 		if expr.op == idaapi.cot_asg:
