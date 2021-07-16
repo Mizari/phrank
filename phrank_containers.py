@@ -400,6 +400,10 @@ class Vtable(Struct):
 
 	@staticmethod
 	def get_vtable_functions_at_addr(addr):
+		# TODO get list of ptrs inbetween xrefs
+		# TODO get list of ptrs that are idaapi.is_loaded (idaapi.is_mapped?)
+		# TODO get list of get_func_starts (mb try to expand it with add_func)
+
 		value = p_util.read_ptr(addr)
 		if p_util.get_func_start(value) == idaapi.BADADDR:
 			# try to analyze new function here
@@ -531,7 +535,7 @@ class VtableFactory(object):
 		kwargs["name"] = vtbl_name
 		return Vtable(*args, **kwargs)
 
-	def create_all_vtables(self):
+	def iterate_candidates(self):
 		for segea in idautils.Segments():
 			if idc.get_segm_name(segea) != ".data":
 				continue
@@ -543,7 +547,11 @@ class VtableFactory(object):
 				if len(vfcs) < self._min_vtbl_size:
 					it_ea += ptr_size
 					continue
-
-				vtbl = self.create_vtable(addr=it_ea, vtbl_vuncs=vfcs, do_not_set_data=True)
-				self._created_vtables[it_ea] = vtbl
+			
+				yield it_ea, vfcs
 				it_ea += len(vfcs) * ptr_size
+
+	def create_all_vtables(self):
+		for vtbl_ea, vtbl_funcs in self.iterate_candidates():
+			vtbl = self.create_vtable(addr=vtbl_ea, vtbl_vuncs=vtbl_funcs, do_not_set_data=True)
+			self._created_vtables[vtbl_ea] = vtbl

@@ -126,7 +126,17 @@ class CppVtableFactory(p_cont.VtableFactory):
 			new_name = p_util.get_next_available_strucname(new_name)
 			vtbl.rename(new_name)
 			vid += 1
-		
+
+	def iterate_candidates(self):
+		def get_n_callers(func, vea):
+			fuv = p_hrays.ThisUsesVisitor(addr=func)
+			return fuv.get_int_writes(val=vea)
+
+		for vtbl_ea, vtbl_funcs in super().iterate_candidates():
+			callers = p_util.get_func_calls_to(vtbl_ea)
+			if any([len(get_n_callers(f, vtbl_ea)) != 0 for f in callers]):
+				yield vtbl_ea, vtbl_funcs
+
 	def create_vtable(self, *args, **kwargs):
 		vtbl_name = "cpp_vtable_" + str(len(self._created_vtables))
 		vtbl_name = p_util.get_next_available_strucname(vtbl_name)
@@ -501,7 +511,7 @@ class CppClassFactory(object):
 		tuv = p_hrays.ThisUsesVisitor(addr=cdtor.get_ea())
 		min_offset = min([write.get_offset() for write in tuv.get_writes()])
 		if min_offset < 0 and cdtor._is_ctor:
-			raise BaseException("Negative offset found in constructor")
+			raise BaseException("Negative offset found in constructor " + idaapi.get_name(cdtor.get_ea()))
 
 		main_vtables = cdtor.get_main_vtables()
 		if len(main_vtables) == 0:
