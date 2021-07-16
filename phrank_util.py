@@ -6,6 +6,16 @@ ptr_size = None
 get_data = None
 
 
+def split_list(l, cond):
+	on_true = []
+	on_false = []
+	for i in l:
+		if cond(i):
+			on_true.append(i)
+		else:
+			on_false.append(i)
+	return on_true, on_false
+
 def is_func_import(func_ea):
 	for segea in idautils.Segments():
 		if idc.get_segm_name(segea) != ".idata":

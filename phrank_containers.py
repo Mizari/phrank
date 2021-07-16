@@ -399,42 +399,48 @@ class Vtable(Struct):
 		return True
 
 	@staticmethod
-	def get_vtable_functions_at_addr(addr):
+	def get_vtable_functions_at_addr(addr, minsize=1):
 		# TODO get list of ptrs inbetween xrefs
 		# TODO get list of ptrs that are idaapi.is_loaded (idaapi.is_mapped?)
 		# TODO get list of get_func_starts (mb try to expand it with add_func)
 
-		value = p_util.read_ptr(addr)
-		if p_util.get_func_start(value) == idaapi.BADADDR:
-			# try to analyze new function here
-			if not idaapi.add_func(value, idaapi.BADADDR):
-				return []
-			else:
-				print("[*] WARNING", "created new function at", hex(value))
-
+		# vtable should at least have on xref, vtable should be used somewhere
 		if len([x for x in idautils.XrefsTo(addr)]) == 0:
 			return []
 
 		ptr_size = p_util.get_ptr_size()
+		ptrs = [p_util.read_ptr(addr)]
 		addr += ptr_size
-		funcs = [value]
 		while True:
-			value = p_util.read_ptr(addr)
-			if p_util.get_func_start(value) == idaapi.BADADDR:
-
-				# try to analyze new function here
-				if not idaapi.add_func(value, idaapi.BADADDR):
-					break
-				else:
-					print("[*] WARNING", "created new function at", hex(value))
-
-			# normal vtable has only cross reference to its start
+			# on next xref next vtable starts, vtables are used as pointers only
 			if len([x for x in idautils.XrefsTo(addr)]) != 0:
 				break
 
-			funcs.append(value)
+			ptr = p_util.read_ptr(addr)
+			if not idaapi.is_loaded(ptr):
+				break
+
+			ptrs.append(ptr)
 			addr += ptr_size
-		return funcs
+
+		if len(ptrs) < minsize:
+			return []
+
+		addrs, not_addrs = p_util.split_list(ptrs, lambda x: p_util.get_func_start(x) == x)
+		if len(addrs) == len(ptrs):
+			return ptrs
+
+		not_addrs = set(not_addrs)
+		# create maximum one function
+		if len(not_addrs) != 1:
+			return []
+
+		potential_func = not_addrs.pop()
+		if idaapi.add_func(potential_func, idaapi.BADADDR):
+			print("[*] WARNING", "created new function at", hex(potential_func))
+			return ptrs
+
+		return []
 
 	@staticmethod
 	def calculate_vtable_size(addr):
@@ -537,19 +543,21 @@ class VtableFactory(object):
 
 	def iterate_candidates(self):
 		for segea in idautils.Segments():
-			if idc.get_segm_name(segea) != ".data":
+			segstart = idc.get_segm_start(segea)
+			segend = idc.get_segm_end(segea)
+			yield from self.iterate_segment_candidates(segstart, segend)
+
+	def iterate_segment_candidates(self, segstart, segend):
+		ptr_size = p_util.get_ptr_size()
+		it_ea = segstart
+		while it_ea < segend:
+			vfcs = Vtable.get_vtable_functions_at_addr(it_ea, minsize=self._min_vtbl_size)
+			if len(vfcs) == 0:
+				it_ea += ptr_size
 				continue
 
-			ptr_size = p_util.get_ptr_size()
-			it_ea, segend = idc.get_segm_start(segea), idc.get_segm_end(segea)
-			while it_ea < segend:
-				vfcs = Vtable.get_vtable_functions_at_addr(it_ea)
-				if len(vfcs) < self._min_vtbl_size:
-					it_ea += ptr_size
-					continue
-			
-				yield it_ea, vfcs
-				it_ea += len(vfcs) * ptr_size
+			yield it_ea, vfcs
+			it_ea += len(vfcs) * ptr_size
 
 	def create_all_vtables(self):
 		for vtbl_ea, vtbl_funcs in self.iterate_candidates():
