@@ -632,15 +632,6 @@ class CppClassFactory(object):
 			if parent is None:
 				continue
 
-			var_offset = func_call.get_arg_var_offset(0)
-			if var_offset is None:
-				continue
-
-			var_ref, offset = var_offset
-			var = tuv.get_var(var_ref)
-			if var != tuv.get_arg_var(0):
-				continue
-
 			cpp_class.add_parent(offset, parent)
 			parent.add_child(cpp_class)
 
