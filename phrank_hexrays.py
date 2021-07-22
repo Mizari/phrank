@@ -347,30 +347,47 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 
 
 class ThisUsesVisitor(FuncAnalysisVisitor):
-	__slots__ = "_this_var"
-
-	def __new__(cls, *args, **kwargs):
-		addr = p_func.FuncWrapper(*args, **kwargs).get_start()
-		if addr is None:
-			raise BaseException("Failed to get function start")
-
-		o = ThisUsesVisitor._instances.get(addr, None)
-		if o is None:
-			o = super().__new__(cls, *args, **kwargs)
-		return o
+	__slots__ = "_this_var", "_fav"
 
 	def __init__(self, *args, **kwargs):
 		addr = p_func.FuncWrapper(*args, **kwargs).get_start()
 		if addr is None:
 			raise BaseException("Failed to get function start")
 
-		# skip init if object was already inited
-		if ThisUsesVisitor._instances.get(addr, None) is not None: return
-		super().__init__(*args, **kwargs)
-		ThisUsesVisitor._instances[addr] = self
+		self._fav = FuncAnalysisVisitor(*args, **kwargs)
+		self._this_var_offsets = {}
+		this_var = self._fav.get_arg_var(0)
+		self._this_var_offsets[this_var] = 0
 
-		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
-		self._this_var = self._func.get_cfunc().arguments[0]
+	def get_this_offset(self, var):
+		return self._this_var_offsets.get(var, None)
 
 	def check_var(self, var):
-		return var == self._this_var
+		return self.get_this_offset(var) != 0
+
+	def check_write(self, write):
+		var = write.get_var()
+		return self.check_var(var)
+
+	def get_writes(self, offset=None, val=None):
+		writes = self._fav.get_writes(offset, val)
+		return [w for w in writes if self.check_write(w)]
+
+	def get_int_writes(self, offset=None, val=None):
+		writes = self._fav.get_int_writes(offset, val)
+		return [w for w in writes if self.check_write(w)]
+
+	def get_calls(self):
+		calls = []
+		for func_call in self._fav.get_calls():
+			var_offset = func_call.get_arg_var_offset(0)
+			if var_offset is None:
+				continue
+
+			var_ref, offset = var_offset
+			var = self._fav.get_var(var_ref)
+			if not self.check_var(var):
+				continue
+
+			calls.append(func_call)
+		return calls
