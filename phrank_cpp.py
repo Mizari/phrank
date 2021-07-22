@@ -24,7 +24,8 @@ class CppVtable(p_cont.Vtable):
 
 		self._callers = {}
 		for c in callers:
-			writes = p_hrays.ThisUsesVisitor(addr=c).get_int_writes(val=self.get_ea())
+			fuv = p_hrays.FuncAnalysisVisitor(addr=c)
+			writes = fuv.get_int_writes(val=self.get_ea())
 			if len(writes) > 1:
 				print("[*] WARNING:", "Vtable is written several times to this ptr", idaapi.get_name(c), idaapi.get_name(self.get_ea()))
 
@@ -130,11 +131,11 @@ class CppVtableFactory(p_cont.VtableFactory):
 	def iterate_candidates(self):
 		def get_n_callers(func, vea):
 			fuv = p_hrays.ThisUsesVisitor(addr=func)
-			return fuv.get_int_writes(val=vea)
+			return len(fuv.get_int_writes(val=vea))
 
 		for vtbl_ea, vtbl_funcs in super().iterate_candidates():
 			callers = p_util.get_func_calls_to(vtbl_ea)
-			if any([len(get_n_callers(f, vtbl_ea)) != 0 for f in callers]):
+			if any([get_n_callers(f, vtbl_ea) != 0 for f in callers]):
 				yield vtbl_ea, vtbl_funcs
 
 	def create_vtable(self, *args, **kwargs):
@@ -587,7 +588,7 @@ class CppClassFactory(object):
 
 	def analyze_class_sizes(self):
 		for cpp_class in self._created_classes:
-			sizes = [p_hrays.ThisUsesVisitor(addr=cdtor.get_ea()).get_arg_use_size() for cdtor in cpp_class._cdtors]
+			sizes = [p_hrays.FuncAnalysisVisitor(addr=cdtor.get_ea()).get_arg_use_size() for cdtor in cpp_class._cdtors]
 			new_class_sz = max(sizes)
 			cpp_class.resize(new_class_sz)
 
@@ -613,12 +614,9 @@ class CppClassFactory(object):
 				if vtbl == cpp_class.get_vtable(offset):
 					continue
 
-				parent = vtbl._cpp_class
+				parent: CppClass = vtbl._cpp_class
 				if parent is None:
 					print("[*] WARNING:", "vtable has no parent class in", idaapi.get_name(cdtor.get_ea()), hex(vtbl.get_ea()))
-					continue
-
-				if parent == cpp_class:
 					continue
 
 				cpp_class.add_parent(offset, parent)
