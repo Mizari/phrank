@@ -345,9 +345,8 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 
 		return False
 
-
-class ThisUsesVisitor(FuncAnalysisVisitor):
-	__slots__ = "_this_var", "_fav"
+class ThisUsesVisitor:
+	__slots__ = "_this_var_offsets", "_fav"
 
 	def __init__(self, *args, **kwargs):
 		addr = p_func.FuncWrapper(*args, **kwargs).get_start()
