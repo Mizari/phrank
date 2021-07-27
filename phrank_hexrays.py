@@ -294,7 +294,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 
 		max_write_sz = 0
 		for w in self._varptr_writes:
-			if w.get_varref() != arg_id:
+			if w.get_varref().idx != arg_id:
 				continue
 			write_sz = w.get_offset() + w.get_write_size()
 			if write_sz > max_write_sz:
@@ -306,7 +306,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 			if var_offset is None:
 				continue
 			var_ref, offset = var_offset
-			if var_ref != arg_id:
+			if var_ref.idx != arg_id:
 				continue
 
 			call_sz = func_call.get_arg_use_size(arg_id)
