@@ -356,19 +356,19 @@ class ThisUsesVisitor:
 		return self._this_var_offsets.get(varref.idx, None)
 
 	def check_var(self, varref):
-		return self.get_this_offset(varref) != 0
+		return self.get_this_offset(varref) is not None
 
-	def check_write(self, write):
+	def is_write_to_this(self, write):
 		varref = write.get_varref()
 		return self.check_var(varref)
 
 	def get_writes(self, offset=None, val=None):
 		writes = self._fav.get_writes(offset, val)
-		return [w for w in writes if self.check_write(w)]
+		return [w for w in writes if self.is_write_to_this(w)]
 
 	def get_int_writes(self, offset=None, val=None):
 		writes = self._fav.get_int_writes(offset, val)
-		return [w for w in writes if self.check_write(w)]
+		return [w for w in writes if self.is_write_to_this(w)]
 
 	def get_calls(self):
 		calls = []
