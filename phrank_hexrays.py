@@ -98,26 +98,26 @@ def get_int(expr):
 	return None
 
 class VarWrite:
-	__slots__ = "_var", "_val"
-	def __init__(self, var, val):
-		self._var = var
+	__slots__ = "_varref", "_val"
+	def __init__(self, varref, val):
+		self._varref = varref
 		self._val = val
 
-	def get_var(self):
-		return self._var
+	def get_varref(self):
+		return self._varref
 
 	def get_val(self):
 		return self._val
 
 class VarPtrWrite:
-	__slots__ = "_offset", "_var", "_val"
-	def __init__(self, var, val, offset):
-		self._var = var
+	__slots__ = "_offset", "_varref", "_val"
+	def __init__(self, varref, val, offset):
+		self._varref = varref
 		self._offset : Optional[int] = offset
 		self._val : Optional[idaapi.cexpr_t] = val
 
-	def get_var(self):
-		return self._var
+	def get_varref(self):
+		return self._varref
 
 	def get_offset(self):
 		return self._offset
@@ -292,11 +292,9 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 		if not self._is_visited:
 			self.visit()
 
-		use_var = self.get_arg_var(arg_id)
-
 		max_write_sz = 0
 		for w in self._varptr_writes:
-			if w.get_var() != use_var:
+			if w.get_varref() != arg_id:
 				continue
 			write_sz = w.get_offset() + w.get_write_size()
 			if write_sz > max_write_sz:
@@ -308,8 +306,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 			if var_offset is None:
 				continue
 			var_ref, offset = var_offset
-			arg_var = self.get_var(var_ref)
-			if arg_var != use_var:
+			if var_ref != arg_id:
 				continue
 
 			call_sz = func_call.get_arg_use_size(arg_id)
@@ -331,15 +328,14 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 	def handle_assignment(self, expr):
 		var_offset = get_varptr_write_offset(expr.x)
 		if var_offset is not None:
-			var_ref, offset = var_offset
-			var = self.get_var(var_ref)
-			w = VarPtrWrite(var, expr.y, offset)
+			varref, offset = var_offset
+			w = VarPtrWrite(varref, expr.y, offset)
 			self._varptr_writes.append(w)
 			return True
 
-		var = get_var_write(expr.x)
-		if var is not None:
-			w = VarWrite(var, expr.y)
+		varref = get_var_write(expr.x)
+		if varref is not None:
+			w = VarWrite(varref, expr.y)
 			self._var_writes.append(w)
 			return True
 
@@ -354,19 +350,17 @@ class ThisUsesVisitor:
 			raise BaseException("Failed to get function start")
 
 		self._fav = FuncAnalysisVisitor(*args, **kwargs)
-		self._this_var_offsets = {}
-		this_var = self._fav.get_arg_var(0)
-		self._this_var_offsets[this_var] = 0
+		self._this_var_offsets = {0:0}
 
-	def get_this_offset(self, var):
-		return self._this_var_offsets.get(var, None)
+	def get_this_offset(self, varref):
+		return self._this_var_offsets.get(varref.idx, None)
 
-	def check_var(self, var):
-		return self.get_this_offset(var) != 0
+	def check_var(self, varref):
+		return self.get_this_offset(varref) != 0
 
 	def check_write(self, write):
-		var = write.get_var()
-		return self.check_var(var)
+		varref = write.get_varref()
+		return self.check_var(varref)
 
 	def get_writes(self, offset=None, val=None):
 		writes = self._fav.get_writes(offset, val)
@@ -383,9 +377,8 @@ class ThisUsesVisitor:
 			if var_offset is None:
 				continue
 
-			var_ref, offset = var_offset
-			var = self._fav.get_var(var_ref)
-			if not self.check_var(var):
+			varref, offset = var_offset
+			if not self.check_var(varref):
 				continue
 
 			calls.append(func_call)
