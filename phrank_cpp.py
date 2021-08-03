@@ -623,7 +623,7 @@ class CppClassFactory(object):
 				parent.add_child(cpp_class)
 
 		tuv = p_hrays.ThisUsesVisitor(addr=cdtor.get_ea())
-		for func_call in tuv.get_calls():
+		for offset, func_call in tuv.get_this_calls():
 			parent_cdtor = self._cctx.get_cdtor(func_call._func_ea)
 			if parent_cdtor is None:
 				continue

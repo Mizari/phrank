@@ -370,7 +370,7 @@ class ThisUsesVisitor:
 		writes = self._fav.get_int_writes(offset, val)
 		return [w for w in writes if self.is_write_to_this(w)]
 
-	def get_calls(self):
+	def get_this_calls(self):
 		calls = []
 		for func_call in self._fav.get_calls():
 			var_offset = func_call.get_arg_var_offset(0)
@@ -381,5 +381,5 @@ class ThisUsesVisitor:
 			if not self.check_var(varref):
 				continue
 
-			calls.append(func_call)
+			calls.append((offset, func_call))
 		return calls
