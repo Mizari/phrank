@@ -63,7 +63,9 @@ def get_func_start(addr):
 	return func.start_ea
 
 def get_func_calls_to(fea):
-	return list(filter(None, [get_func_start(x.frm) for x in idautils.XrefsTo(fea)]))
+	rv = filter(None, [get_func_start(x.frm) for x in idautils.XrefsTo(fea)])
+	rv = filter(lambda x: x != idaapi.BADADDR, rv)
+	return list(rv)
 
 def get_func_calls_from(fea):
 	return [x.to for r in idautils.FuncItems(fea) for x in idautils.XrefsFrom(r, 0) if x.type == idaapi.fl_CN or x.type == idaapi.fl_CF]
