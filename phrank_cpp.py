@@ -184,10 +184,8 @@ class CppClass(p_cont.Struct):
 		return False
 
 	def get_parent(self, offset):
-		for parent_offset, parent in self._parents.items():
-			if parent_offset <= offset and parent_offset + parent.get_size() > offset:
-				return parent
-		return None
+		parent, _ = self.get_parent_offset(offset)
+		return parent
 
 	def get_parent_offset(self, offset):
 		for parent_offset, parent in self._parents.items():
