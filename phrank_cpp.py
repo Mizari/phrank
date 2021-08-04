@@ -34,10 +34,7 @@ class CppVtable(p_cont.Vtable):
 				continue
 
 			write_offset = writes[0].get_offset()
-			l = self._callers.get(write_offset, None)
-			if l is None:
-				l = []
-				self._callers[write_offset] = l
+			l = self._callers.setdefault(write_offset, [])
 			l.append(c)
 
 		self._cpp_class = None
@@ -93,9 +90,7 @@ class CppVtable(p_cont.Vtable):
 			self.make_callers()
 
 		if write_offset is not None:
-			rv = self._callers.get(write_offset, None)
-			if rv is None: rv = []
-			return rv
+			return self._callers.get(write_offset, [])
 
 		retval = set()
 		for x in self._callers.values():
@@ -169,14 +164,10 @@ class CppClass(p_cont.Struct):
 		return self._vtables.get(offset, None)
 
 	def add_vtable(self, offset, vtbl):
-		current_vtbl = self._vtables.get(offset, None)
-		if current_vtbl is not None:
-			if current_vtbl != vtbl:
-				print("[*] ERROR", self.get_name(), hex(offset), idaapi.get_name(current_vtbl.get_ea()), idaapi.get_name(vtbl.get_ea()))
-				raise BaseException("Already have vtbl at this offset")
-			return
-
-		self._vtables[offset] = vtbl
+		current_vtbl = self._vtables.setdefault(offset, vtbl)
+		if current_vtbl != vtbl:
+			print("[*] ERROR", self.get_name(), hex(offset), idaapi.get_name(current_vtbl.get_ea()), idaapi.get_name(vtbl.get_ea()))
+			raise BaseException("Already have vtbl at this offset")
 
 	@staticmethod
 	def is_cpp_class():
@@ -307,10 +298,7 @@ class CDtor(object):
 			if vtbl is None:
 				continue
 
-			l = self._vtbl_writes.get(int_write.get_offset(), None)
-			if l is None:
-				l = []
-				self._vtbl_writes[int_write.get_offset()] = l
+			l = self._vtbl_writes.setdefault(int_write.get_offset(), [])
 			l.append(vtbl)
 
 	def get_main_vtables(self):
@@ -342,9 +330,7 @@ class CDtor(object):
 			yield write_offset, vtbls
 
 	def get_vtbl_writes(self, offset):
-		rv = self._vtbl_writes.get(offset, None)
-		if rv is None: rv = []
-		return rv
+		return self._vtbl_writes.get(offset, [])
 
 	def get_ea(self):
 		return self._fea
@@ -368,9 +354,8 @@ class ClassConstructionContext(object):
 			yield cdtor
 
 	def add_cdtor(self, fea, cdtor):
-		curr = self.funcea2cdtor.get(fea, None)
-		assert curr is None, "Already exists for" + idaapi.get_name(fea) + ' ' + idaapi.get_name(curr.get_ea())
-		self.funcea2cdtor[fea] = cdtor
+		curr = self.funcea2cdtor.setdefault(fea, cdtor)
+		assert curr == cdtor, "Already exists for" + idaapi.get_name(fea) + ' ' + idaapi.get_name(curr.get_ea())
 
 	def get_cdtor(self, fea):
 		return self.funcea2cdtor.get(fea, None)
