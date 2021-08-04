@@ -24,7 +24,7 @@ class CppVtable(p_cont.Vtable):
 
 		self._callers = {}
 		for c in callers:
-			fuv = p_hrays.FuncAnalysisVisitor(addr=c)
+			fuv = p_hrays.FuncAnalysisVisitor.create(addr=c)
 			writes = fuv.get_int_writes(val=self.get_ea())
 			if len(writes) > 1:
 				print("[*] WARNING:", "Vtable is written several times to this ptr", idaapi.get_name(c), idaapi.get_name(self.get_ea()))
@@ -588,7 +588,7 @@ class CppClassFactory(object):
 
 	def analyze_class_sizes(self):
 		for cpp_class in self._created_classes:
-			sizes = [p_hrays.FuncAnalysisVisitor(addr=cdtor.get_ea()).get_arg_use_size() for cdtor in cpp_class._cdtors]
+			sizes = [p_hrays.FuncAnalysisVisitor.create(addr=cdtor.get_ea()).get_arg_use_size() for cdtor in cpp_class._cdtors]
 			new_class_sz = max(sizes)
 			cpp_class.resize(new_class_sz)
 

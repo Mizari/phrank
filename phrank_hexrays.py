@@ -200,31 +200,13 @@ class FuncCall:
 		if idaapi.get_func(self._func_ea) is None:
 			return 0
 
-		return FuncAnalysisVisitor(addr=self._func_ea).get_arg_use_size(arg_id)
+		return FuncAnalysisVisitor.create(addr=self._func_ea).get_arg_use_size(arg_id)
 
+@p_util.unique(p_func.get_func_start)
 class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 	__slots__ = "_writes", "_calls", "_func", "_is_visited"
-	_instances = {}
-
-	def __new__(cls, *args, **kwargs):
-		addr = p_func.FuncWrapper(*args, **kwargs).get_start()
-		if addr is None:
-			raise BaseException("Failed to get function start")
-
-		o = FuncAnalysisVisitor._instances.get(addr, None)
-		if o is None:
-			o = super().__new__(cls)
-		return o
 
 	def __init__(self, *args, **kwargs):
-		addr = p_func.FuncWrapper(*args, **kwargs).get_start()
-		if addr is None:
-			raise BaseException("Failed to get function start")
-
-		# skip init if object was already inited
-		if FuncAnalysisVisitor._instances.get(addr, None) is not None: return
-		FuncAnalysisVisitor._instances[addr] = self
-
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
 		self._varptr_writes : list[VarPtrWrite] = []
 		self._var_writes: list[VarWrite] = []
@@ -349,7 +331,7 @@ class ThisUsesVisitor:
 		if addr is None:
 			raise BaseException("Failed to get function start")
 
-		self._fav = FuncAnalysisVisitor(*args, **kwargs)
+		self._fav = FuncAnalysisVisitor.create(*args, **kwargs)
 		self._this_var_offsets = {0:0}
 
 	def get_this_offset(self, varref):
