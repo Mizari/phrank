@@ -21,40 +21,19 @@ def get_func_start(*args, **kwargs):
 		return idaapi.BADADDR
 	return func.start_ea
 
+@p_util.unique(get_func_start)
 class FuncWrapper(object):
 	__slots__ = "__func", "__cfunc"
 	_instances = {}
 
-	@staticmethod
-	def clear_cache():
-		FuncWrapper._instances.clear()
-
 	def get_start(self):
 		return self._func.start_ea
-
-	def __new__(cls, *args, **kwargs):
-		addr = get_func_start(*args, **kwargs)
-		if addr == idaapi.BADADDR:
-			if kwargs.get("noraise"):
-				return None
-			print("[*] ERROR", "func args", args, kwargs)
-			raise BaseException("Failed to get function start")
-
-		o = FuncWrapper._instances.get(addr, None)
-		if o is None:
-			o = super().__new__(cls)
-		return o
 
 	def __init__(self, *args, **kwargs):
 		func = get_func(*args, **kwargs)
 		if func is None:
+			print("ERROR:", args, kwargs)
 			raise BaseException("Failed to get function start")
-
-		o = FuncWrapper._instances.get(func.start_ea, None)
-		# skip init if object was already inited
-		if o:
-			return
-		FuncWrapper._instances[func.start_ea] = self
 
 		self.__func : idaapi.func_t = func
 		self.__cfunc : Optional[idaapi.cfunptr_t] = None
@@ -133,6 +112,9 @@ class FuncWrapper(object):
 				if xr in subcalls:
 					continue
 
+				if p_util.is_func_import(xr):
+					continue
+
 				subcalls.add(xr)
 				new_xrefs.update(p_util.get_func_calls_from(xr))
 
@@ -152,7 +134,7 @@ class FuncWrapper(object):
 		return self.get_tinfo().get_nargs()
 
 def get_func_tinfo(func_addr):
-	f = FuncWrapper(addr=func_addr, noraise=True)
+	f = FuncWrapper.create(addr=func_addr, noraise=True)
 	if f is None:
 		return None
 	return f.get_tinfo()
@@ -162,14 +144,14 @@ def get_func_nargs(func_addr):
 	return ftif.get_nargs()
 
 def get_func_ptr_tinfo(func_addr):
-	f = FuncWrapper(addr=func_addr, noraise=True)
+	f = FuncWrapper.create(addr=func_addr, noraise=True)
 	if f is None:
 		return None
 	
 	return f.get_ptr_tinfo()
 
 def get_func_cfunc(addr):
-	f = FuncWrapper(addr=addr, noraise=True)
+	f = FuncWrapper.create(addr=addr, noraise=True)
 	if f is None:
 		return None
 	return f.get_cfunc()
@@ -178,19 +160,19 @@ def is_function_start(func_addr):
 	return func_addr == get_func_start(func_addr)
 
 def set_func_arg_type(addr, arg_id, arg_type):
-	f = FuncWrapper(addr=addr, noraise=True)
+	f = FuncWrapper.create(addr=addr, noraise=True)
 	if f is None:
 		raise BaseException("No such function")
 	return f.set_arg_type(arg_id, arg_type)
 
 def get_func_arg_type(addr, arg_id):
-	f = FuncWrapper(addr=addr, noraise=True)
+	f = FuncWrapper.create(addr=addr, noraise=True)
 	if f is None:
 		raise BaseException("No such function")
 	return f.get_arg_type(arg_id)
 
 def set_func_argvar_type(addr, arg_id, var_type):
-	f = FuncWrapper(addr=addr, noraise=True)
+	f = FuncWrapper.create(addr=addr, noraise=True)
 	if f is None:
 		raise BaseException("No such function")
 	return f.set_argvar_type(arg_id, var_type)

@@ -211,7 +211,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 		self._varptr_writes : list[VarPtrWrite] = []
 		self._var_writes: list[VarWrite] = []
 		self._calls : list[FuncCall] = []
-		self._func = p_func.FuncWrapper(*args, **kwargs)
+		self._func = p_func.FuncWrapper.create(*args, **kwargs)
 		self._is_visited = False
 
 	def clear(self):
@@ -327,7 +327,7 @@ class ThisUsesVisitor:
 	__slots__ = "_this_var_offsets", "_fav"
 
 	def __init__(self, *args, **kwargs):
-		addr = p_func.FuncWrapper(*args, **kwargs).get_start()
+		addr = p_func.get_func_start(*args, **kwargs)
 		if addr is None:
 			raise BaseException("Failed to get function start")
 
