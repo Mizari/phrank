@@ -3,6 +3,24 @@ import idaapi
 import phrank_util as p_util
 from typing import Optional
 
+
+def get_func(*args, **kwargs):
+	addr = kwargs.get("addr", None)
+	if addr is None:
+		funcname = kwargs.get("name", None)
+		if funcname is None:
+			raise BaseException("No addr and no name are given, need one from them")
+		addr = idc.get_name_ea_simple(funcname)
+
+	func = idaapi.get_func(addr)
+	return func
+
+def get_func_start(*args, **kwargs):
+	func = get_func(*args, **kwargs)
+	if func is None:
+		return idaapi.BADADDR
+	return func.start_ea
+
 class FuncWrapper(object):
 	__slots__ = "__func", "__cfunc"
 	_instances = {}
@@ -11,27 +29,11 @@ class FuncWrapper(object):
 	def clear_cache():
 		FuncWrapper._instances.clear()
 
-	@staticmethod
-	def __get_func(*args, **kwargs):
-		addr = kwargs.get("addr", None)
-		if addr is None:
-			funcname = kwargs.get("name", None)
-			if funcname is None:
-				raise BaseException("No addr and no name are given, need one from them")
-			addr = idc.get_name_ea_simple(funcname)
-
-		func = idaapi.get_func(addr)
-		return func
-
-	@staticmethod
-	def get_start_ea(*args, **kwargs):
-		func = FuncWrapper.__get_func(*args, **kwargs)
-		if func is None:
-			return idaapi.BADADDR
-		return func.start_ea
+	def get_start(self):
+		return self._func.start_ea
 
 	def __new__(cls, *args, **kwargs):
-		addr = FuncWrapper.get_start_ea(*args, **kwargs)
+		addr = get_func_start(*args, **kwargs)
 		if addr == idaapi.BADADDR:
 			if kwargs.get("noraise"):
 				return None
@@ -44,7 +46,7 @@ class FuncWrapper(object):
 		return o
 
 	def __init__(self, *args, **kwargs):
-		func = FuncWrapper.__get_func(*args, **kwargs)
+		func = get_func(*args, **kwargs)
 		if func is None:
 			raise BaseException("Failed to get function start")
 
@@ -165,9 +167,6 @@ def get_func_ptr_tinfo(func_addr):
 		return None
 	
 	return f.get_ptr_tinfo()
-
-def get_func_start(func_addr):
-	return FuncWrapper.get_func_start(addr=func_addr)
 
 def get_func_cfunc(addr):
 	f = FuncWrapper(addr=addr, noraise=True)
