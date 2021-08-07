@@ -342,27 +342,32 @@ class CDtor(object):
 
 
 class ClassConstructionContext(object):
-	__slots__ = "funcea2cdtor"
+	__slots__ = "_cdtors", "_vtables"
 	def __init__(self):
-		self.funcea2cdtor : dict[int, CDtor] = {}
+		self._cdtors : dict[int, CDtor] = {}
+		self._vtables : dict[int, CppVtable] = {}
 
 	def clear(self):
-		self.funcea2cdtor.clear()
+		self._cdtors.clear()
 
 	def cdtors(self):
-		for cdtor in self.funcea2cdtor.values():
+		for cdtor in self._cdtors.values():
 			yield cdtor
 
 	def add_cdtor(self, fea, cdtor):
-		curr = self.funcea2cdtor.setdefault(fea, cdtor)
+		curr = self._cdtors.setdefault(fea, cdtor)
 		assert curr == cdtor, "Already exists for" + idaapi.get_name(fea) + ' ' + idaapi.get_name(curr.get_ea())
 
 	def get_cdtor(self, fea):
-		return self.funcea2cdtor.get(fea, None)
+		return self._cdtors.get(fea, None)
+	
+	def get_vtables(self):
+		for vtbl in self._vtables.values():
+			yield vtbl
 
 
 class CppClassFactory(object):
-	__slots__ = "_vtable_factory", "_created_classes", "_created_unions",\
+	__slots__ = "_created_classes", "_created_unions",\
 		"_original_func_types", "_cctx", "user_ctors", "user_dtors"
 	__instance = None
 
@@ -376,7 +381,6 @@ class CppClassFactory(object):
 			return
 		CppClassFactory.__instance = self
 
-		self._vtable_factory = CppVtableFactory()
 		self._created_classes : list[CppClass] = []
 		self._created_unions : list[p_cont.VtablesUnion] = []
 		self._original_func_types : dict[tuple[int, int], idaapi.tinfo_t] = {}
@@ -402,7 +406,7 @@ class CppClassFactory(object):
 				args = (idaapi.get_name(funcea), "skipping reverting arg type to", original_func_type)
 				print("[*] WARNING", "failed to decompile function", *args)
 
-		for v in self._vtable_factory.get_vtables():
+		for v in self._cctx.get_vtables():
 			v.delete()
 
 		for c in self._created_classes:
@@ -419,7 +423,7 @@ class CppClassFactory(object):
 		self._original_func_types.clear()
 		self._cctx.clear()
 
-	def create_all_classes(self):
+	def analyze_everything(self):
 		self.clear()
 
 		# try:
@@ -436,12 +440,14 @@ class CppClassFactory(object):
 			# self.undo()
 
 	def create_vtables(self):
-		self._vtable_factory.create_all_vtables()
-		print("[*] INFO: found", len(self._vtable_factory.get_vtables()), "vtables")
+		fact = CppVtableFactory()
+		fact.create_all_vtables()
+		self._cctx._vtables.update(fact._created_vtables)
+		print("[*] INFO: found", len(fact.get_vtables()), "vtables")
 
 	def create_cdtors(self):
 		all_cdtors = set()
-		for vtbl in self._vtable_factory.get_vtables():
+		for vtbl in self._cctx.get_vtables():
 			virtual_dtor = vtbl.get_virtual_dtor()
 			for c in vtbl.get_callers():
 				if c == virtual_dtor:
@@ -619,7 +625,7 @@ class CppClassFactory(object):
 			parent.add_child(cpp_class)
 
 	def print_unfinished(self):
-		for vtbl in self._vtable_factory.get_vtables():
+		for vtbl in self._cctx.get_vtables():
 			if vtbl._cpp_class is None:
 				print("[*] WARNING:", "vtable has no cpp class", vtbl.get_name(), idaapi.get_name(vtbl.get_ea()))
 
@@ -706,3 +712,7 @@ class CppClassFactory(object):
 		except idaapi.DecompilationFailure:
 			args = (idaapi.get_name(func), "skipping this arg changing to", new_arg_tinfo)
 			print("[*] WARNING", "failed to decompile function", *args)
+
+
+def analyze_everything():
+	CppClassFactory().analyze_everything()
