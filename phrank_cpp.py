@@ -123,15 +123,19 @@ class CppVtableFactory(p_cont.VtableFactory):
 			vtbl.rename(new_name)
 			vid += 1
 
-	def iterate_candidates(self):
+	def get_candidate_at(self, addr):
+		vfcs = super().get_candidate_at(addr)
+		if vfcs is None:
+			return None
+
 		def get_n_callers(func, vea):
 			fuv = p_hrays.ThisUsesVisitor(addr=func)
 			return len(fuv.get_int_writes(val=vea))
 
-		for vtbl_ea, vtbl_funcs in super().iterate_candidates():
-			callers = p_util.get_func_calls_to(vtbl_ea)
-			if any([get_n_callers(f, vtbl_ea) != 0 for f in callers]):
-				yield vtbl_ea, vtbl_funcs
+		callers = p_util.get_func_calls_to(addr)
+		if any([get_n_callers(f, addr) != 0 for f in callers]):
+			return vfcs
+		return None
 
 	def create_vtable(self, *args, **kwargs):
 		vtbl_name = "cpp_vtable_" + str(len(self._created_vtables))

@@ -337,8 +337,7 @@ class Vtable(Struct):
 			self.set_member_name(member_offset, func_name)
 			field_names.add(func_name)
 
-		fl = kwargs.get("do_not_set_data", None)
-		if not fl:
+		if kwargs.get("set_data", False):
 			self.set_data()
 
 	def update_func_types(self):
@@ -534,6 +533,18 @@ class VtableFactory(object):
 
 	def get_vtables(self):
 		return list(self._created_vtables.values())
+
+	def make_vtable(self, addr):
+		vtbl = self._created_vtables.get(addr, None)
+		if vtbl is not None:
+			return vtbl
+		
+		vfcs = self.get_candidate_at(addr)
+		if vfcs is None:
+			return None
+
+		vtbl = self.create_vtable(addr=addr, vtbl_vuncs=vfcs)
+		return vtbl
 	
 	def create_vtable(self, *args, **kwargs):
 		vtbl_name = "vtable_" + len(self._created_vtables)
@@ -541,25 +552,30 @@ class VtableFactory(object):
 		kwargs["name"] = vtbl_name
 		return Vtable(*args, **kwargs)
 
-	def iterate_candidates(self):
+	def find_all_candidates(self):
 		for segea in idautils.Segments():
 			segstart = idc.get_segm_start(segea)
 			segend = idc.get_segm_end(segea)
-			yield from self.iterate_segment_candidates(segstart, segend)
+			yield from self.find_candidates_at(segstart, segend)
 
-	def iterate_segment_candidates(self, segstart, segend):
+	def get_candidate_at(self, addr):
+		vfcs = Vtable.get_vtable_functions_at_addr(addr, minsize=self._min_vtbl_size)
+		if len(vfcs) == 0:
+			return None
+
+		return vfcs
+
+	def find_candidates_at(self, ea_start, ea_end):
 		ptr_size = p_util.get_ptr_size()
-		it_ea = segstart
-		while it_ea < segend:
-			vfcs = Vtable.get_vtable_functions_at_addr(it_ea, minsize=self._min_vtbl_size)
-			if len(vfcs) == 0:
-				it_ea += ptr_size
+		it_ea = ea_start
+		while it_ea < ea_end:
+			vfcs = self.get_candidate_at(it_ea)
+			if vfcs is None:
 				continue
-
 			yield it_ea, vfcs
 			it_ea += len(vfcs) * ptr_size
 
 	def create_all_vtables(self):
-		for vtbl_ea, vtbl_funcs in self.iterate_candidates():
-			vtbl = self.create_vtable(addr=vtbl_ea, vtbl_vuncs=vtbl_funcs, do_not_set_data=True)
+		for vtbl_ea, vtbl_funcs in self.find_all_candidates():
+			vtbl = self.create_vtable(addr=vtbl_ea, vtbl_vuncs=vtbl_funcs)
 			self._created_vtables[vtbl_ea] = vtbl
