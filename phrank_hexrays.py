@@ -391,8 +391,14 @@ class ThisUsesVisitor:
 
 	def this_writes(self, **kwargs):
 		for w in self._fav.varptr_writes(**kwargs):
-			if self.is_write_to_this(w):
-				yield w
+			varref = w.get_varref()
+			this_offset = self.get_this_offset(varref)
+			if this_offset is None:
+				continue
+
+			write_offset = w.get_offset() + this_offset
+			w = VarPtrWrite(varref, w.get_val(), write_offset)
+			yield w
 
 	def get_this_calls(self):
 		calls = []
