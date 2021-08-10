@@ -143,6 +143,21 @@ class VarPtrWrite:
 		if sz == idaapi.BADSIZE:
 			raise BaseException("Failed to get write size " + self._val.opname)
 		return sz
+	
+	def check(self, **kwargs):
+		offset = kwargs.get("offset", None)
+		if offset is not None and self.get_offset() != offset:
+			return False
+
+		val = kwargs.get("val", None)
+		if val is not None:
+			if isinstance(val, int):
+				if not self.is_int(val):
+					return False
+
+			elif self.get_val() != val:
+				return False
+		return True
 
 class FuncCall:
 	__slots__ = "_call_expr", "_func_ea", "_func_name", "_this_args"
@@ -232,22 +247,12 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 		for c in self._calls:
 			print("call", c.get_name(), hex(c.get_offset(0)), c.get_nargs(), c.get_arg_use_size(0), [a.opname for a in c.get_args()])
 
-	def get_writes(self, offset=None, val=None):
+	def get_writes(self, **kwargs):
 		if not self._is_visited: self.visit()
 
 		for w in self._varptr_writes:
-			if offset is not None and w.get_offset() != offset:
-				continue
-
-			if val is not None:
-				if isinstance(val, int):
-					if not w.is_int(val):
-						continue
-
-				elif w.get_val() != val:
-					continue
-			
-			yield w
+			if w.check(**kwargs):
+				yield w
 
 	def get_calls(self):
 		if not self._is_visited: self.visit()
@@ -351,8 +356,8 @@ class ThisUsesVisitor:
 		varref = write.get_varref()
 		return self.check_var(varref)
 
-	def get_writes(self, offset=None, val=None):
-		for w in self._fav.get_writes(offset, val):
+	def get_writes(self, **kwargs):
+		for w in self._fav.get_writes(**kwargs):
 			if self.is_write_to_this(w):
 				yield w
 
