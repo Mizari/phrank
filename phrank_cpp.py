@@ -25,7 +25,7 @@ class CppVtable(p_cont.Vtable):
 		self._callers = {}
 		for c in callers:
 			fuv = p_hrays.FuncAnalysisVisitor.create(addr=c)
-			writes = [w for w in fuv.get_writes(val=self.get_ea())]
+			writes = [w for w in fuv.varptr_writes(val=self.get_ea())]
 			if len(writes) > 1:
 				print("[*] WARNING:", "Vtable is written several times to this ptr", idaapi.get_name(c), idaapi.get_name(self.get_ea()))
 
@@ -64,7 +64,7 @@ class CppVtable(p_cont.Vtable):
 				return False
 
 			tuv = p_hrays.ThisUsesVisitor(addr=func_addr)
-			writes = [w for w in tuv.get_writes(offset=0, val=vtbl_ea)]
+			writes = [w for w in tuv.this_writes(offset=0, val=vtbl_ea)]
 			if len(writes) == 0:
 				return False
 
@@ -130,7 +130,7 @@ class CppVtableFactory(p_cont.VtableFactory):
 
 		def get_n_callers(func, vea):
 			fuv = p_hrays.ThisUsesVisitor(addr=func)
-			return len([w for w in fuv.get_writes(val=vea)])
+			return len([w for w in fuv.this_writes(val=vea)])
 
 		callers = p_util.get_func_calls_to(addr)
 		if any([get_n_callers(f, addr) != 0 for f in callers]):
@@ -297,7 +297,7 @@ class CDtor(object):
 
 		factory = CppVtableFactory()
 		self._vtbl_writes = {}
-		for write in p_hrays.ThisUsesVisitor(addr=fea).get_writes():
+		for write in p_hrays.ThisUsesVisitor(addr=fea).this_writes():
 			int_write_val = write.get_int()
 			if int_write_val is None:
 				continue
@@ -368,7 +368,7 @@ class ClassConstructionContext(object):
 
 	def get_cdtor(self, fea):
 		return self._cdtors.get(fea, None)
-	
+
 	def add_vtbl(self, vtbl):
 		curr = self._vtables.get(vtbl.get_ea(), None)
 		if curr is not None:
@@ -528,7 +528,7 @@ class CppClassFactory(object):
 
 	def create_class_per_cdtor(self, cdtor: CDtor):
 		tuv = p_hrays.ThisUsesVisitor(addr=cdtor.get_ea())
-		min_offset = min([write.get_offset() for write in tuv.get_writes()])
+		min_offset = min([write.get_offset() for write in tuv.this_writes()])
 		if min_offset < 0 and cdtor._is_ctor:
 			raise BaseException("Negative offset found in constructor " + idaapi.get_name(cdtor.get_ea()))
 

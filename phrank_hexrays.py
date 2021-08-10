@@ -97,36 +97,13 @@ def get_int(expr):
 
 	return None
 
-class VarWrite:
-	__slots__ = "_varref", "_val"
-	def __init__(self, varref, val):
-		self._varref = varref
-		self._val = val
-
-	def get_varref(self):
-		return self._varref
-
-	def get_val(self):
-		return self._val
-
-class VarPtrWrite:
-	__slots__ = "_offset", "_varref", "_val"
-	def __init__(self, varref, val, offset):
-		self._varref = varref
-		self._offset : Optional[int] = offset
+class Write:
+	__slots__ = "_val"
+	def __init__(self, val):
 		self._val : Optional[idaapi.cexpr_t] = val
 
-	def get_varref(self):
-		return self._varref
-
-	def get_offset(self):
-		return self._offset
-
 	def get_val(self):
 		return self._val
-
-	def get_int(self):
-		return get_int(self._val)
 
 	def is_int(self, val=None):
 		intval = get_int(self._val)
@@ -143,20 +120,51 @@ class VarPtrWrite:
 		if sz == idaapi.BADSIZE:
 			raise BaseException("Failed to get write size " + self._val.opname)
 		return sz
+
+	def check_val(self, val):
+		if isinstance(val, int):
+			return self.is_int(val)
+		return self.get_val() == val
 	
+class VarWrite(Write):
+	__slots__ = "_varref"
+	def __init__(self, varref, val):
+		super().__init__(val)
+		self._varref = varref
+
+	def get_varref(self):
+		return self._varref
+
+	def check(self, **kwargs):
+		val = kwargs.get("val", None)
+		if val is not None and not self.check_val(val):
+			return False
+		return True
+
+class VarPtrWrite(Write):
+	__slots__ = "_offset", "_varref"
+	def __init__(self, varref, val, offset):
+		super().__init__(val)
+		self._varref = varref
+		self._offset : Optional[int] = offset
+
+	def get_varref(self):
+		return self._varref
+
+	def get_offset(self):
+		return self._offset
+
+	def get_int(self):
+		return get_int(self._val)
+
 	def check(self, **kwargs):
 		offset = kwargs.get("offset", None)
 		if offset is not None and self.get_offset() != offset:
 			return False
 
 		val = kwargs.get("val", None)
-		if val is not None:
-			if isinstance(val, int):
-				if not self.is_int(val):
-					return False
-
-			elif self.get_val() != val:
-				return False
+		if val is not None and not self.check_val(val):
+			return False
 		return True
 
 class FuncCall:
@@ -247,10 +255,16 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 		for c in self._calls:
 			print("call", c.get_name(), hex(c.get_offset(0)), c.get_nargs(), c.get_arg_use_size(0), [a.opname for a in c.get_args()])
 
-	def get_writes(self, **kwargs):
+	def varptr_writes(self, **kwargs):
 		if not self._is_visited: self.visit()
 
 		for w in self._varptr_writes:
+			if w.check(**kwargs):
+				yield w
+
+	def var_writes(self, **kwargs):
+		if not self._is_visited: self.visit()
+		for w in self._var_writes:
 			if w.check(**kwargs):
 				yield w
 
@@ -356,8 +370,8 @@ class ThisUsesVisitor:
 		varref = write.get_varref()
 		return self.check_var(varref)
 
-	def get_writes(self, **kwargs):
-		for w in self._fav.get_writes(**kwargs):
+	def this_writes(self, **kwargs):
+		for w in self._fav.varptr_writes(**kwargs):
 			if self.is_write_to_this(w):
 				yield w
 
