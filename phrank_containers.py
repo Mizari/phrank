@@ -571,6 +571,7 @@ class VtableFactory(object):
 		while it_ea < ea_end:
 			vfcs = self.get_candidate_at(it_ea)
 			if vfcs is None:
+				it_ea += ptr_size
 				continue
 			yield it_ea, vfcs
 			it_ea += len(vfcs) * ptr_size
