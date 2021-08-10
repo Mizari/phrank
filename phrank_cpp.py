@@ -369,6 +369,16 @@ class ClassConstructionContext(object):
 	def get_cdtor(self, fea):
 		return self._cdtors.get(fea, None)
 	
+	def add_vtbl(self, vtbl):
+		curr = self._vtables.get(vtbl.get_ea(), None)
+		if curr is not None:
+			if curr != vtbl:
+				raise BaseException("Already have vtbl")
+			else:
+				return
+
+		self._vtables[vtbl.get_ea()] = vtbl
+
 	def get_vtables(self):
 		for vtbl in self._vtables.values():
 			yield vtbl
