@@ -334,6 +334,11 @@ class ThisUsesVisitor:
 		self._fav = FuncAnalysisVisitor.create(*args, **kwargs)
 		self._this_var_offsets = {0:0}
 
+	def is_this_func(self):
+		if self._fav._func.get_nargs() == 0:
+			return False
+		return True
+
 	def get_this_offset(self, varref):
 		return self._this_var_offsets.get(varref.idx, None)
 
