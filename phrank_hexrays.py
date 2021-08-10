@@ -125,7 +125,7 @@ class Write:
 		if isinstance(val, int):
 			return self.is_int(val)
 		return self.get_val() == val
-	
+
 class VarWrite(Write):
 	__slots__ = "_varref"
 	def __init__(self, varref, val):
@@ -345,7 +345,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 		return False
 
 class ThisUsesVisitor:
-	__slots__ = "_this_var_offsets", "_fav"
+	__slots__ = "_this_var_offsets", "_fav", "is_this_func"
 
 	def __init__(self, *args, **kwargs):
 		addr = p_func.get_func_start(*args, **kwargs)
@@ -354,10 +354,29 @@ class ThisUsesVisitor:
 
 		self._fav = FuncAnalysisVisitor.create(*args, **kwargs)
 		self._this_var_offsets = {0:0}
+		self.is_this_func = self._analyze_this()
+		if not self.is_this_func:
+			self._this_var_offsets.clear()
 
-	def is_this_func(self):
+	def _analyze_this(self):
 		if self._fav._func.get_nargs() == 0:
 			return False
+
+		for w in self._fav.var_writes():
+			vid = w.get_varref().idx
+			if vid == 0:
+				return False
+
+			val = w.get_val()
+			var_offset = get_var_offset(val)
+			if var_offset is None:
+				continue
+			varref, offset = var_offset
+			if varref.idx == 0:
+				curr = self._this_var_offsets.get(vid, None)
+				if curr is not None:
+					return False
+				self._this_var_offsets[vid] = offset
 		return True
 
 	def get_this_offset(self, varref):
