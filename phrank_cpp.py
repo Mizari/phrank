@@ -476,6 +476,9 @@ class CppClassFactory(object):
 			for c in vtbl.get_callers():
 				if c == virtual_dtor:
 					continue
+				tuv = p_hrays.ThisUsesVisitor(addr=c)
+				if not tuv.is_this_func:
+					continue
 				all_cdtors.add(c)
 
 		for cdtor_ea in all_cdtors:
@@ -528,12 +531,18 @@ class CppClassFactory(object):
 
 	def create_class_per_cdtor(self, cdtor: CDtor):
 		tuv = p_hrays.ThisUsesVisitor(addr=cdtor.get_ea())
-		min_offset = min([write.get_offset() for write in tuv.this_writes()])
+		writes = [w for w in tuv.this_writes()]
+		if len(writes) == 0:
+			print("[*] WARNING", "no writes to thisptr found in cdtor at", idaapi.get_name(cdtor.get_ea()))
+			return
+
+		min_offset = min([w.get_offset() for w in writes])
 		if min_offset < 0 and cdtor._is_ctor:
 			raise BaseException("Negative offset found in constructor " + idaapi.get_name(cdtor.get_ea()))
 
 		main_vtables = cdtor.get_main_vtables()
 		if len(main_vtables) == 0:
+			print("[*] WARNING", "failed to locate virtual tables in cdtor at", idaapi.get_name(cdtor.get_ea()))
 			return
 
 		cpp_classes = set()
