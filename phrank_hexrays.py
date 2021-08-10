@@ -235,17 +235,19 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 	def get_writes(self, offset=None, val=None):
 		if not self._is_visited: self.visit()
 
-		rv = self._varptr_writes
-		if offset is not None:
-			rv = [w for w in self._varptr_writes if w.get_offset() == offset]
+		for w in self._varptr_writes:
+			if offset is not None and w.get_offset() != offset:
+				continue
 
-		if val is not None:
-			rv = [w for w in rv if w.get_val() == val]
-		return rv
+			if val is not None:
+				if isinstance(val, int):
+					if not w.is_int(val):
+						continue
 
-	def get_int_writes(self, offset=None, val=None):
-		if not self._is_visited: self.visit()
-		return [w for w in self.get_writes(offset=offset) if w.is_int(val)]
+				elif w.get_val() != val:
+					continue
+			
+			yield w
 
 	def get_calls(self):
 		if not self._is_visited: self.visit()
@@ -350,12 +352,9 @@ class ThisUsesVisitor:
 		return self.check_var(varref)
 
 	def get_writes(self, offset=None, val=None):
-		writes = self._fav.get_writes(offset, val)
-		return [w for w in writes if self.is_write_to_this(w)]
-
-	def get_int_writes(self, offset=None, val=None):
-		writes = self._fav.get_int_writes(offset, val)
-		return [w for w in writes if self.is_write_to_this(w)]
+		for w in self._fav.get_writes(offset, val):
+			if self.is_write_to_this(w):
+				yield w
 
 	def get_this_calls(self):
 		calls = []

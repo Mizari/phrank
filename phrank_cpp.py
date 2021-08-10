@@ -25,7 +25,7 @@ class CppVtable(p_cont.Vtable):
 		self._callers = {}
 		for c in callers:
 			fuv = p_hrays.FuncAnalysisVisitor.create(addr=c)
-			writes = fuv.get_int_writes(val=self.get_ea())
+			writes = [w for w in fuv.get_writes(val=self.get_ea())]
 			if len(writes) > 1:
 				print("[*] WARNING:", "Vtable is written several times to this ptr", idaapi.get_name(c), idaapi.get_name(self.get_ea()))
 
@@ -64,7 +64,7 @@ class CppVtable(p_cont.Vtable):
 				return False
 
 			tuv = p_hrays.ThisUsesVisitor(addr=func_addr)
-			writes = tuv.get_int_writes(offset=0, val=vtbl_ea)
+			writes = [w for w in tuv.get_writes(offset=0, val=vtbl_ea)]
 			if len(writes) == 0:
 				return False
 
@@ -130,7 +130,7 @@ class CppVtableFactory(p_cont.VtableFactory):
 
 		def get_n_callers(func, vea):
 			fuv = p_hrays.ThisUsesVisitor(addr=func)
-			return len(fuv.get_int_writes(val=vea))
+			return len([w for w in fuv.get_writes(val=vea)])
 
 		callers = p_util.get_func_calls_to(addr)
 		if any([get_n_callers(f, addr) != 0 for f in callers]):
@@ -297,12 +297,16 @@ class CDtor(object):
 
 		factory = CppVtableFactory()
 		self._vtbl_writes = {}
-		for int_write in p_hrays.ThisUsesVisitor(addr=fea).get_int_writes():
-			vtbl = factory.get_vtable(int_write.get_int())
+		for write in p_hrays.ThisUsesVisitor(addr=fea).get_writes():
+			int_write_val = write.get_int()
+			if int_write_val is None:
+				continue
+
+			vtbl = factory.get_vtable(int_write_val)
 			if vtbl is None:
 				continue
 
-			l = self._vtbl_writes.setdefault(int_write.get_offset(), [])
+			l = self._vtbl_writes.setdefault(write.get_offset(), [])
 			l.append(vtbl)
 
 	def get_main_vtables(self):
