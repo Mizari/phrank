@@ -457,6 +457,12 @@ class CppClassFactory(object):
 			# print("[*] ERROR:", sys.exc_info()[0])
 			# self.undo()
 
+	def analyze_func(self, addr):
+		return
+
+	def analyze_vtable(self, addr):
+		return
+
 	def create_vtables(self):
 		fact = CppVtableFactory()
 		fact.create_all_vtables()
@@ -734,3 +740,9 @@ class CppClassFactory(object):
 
 def analyze_everything():
 	CppClassFactory().analyze_everything()
+
+def analyze_func(addr):
+	CppClassFactory().analyze_func(addr)
+
+def analyze_vtable(addr):
+	CppClassFactory().analyze_vtable(addr)
