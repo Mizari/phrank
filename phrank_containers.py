@@ -543,14 +543,26 @@ class VtableFactory(object):
 		if vfcs is None:
 			return None
 
-		vtbl = self.create_vtable(addr=addr, vtbl_vuncs=vfcs)
-		return vtbl
-	
-	def create_vtable(self, *args, **kwargs):
-		vtbl_name = "vtable_" + len(self._created_vtables)
+		return self.create_vtable(addr=addr, vtbl_vuncs=vfcs)
+
+	def get_new_vtbl_name(self):
+		vtbl_name = "vtable_" + str(len(self._created_vtables))
 		vtbl_name = p_util.get_next_available_strucname(vtbl_name)
-		kwargs["name"] = vtbl_name
+		return vtbl_name
+
+	def new_vtable(self, *args, **kwargs):
 		return Vtable(*args, **kwargs)
+
+	def create_vtable(self, *args, **kwargs):
+		vtbl_name = self.get_new_vtbl_name()
+		kwargs["name"] = vtbl_name
+		vtbl = self.new_vtable(*args, **kwargs)
+		vtbl_ea = vtbl.get_ea()
+		if vtbl_ea is not None:
+			self._created_vtables[vtbl_ea] = vtbl
+		else:
+			print("[*] WARNING", "created vtable without address", vtbl.get_name())
+		return vtbl
 
 	def find_all_candidates(self):
 		for segea in idautils.Segments():
@@ -579,4 +591,3 @@ class VtableFactory(object):
 	def create_all_vtables(self):
 		for vtbl_ea, vtbl_funcs in self.find_all_candidates():
 			vtbl = self.create_vtable(addr=vtbl_ea, vtbl_vuncs=vtbl_funcs)
-			self._created_vtables[vtbl_ea] = vtbl

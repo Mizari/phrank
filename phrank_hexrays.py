@@ -182,6 +182,11 @@ class FuncCall:
 
 		self._this_args : dict[int, int] = {}
 
+	def get_ea(self):
+		if self._func_ea == idaapi.BADADDR:
+			return None
+		return self._func_ea
+
 	def get_nargs(self):
 		return len(self._call_expr.a)
 
@@ -413,3 +418,8 @@ class ThisUsesVisitor:
 
 			calls.append((offset, func_call))
 		return calls
+
+	def get_this_call(self, addr):
+		for _, func_call in self.get_this_calls():
+			if func_call.get_ea() == addr:
+				return func_call

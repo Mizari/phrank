@@ -137,10 +137,12 @@ class CppVtableFactory(p_cont.VtableFactory):
 			return vfcs
 		return None
 
-	def create_vtable(self, *args, **kwargs):
+	def get_new_vtbl_name(self):
 		vtbl_name = "cpp_vtable_" + str(len(self._created_vtables))
 		vtbl_name = p_util.get_next_available_strucname(vtbl_name)
-		kwargs["name"] = vtbl_name
+		return vtbl_name
+
+	def new_vtable(self, *args, **kwargs):
 		return CppVtable(*args, **kwargs)
 
 
@@ -362,7 +364,8 @@ class ClassConstructionContext(object):
 		for cdtor in self._cdtors.values():
 			yield cdtor
 
-	def add_cdtor(self, fea, cdtor):
+	def add_cdtor(self, cdtor):
+		fea = cdtor.get_ea()
 		curr = self._cdtors.setdefault(fea, cdtor)
 		assert curr == cdtor, "Already exists for" + idaapi.get_name(fea) + ' ' + idaapi.get_name(curr.get_ea())
 
@@ -382,6 +385,9 @@ class ClassConstructionContext(object):
 	def get_vtables(self):
 		for vtbl in self._vtables.values():
 			yield vtbl
+
+	def get_vtable(self, addr):
+		return self._vtables.get(addr, None)
 
 
 class CppClassFactory(object):
@@ -441,49 +447,99 @@ class CppClassFactory(object):
 		self._original_func_types.clear()
 		self._cctx.clear()
 
-	def analyze_everything(self):
-		self.clear()
-
-		# try:
-		self.create_vtables()
-		self.create_cdtors()
+	def post_analysis(self):
 		self.create_classes()
 		CppVtableFactory().downgrade_classless_vtables()
 
 		self.analyze_class_sizes()
 		self.analyze_inheritance()
 		self.finalize_classes()
+
+	def analyze_everything(self):
+		self.clear()
+
+		# try:
+
+		fact = CppVtableFactory()
+		fact.create_all_vtables()
+		print("[*] INFO: found", len(fact.get_vtables()), "vtables")
+		for vtbl in fact._created_vtables:
+			self.search_vtable(vtbl)
+
+		self.post_analysis()
+
 		# except:
 			# print("[*] ERROR:", sys.exc_info()[0])
 			# self.undo()
 
 	def analyze_func(self, addr):
-		return
+		self.search_func(addr)
+		self.post_analysis()
 
-	def analyze_vtable(self, addr):
-		return
+	def analyze_vtable(self, vtbl):
+		self.search_vtable(vtbl)
+		self.post_analysis()
 
-	def create_vtables(self):
-		fact = CppVtableFactory()
-		fact.create_all_vtables()
-		self._cctx._vtables.update(fact._created_vtables)
-		print("[*] INFO: found", len(fact.get_vtables()), "vtables")
+	def search_func(self, func_addr):
+		if func_addr in self._cctx._cdtors:
+			return
 
-	def create_cdtors(self):
-		all_cdtors = set()
-		for vtbl in self._cctx.get_vtables():
-			virtual_dtor = vtbl.get_virtual_dtor()
-			for c in vtbl.get_callers():
-				if c == virtual_dtor:
-					continue
-				tuv = p_hrays.ThisUsesVisitor(addr=c)
-				if not tuv.is_this_func:
-					continue
-				all_cdtors.add(c)
+		if not p_func.is_function_start(func_addr):
+			return
+		
+		func_tuv = p_hrays.ThisUsesVisitor(addr=func_addr)
+		if not func_tuv.is_this_func:
+			return
 
-		for cdtor_ea in all_cdtors:
-			cdtor = CDtor(cdtor_ea)
-			self._cctx.add_cdtor(cdtor_ea, cdtor)
+		vtbls = set()
+		for w in func_tuv.this_writes():
+			intval = w.get_int()
+			if intval is None:
+				continue
+
+			vtbl = CppVtableFactory().make_vtable(intval)
+			if vtbl is None:
+				continue
+
+			vtbls.add(vtbl)
+
+		if len(vtbls) == 0:
+			return
+
+		cdtor = CDtor(func_addr)
+		self._cctx.add_cdtor(cdtor)
+		for v in vtbls:
+			self.search_vtable(v)
+
+		# calls_from = p_util.get_func_calls_from(addr)
+		for _, callee in func_tuv.get_this_calls():
+			callee_addr = callee.get_ea()
+			if callee_addr is None:
+				continue
+			self.search_func(callee_addr)
+
+		for caller_addr in p_util.get_func_calls_to(func_addr):
+			caller_tuv = p_hrays.ThisUsesVisitor(addr=caller_addr)
+			if caller_tuv.get_this_call(func_addr) is None:
+				continue
+			self.search_func(caller_addr)
+
+	def search_vtable(self, vtbl):
+		if isinstance(vtbl, int):
+			addr = vtbl
+			vtbl = CppVtableFactory().make_vtable(addr)
+		elif isinstance(vtbl, CppVtable):
+			addr = vtbl.get_ea()
+
+		if self._cctx.get_vtable(addr) is not None:
+			return
+
+		self._cctx.add_vtbl(vtbl)
+
+		for caller in vtbl.get_callers():
+			if caller == vtbl.get_virtual_dtor():
+				continue
+			self.search_func(caller)
 
 	def create_classes(self):
 		for cdtor in self._cctx.cdtors():
