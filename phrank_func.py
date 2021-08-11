@@ -5,6 +5,16 @@ from typing import Optional
 
 
 def get_func(*args, **kwargs):
+	addr = None
+	if len(args) != 0:
+		if isinstance(args[0], int):
+			addr = args[0]
+		elif isinstance(args[0], str):
+			funcname = args[0]
+			addr = idc.get_name_ea_simple(funcname)
+		if addr is not None:
+			return idaapi.get_func(addr)
+
 	addr = kwargs.get("addr", None)
 	if addr is None:
 		funcname = kwargs.get("name", None)
