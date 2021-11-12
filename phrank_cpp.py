@@ -801,13 +801,3 @@ class CppClassFactory(object):
 		except idaapi.DecompilationFailure:
 			args = (idaapi.get_name(func), "skipping this arg changing to", new_arg_tinfo)
 			print("[*] WARNING", "failed to decompile function", *args)
-
-
-def analyze_everything():
-	CppClassFactory().analyze_everything()
-
-def analyze_func(addr):
-	CppClassFactory().analyze_func(addr)
-
-def analyze_vtable(addr):
-	CppClassFactory().analyze_vtable(addr)
