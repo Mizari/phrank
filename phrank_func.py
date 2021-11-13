@@ -1,5 +1,6 @@
 import idc
 import idaapi
+import phrank_settings
 import phrank_util as p_util
 from typing import Optional
 
@@ -141,7 +142,8 @@ class FuncWrapper(object):
 		if self.__cfunc is not None:
 			return self.__cfunc
 
-		decompile_subcalls_recursively(self.get_start())
+		if phrank_settings.DECOMPILE_RECURSIVELY:
+			decompile_subcalls_recursively(self.get_start())
 
 		self.__cfunc = idaapi.decompile(self.get_start())
 		str(self.__cfunc)
