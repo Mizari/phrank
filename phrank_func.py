@@ -112,32 +112,34 @@ class FuncWrapper(object):
 		return tif
 
 	def get_cfunc(self):
-		if self.__cfunc is None:
-			# first try creating all cfuncs for calls from here
-			# this way args for called functions will be generated
-			subcalls = set()
-			new_xrefs = set(p_util.get_func_calls_from(self.get_start()))
-			while len(new_xrefs) != 0:
-				xr = new_xrefs.pop()
-				if xr in subcalls:
-					continue
+		if self.__cfunc is not None:
+			return self.__cfunc
 
-				if p_util.is_func_import(xr):
-					continue
+		# first try creating all cfuncs for calls from here
+		# this way args for called functions will be generated
+		subcalls = set()
+		new_xrefs = set(p_util.get_func_calls_from(self.get_start()))
+		while len(new_xrefs) != 0:
+			xr = new_xrefs.pop()
+			if xr in subcalls:
+				continue
 
-				subcalls.add(xr)
-				new_xrefs.update(p_util.get_func_calls_from(xr))
+			if p_util.is_func_import(xr):
+				continue
 
-			subcalls.discard(self.get_start())
+			subcalls.add(xr)
+			new_xrefs.update(p_util.get_func_calls_from(xr))
 
-			for xr in subcalls:
-				try:
-					_ = get_func_cfunc(xr)
-				except idaapi.DecompilationFailure:
-					pass
+		subcalls.discard(self.get_start())
 
-			self.__cfunc = idaapi.decompile(self.__func.start_ea)
-			str(self.__cfunc)
+		for xr in subcalls:
+			try:
+				_ = get_func_cfunc(xr)
+			except idaapi.DecompilationFailure:
+				pass
+
+		self.__cfunc = idaapi.decompile(self.__func.start_ea)
+		str(self.__cfunc)
 		return self.__cfunc
 
 	def get_nargs(self):
