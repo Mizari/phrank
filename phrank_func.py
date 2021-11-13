@@ -4,6 +4,32 @@ import phrank_util as p_util
 from typing import Optional
 
 
+def decompile_subcalls_recursively(func_addr):
+	# first try creating all cfuncs for calls from here
+	# this way args for called functions will be generated
+	subcalls = set()
+	new_xrefs = set(p_util.get_func_calls_from(func_addr))
+	while len(new_xrefs) != 0:
+		xr = new_xrefs.pop()
+		if xr in subcalls:
+			continue
+
+		if p_util.is_func_import(xr):
+			continue
+
+		subcalls.add(xr)
+		new_xrefs.update(p_util.get_func_calls_from(xr))
+
+	subcalls.discard(func_addr)
+
+	for xr in subcalls:
+		try:
+			_ = get_func_cfunc(xr)
+		except idaapi.DecompilationFailure:
+			pass
+	return
+
+
 def get_func(*args, **kwargs):
 	addr = None
 	if len(args) != 0:
@@ -115,30 +141,9 @@ class FuncWrapper(object):
 		if self.__cfunc is not None:
 			return self.__cfunc
 
-		# first try creating all cfuncs for calls from here
-		# this way args for called functions will be generated
-		subcalls = set()
-		new_xrefs = set(p_util.get_func_calls_from(self.get_start()))
-		while len(new_xrefs) != 0:
-			xr = new_xrefs.pop()
-			if xr in subcalls:
-				continue
+		decompile_subcalls_recursively(self.get_start())
 
-			if p_util.is_func_import(xr):
-				continue
-
-			subcalls.add(xr)
-			new_xrefs.update(p_util.get_func_calls_from(xr))
-
-		subcalls.discard(self.get_start())
-
-		for xr in subcalls:
-			try:
-				_ = get_func_cfunc(xr)
-			except idaapi.DecompilationFailure:
-				pass
-
-		self.__cfunc = idaapi.decompile(self.__func.start_ea)
+		self.__cfunc = idaapi.decompile(self.get_start())
 		str(self.__cfunc)
 		return self.__cfunc
 
