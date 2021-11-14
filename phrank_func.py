@@ -50,6 +50,9 @@ class FuncWrapper(object):
 		self.__cfunc : Optional[idaapi.cfunptr_t] = None
 		self.__is_decompiled : bool = False
 
+	def get_name(self):
+		return idaapi.get_name(self.get_start())
+
 	def get_func_details(self):
 		func_tinfo = self.get_tinfo()
 		func_details = idaapi.func_type_data_t()
@@ -122,6 +125,11 @@ class FuncWrapper(object):
 
 	def decompile(self):
 		self.__is_decompiled = True
+
+		for prefix in phrank_settings.FUNCTION_PREFIXES_DECOMPILATION_SKIP_LIST:
+			if self.get_name().startswith(prefix):
+				return None
+
 		if phrank_settings.DECOMPILE_RECURSIVELY:
 			for subcall in p_util.get_func_calls_from(self.get_start()):
 				_ = get_func_cfunc(subcall)
