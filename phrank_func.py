@@ -5,32 +5,6 @@ import phrank_util as p_util
 from typing import Optional
 
 
-def decompile_subcalls_recursively(func_addr):
-	# first try creating all cfuncs for calls from here
-	# this way args for called functions will be generated
-	subcalls = set()
-	new_xrefs = set(p_util.get_func_calls_from(func_addr))
-	while len(new_xrefs) != 0:
-		xr = new_xrefs.pop()
-		if xr in subcalls:
-			continue
-
-		if p_util.is_func_import(xr):
-			continue
-
-		subcalls.add(xr)
-		new_xrefs.update(p_util.get_func_calls_from(xr))
-
-	subcalls.discard(func_addr)
-
-	for xr in subcalls:
-		try:
-			_ = get_func_cfunc(xr)
-		except idaapi.DecompilationFailure:
-			pass
-	return
-
-
 def get_func(*args, **kwargs):
 	addr = None
 	if len(args) != 0:
@@ -60,7 +34,7 @@ def get_func_start(*args, **kwargs):
 
 @p_util.unique(get_func_start)
 class FuncWrapper(object):
-	__slots__ = "__func", "__cfunc"
+	__slots__ = "__func", "__cfunc", "__is_decompiled"
 	_instances = {}
 
 	def get_start(self):
@@ -74,6 +48,7 @@ class FuncWrapper(object):
 
 		self.__func : idaapi.func_t = func
 		self.__cfunc : Optional[idaapi.cfunptr_t] = None
+		self.__is_decompiled : bool = False
 
 	def get_func_details(self):
 		func_tinfo = self.get_tinfo()
@@ -139,15 +114,25 @@ class FuncWrapper(object):
 		return tif
 
 	def get_cfunc(self):
-		if self.__cfunc is not None:
+		if self.__is_decompiled:
 			return self.__cfunc
+		
+		self.decompile()
+		return self.__cfunc
 
+	def decompile(self):
+		self.__is_decompiled = True
 		if phrank_settings.DECOMPILE_RECURSIVELY:
-			decompile_subcalls_recursively(self.get_start())
+			for subcall in p_util.get_func_calls_from(self.get_start()):
+				_ = get_func_cfunc(subcall)
 
 		self.__cfunc = idaapi.decompile(self.get_start())
 		str(self.__cfunc)
 		return self.__cfunc
+
+	def clear_decompile(self):
+		self.__is_decompiled = False
+		self.__cfunc = None
 
 	def get_nargs(self):
 		return self.get_tinfo().get_nargs()
