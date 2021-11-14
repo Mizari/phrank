@@ -30,6 +30,9 @@ class VtableMaker(idaapi.action_handler_t):
 		self.factory = phrank_containers.VtableFactory()
 
 	def activate(self, ctx):
+		if ctx.widget_type != idaapi.BWN_PSEUDOCODE:
+			return
+
 		hx_view = idaapi.get_widget_vdui(ctx.widget)
 		cfunc = hx_view.cfunc
 		citem = hx_view.item
@@ -59,9 +62,9 @@ class VtableMaker(idaapi.action_handler_t):
 		return 1
 
 	def update(self, ctx):
-		if ctx.widget_type == idaapi.BWN_PSEUDOCODE:
-			return idaapi.AST_ENABLE_FOR_WIDGET
-		return idaapi.AST_DISABLE_FOR_WIDGET
+		return idaapi.AST_ENABLE_ALWAYS
+
+idaapi.unregister_action("vtblmkr")
 
 idaapi.register_action(
 	idaapi.action_desc_t("vtblmkr", "make vtable", VtableMaker(), "Alt-Q")
