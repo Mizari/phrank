@@ -33,7 +33,22 @@ def decompile_all():
 	time_amount = time.time()
 	phrank_settings.DECOMPILE_RECURSIVELY = True
 	for funcea in phrank_util.iterate_all_functions():
-		phrank_func.decompile(funcea)
+		fw = phrank_func.FuncWrapper(addr=funcea, noraise=True)
+		if fw is None:
+			print("failed to get func wrapper for", hex(funcea))
+		fname = fw.get_name()
+
+		if phrank_settings.should_skip_by_prefix(fname):
+			continue
+
+		dfname = idaapi.demangle_name(fname, idaapi.MNG_NODEFINIT | idaapi.MNG_NORETTYPE)
+		if dfname is None:
+			continue
+
+		if phrank_settings.should_skip_by_prefix(dfname):
+			continue
+
+		fw.decompile()
 	time_amount = time.time() - time_amount
 	print("decompiling all took", round(time_amount, 3))
 	phrank_settings.DECOMPILE_RECURSIVELY = False
