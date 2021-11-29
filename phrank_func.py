@@ -139,8 +139,11 @@ class FuncWrapper(object):
 			for subcall in p_util.get_func_calls_from(self.get_start()):
 				_ = get_func_cfunc(subcall)
 
-		self.__cfunc = idaapi.decompile(self.get_start())
-		str(self.__cfunc)
+		try:
+			self.__cfunc = idaapi.decompile(self.get_start())
+			str(self.__cfunc)
+		except idaapi.DecompilationFailure:
+			print("failed to decompile", hex(self.get_start()), self.get_name())
 		return self.__cfunc
 
 	def clear_decompile(self):
