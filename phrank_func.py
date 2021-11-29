@@ -137,7 +137,7 @@ class FuncWrapper(object):
 
 		if phrank_settings.DECOMPILE_RECURSIVELY:
 			for subcall in p_util.get_func_calls_from(self.get_start()):
-				_ = get_func_cfunc(subcall)
+				decompile(subcall)
 
 		try:
 			self.__cfunc = idaapi.decompile(self.get_start())
