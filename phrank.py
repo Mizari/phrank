@@ -8,6 +8,11 @@ idaapi.require("phrank_util")
 import phrank_cpp
 import phrank_containers
 import phrank_hexrays
+import phrank_util
+import phrank_func
+import phrank_settings
+
+import time
 
 def analyze_everything():
 	phrank_cpp.CppClassFactory().analyze_everything()
@@ -23,6 +28,15 @@ def create_cpp_vtables():
 
 def create_vtables():
 	phrank_containers.VtableFactory().create_all_vtables()
+
+def decompile_all():
+	time_amount = time.time()
+	phrank_settings.DECOMPILE_RECURSIVELY = True
+	for funcea in phrank_util.iterate_all_functions():
+		phrank_func.decompile(funcea)
+	time_amount = time.time() - time_amount
+	print("decompiling all took", round(time_amount, 3))
+	phrank_settings.DECOMPILE_RECURSIVELY = False
 
 class VtableMaker(idaapi.action_handler_t):
 	def __init__(self):

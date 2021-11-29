@@ -6,6 +6,11 @@ ptr_size = None
 get_data = None
 
 
+def iterate_all_functions():
+	for segea in idautils.Segments():
+		for funcea in idautils.Functions(segea, idc.get_segm_end(segea)):
+			yield funcea
+
 def unique(uid_getter_func):
 	@classmethod
 	def create(cls, *args, **kwargs):
