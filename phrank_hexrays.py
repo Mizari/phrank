@@ -16,6 +16,11 @@ PRINTF_FUNCS.update(['_' + s for s in PRINTF_FUNCS])
 HELPER_FUNCS = {"LOWORD", "HIWORD", "LOBYTE"}
 
 
+def get_last_struct_offset(expr):
+	if expr.op != idaapi.cot_memref:
+		return None
+	return
+
 def get_var_write(expr):
 	if expr.op == idaapi.cot_var:
 		return expr.v
