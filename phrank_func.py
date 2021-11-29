@@ -127,7 +127,12 @@ class FuncWrapper(object):
 		self.__is_decompiled = True
 
 		for prefix in phrank_settings.FUNCTION_PREFIXES_DECOMPILATION_SKIP_LIST:
-			if self.get_name().startswith(prefix):
+			fname = self.get_name()
+			if fname.startswith(prefix):
+				return None
+
+			dfname = idaapi.demangle_name(fname, idaapi.MNG_NODEFINIT | idaapi.MNG_NORETTYPE)
+			if dfname is not None and dfname.startswith(prefix):
 				return None
 
 		if phrank_settings.DECOMPILE_RECURSIVELY:
