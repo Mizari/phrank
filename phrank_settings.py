@@ -1,5 +1,5 @@
 DECOMPILE_RECURSIVELY = True
-FUNCTION_PREFIXES_DECOMPILATION_SKIP_LIST = [
+FUNCTION_PREFIXES_DECOMPILATION_SKIP_LIST = {
 	"nlohmann::",
 	"std::",
 	"boost::",
@@ -10,4 +10,4 @@ FUNCTION_PREFIXES_DECOMPILATION_SKIP_LIST = [
 	"__gnu_internal::",
 	"__cxxabiv1::",
 	"__gnu_cxx::",
-]
+}
