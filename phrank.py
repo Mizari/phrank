@@ -1,9 +1,11 @@
 import idaapi
+import idc
 idaapi.require("phrank_func")
 idaapi.require("phrank_cpp")
 idaapi.require("phrank_containers")
 idaapi.require("phrank_hexrays")
 idaapi.require("phrank_util")
+idaapi.require("phrank_settings")
 
 import phrank_cpp
 import phrank_containers
@@ -29,29 +31,39 @@ def create_cpp_vtables():
 def create_vtables():
 	phrank_containers.VtableFactory().create_all_vtables()
 
+def should_skip_decompiling(func_wrapper):
+	fname = func_wrapper.get_name()
+	if fname is None:
+		print("emtpy name %s" % hex(func_wrapper.get_start()))
+		return True
+
+	if phrank_settings.should_skip_by_prefix(fname):
+		return True
+
+	# global constructors
+	if fname.startswith("_GLOBAL__sub_I_"):
+		return True
+
+	dfname = idaapi.demangle_name(fname, idaapi.MNG_NODEFINIT | idaapi.MNG_NORETTYPE)
+	if dfname is not None and phrank_settings.should_skip_by_prefix(dfname):
+		return True
+
+	return False
+
 def decompile_all():
+	fwrappers = [phrank_func.FuncWrapper(addr=fea) for fea in phrank_util.iterate_all_functions()]
+	fwrappers = filter(None, fwrappers)
+	fwrappers = filter(lambda x: not should_skip_decompiling(x), fwrappers)
+	fwrappers = list(fwrappers)
+
 	time_amount = time.time()
 	phrank_settings.DECOMPILE_RECURSIVELY = True
-	for funcea in phrank_util.iterate_all_functions():
-		fw = phrank_func.FuncWrapper(addr=funcea, noraise=True)
-		if fw is None:
-			print("failed to get func wrapper for", hex(funcea))
-		fname = fw.get_name()
-
-		if phrank_settings.should_skip_by_prefix(fname):
-			continue
-
-		dfname = idaapi.demangle_name(fname, idaapi.MNG_NODEFINIT | idaapi.MNG_NORETTYPE)
-		if dfname is None:
-			continue
-
-		if phrank_settings.should_skip_by_prefix(dfname):
-			continue
-
+	for fw in fwrappers:
 		fw.decompile()
-	time_amount = time.time() - time_amount
-	print("decompiling all took", round(time_amount, 3))
 	phrank_settings.DECOMPILE_RECURSIVELY = False
+	time_amount = time.time() - time_amount
+
+	print("decompiling", len(fwrappers), "took", round(time_amount, 3))
 
 class VtableMaker(idaapi.action_handler_t):
 	def __init__(self):
