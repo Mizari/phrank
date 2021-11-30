@@ -124,6 +124,9 @@ class FuncWrapper(object):
 		return self.__cfunc
 
 	def decompile(self):
+		if self.__is_decompiled:
+			return self.__cfunc
+
 		self.__is_decompiled = True
 
 		if phrank_settings.DECOMPILE_RECURSIVELY:
@@ -189,6 +192,7 @@ def set_func_argvar_type(addr, arg_id, var_type):
 	return f.set_argvar_type(arg_id, var_type)
 
 def decompile(addr):
+	print("decompiling", hex(addr), idaapi.get_name(addr))
 	f = FuncWrapper.create(addr=addr, noraise=True)
 	if f is None:
 		raise BaseException("No such function")
