@@ -192,7 +192,6 @@ def set_func_argvar_type(addr, arg_id, var_type):
 	return f.set_argvar_type(arg_id, var_type)
 
 def decompile(addr):
-	print("decompiling", hex(addr), idaapi.get_name(addr))
 	f = FuncWrapper.create(addr=addr, noraise=True)
 	if f is None:
 		raise BaseException("No such function")
