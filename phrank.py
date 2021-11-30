@@ -50,12 +50,7 @@ def should_skip_decompiling(func_wrapper):
 
 	return False
 
-def decompile_all():
-	fwrappers = [phrank_func.FuncWrapper(addr=fea) for fea in phrank_util.iterate_all_functions()]
-	fwrappers = filter(None, fwrappers)
-	fwrappers = filter(lambda x: not should_skip_decompiling(x), fwrappers)
-	fwrappers = list(fwrappers)
-
+def decompile_wrappers(fwrappers):
 	time_amount = time.time()
 	phrank_settings.DECOMPILE_RECURSIVELY = True
 	for fw in fwrappers:
@@ -64,6 +59,13 @@ def decompile_all():
 	time_amount = time.time() - time_amount
 
 	print("decompiling", len(fwrappers), "took", round(time_amount, 3))
+
+def decompile_all():
+	fwrappers = [phrank_func.FuncWrapper(addr=fea) for fea in phrank_util.iterate_all_functions()]
+	fwrappers = filter(None, fwrappers)
+	fwrappers = filter(lambda x: not should_skip_decompiling(x), fwrappers)
+	fwrappers = list(fwrappers)
+	decompile_wrappers(fwrappers)
 
 class VtableMaker(idaapi.action_handler_t):
 	def __init__(self):
