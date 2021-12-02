@@ -128,7 +128,7 @@ class FuncWrapper(object):
 
 	def decompile(self):
 		if self.__is_decompiled:
-			return self.__cfunc
+			return
 
 		self.__is_decompiled = True
 
@@ -141,7 +141,7 @@ class FuncWrapper(object):
 			str(self.__cfunc)
 		except idaapi.DecompilationFailure:
 			print("failed to decompile", hex(self.get_start()), self.get_name())
-		return self.__cfunc
+		return
 
 	def clear_decompile(self):
 		self.__is_decompiled = False
