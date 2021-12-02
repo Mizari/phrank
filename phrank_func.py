@@ -106,14 +106,18 @@ class FuncWrapper(object):
 			# it works
 			_ = self.get_cfunc()
 			if not idaapi.get_tinfo(tif, self.__func.start_ea):
-				raise BaseException("Failed to get tinfo for " + idaapi.get_name(self.__func.start_ea))
+				print("Failed to get tinfo for", self.get_name())
+				return None
 		return tif
 
 	def get_ptr_tinfo(self):
 		tif = self.get_tinfo()
+		if tif is None:
+			return None
 		rv = tif.create_ptr(tif)
 		if rv == False:
-			raise BaseException("Failed to change tinfo")
+			print("Failed to change tinfo of", str(tif))
+			return None
 		return tif
 
 	def get_cfunc(self):

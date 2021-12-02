@@ -6,6 +6,9 @@ ptr_size = None
 get_data = None
 
 
+voidptr_tinfo = idaapi.tinfo_t()
+idaapi.parse_decl(voidptr_tinfo, idaapi.get_idati(), "void*;", 0)
+
 def iterate_all_functions():
 	for segea in idautils.Segments():
 		for funcea in idautils.Functions(segea, idc.get_segm_end(segea)):

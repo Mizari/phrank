@@ -316,13 +316,20 @@ class Vtable(Struct):
 		field_names = set()
 		for i, func_addr in enumerate(vtbl_funcs):
 			member_offset = i * ptr_size
-			func_ptr_tif = p_func.get_func_ptr_tinfo(func_addr)
-			self.set_member_type(member_offset, func_ptr_tif)
-			self.set_member_comment(member_offset, hex(func_addr))
 
 			func_name = idaapi.get_name(func_addr)
 			if func_name is None:
-				raise BaseException("Failed to get function name")
+				print("Failed to get function name", hex(func_addr))
+
+			func_ptr_tif = p_func.get_func_ptr_tinfo(func_addr)
+			if func_ptr_tif is None:
+				print("Failed to get function tinfo", hex(func_addr), func_name, "using void* insted")
+				func_ptr_tif = p_util.voidptr_tinfo.copy()
+			self.set_member_type(member_offset, func_ptr_tif)
+			self.set_member_comment(member_offset, hex(func_addr))
+
+			if func_name is None:
+				continue
 
 			if func_name in field_names:
 				parts = func_name.split(Vtable.REUSE_DELIM)
