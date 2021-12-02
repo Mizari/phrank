@@ -323,7 +323,7 @@ class Vtable(Struct):
 
 			func_ptr_tif = p_func.get_func_ptr_tinfo(func_addr)
 			if func_ptr_tif is None:
-				print("Failed to get function tinfo", hex(func_addr), func_name, "using void* insted")
+				print("Failed to get function tinfo", hex(func_addr), func_name, "using void* instead")
 				func_ptr_tif = p_util.voidptr_tinfo.copy()
 			self.set_member_type(member_offset, func_ptr_tif)
 			self.set_member_comment(member_offset, hex(func_addr))
