@@ -1,4 +1,8 @@
+# when decompiling X decompile functions called from X first
+# for better type propagation
 DECOMPILE_RECURSIVELY = True
+
+# when decompiling skip functions, that start with these prefixes
 FUNCTION_PREFIXES_DECOMPILATION_SKIP_LIST = {
 	"nlohmann::",
 	"std::",
