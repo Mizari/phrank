@@ -104,12 +104,14 @@ class FuncWrapper(object):
 		tif = idaapi.tinfo_t()
 		if not idaapi.get_tinfo(tif, self.get_start()):
 			# it works
-			self.decompile()
-			if not idaapi.get_tinfo(tif, self.get_start()):
+			cf = self.get_cfunc()
+			if cf is None:
+				tif = None
+			elif not idaapi.get_tinfo(tif, self.get_start()):
 				tif = None
 
 		if tif is None:
-			print("Failed to get tinfo for", self.get_name(), type(self.__cfunc))
+			print("Failed to get tinfo for", hex(self.get_start()), self.get_name())
 		return tif
 
 	def get_ptr_tinfo(self):
