@@ -84,13 +84,15 @@ class IdaStruc(object):
 
 	def set_member_comment(self, offset, cmt):
 		rv = idc.set_member_cmt(self.strucid, offset, cmt, 0)
-		assert rv != 0, "Failed to set member comment"
+		if rv == 0:
+			print("Failed to set member comment")
 		return rv
 
 	def set_member_name(self, member_offset, member_name):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
 		rv = idc.set_member_name(self.strucid, member_offset, member_name)
-		assert rv != 0, "Failed to set member name " + str(member_name) + " in " + self.get_name() + ' ' + hex(member_offset)
+		if rv == 0:
+			print("Failed to set member name " + str(member_name) + " in " + self.get_name() + ' ' + hex(member_offset))
 		return rv
 	
 	def get_member_tinfo(self, member_offset):
