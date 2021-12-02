@@ -1,3 +1,6 @@
+# when creating new vtable should set structure at given EA
+SHOULD_SET_VTABLE_TYPES = True
+
 # when decompiling X decompile functions called from X first
 # for better type propagation
 DECOMPILE_RECURSIVELY = True

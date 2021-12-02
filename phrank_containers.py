@@ -5,6 +5,7 @@ import ida_struct
 
 import phrank_func as p_func
 import phrank_util as p_util
+import phrank_settings as p_settings
 
 
 
@@ -344,7 +345,10 @@ class Vtable(Struct):
 			self.set_member_name(member_offset, func_name)
 			field_names.add(func_name)
 
-		if kwargs.get("set_data", False):
+		set_type = kwargs.get("set_type", None)
+		if set_type is None:
+			set_type = p_settings.SHOULD_SET_VTABLE_TYPES
+		if set_type:
 			self.set_data()
 
 	def update_func_types(self):
