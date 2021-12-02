@@ -1,8 +1,11 @@
 import idc
 import idaapi
+import idautils
 import phrank_settings
 import phrank_util as p_util
 from typing import Optional
+
+import re
 
 
 def get_func(*args, **kwargs):
@@ -100,6 +103,31 @@ class FuncWrapper(object):
 	def get_start(self):
 		return self.__func.start_ea
 
+	def is_movrax_ret(self):
+		# count blocks
+		blocks = [b for b in idautils.Chunks(self.get_start())]
+		if len(blocks) > 1:
+			return False
+		block = blocks[0]
+
+		# count instructions
+		instrs = [h for h in idautils.Heads(block[0], block[1])]
+		if len(instrs) != 2:
+			return False
+
+		# first is xor rax|eax
+		disasm = idc.GetDisasm(instrs[0])
+		p1 = re.compile("xor[ ]*(eax|rax), (eax|rax).*")  # mov rax, 0
+		p2 = re.compile("mov[ ]*(eax|rax), \d+.*")        # mov rax, !0
+		if re.fullmatch(p1, disasm) is None and re.fullmatch(p2, disasm) is None:
+			return False
+
+		# second is retn
+		disasm = idc.GetDisasm(instrs[1])
+		if not disasm.startswith("retn"):
+			return False
+		return True
+
 	def get_tinfo(self):
 		tif = idaapi.tinfo_t()
 		if not idaapi.get_tinfo(tif, self.get_start()):
@@ -109,6 +137,9 @@ class FuncWrapper(object):
 				tif = None
 			elif not idaapi.get_tinfo(tif, self.get_start()):
 				tif = None
+
+		if tif is None and self.is_movrax_ret():
+			tif = p_util.void_func.copy()
 
 		if tif is None:
 			print("Failed to get tinfo for", hex(self.get_start()), self.get_name())
