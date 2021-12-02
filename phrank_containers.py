@@ -282,7 +282,7 @@ class Vtable(Struct):
 			self._v_ea = xrefs[0]
 
 	def __init_from_type_at_addr(self, *args, **kwargs):
-		addr = args.get("addr", '')
+		addr = kwargs.get("addr", '')
 		super().__init__(*args, **kwargs)
 		self._v_ea = addr
 		# TODO check that this structure actually represents vtable at addr
@@ -297,7 +297,8 @@ class Vtable(Struct):
 
 		t = idc.get_type(addr)
 		if Vtable.is_vtable(t):
-			return self.__init_from_type_at_addr(name=t, *args, **kwargs)
+			kwargs["name"] = t
+			return self.__init_from_type_at_addr(*args, **kwargs)
 
 		return self.__init_new(*args, **kwargs)
 	
