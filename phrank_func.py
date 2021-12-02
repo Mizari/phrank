@@ -105,7 +105,7 @@ class FuncWrapper(object):
 		if not idaapi.get_tinfo(tif, self.get_start()):
 			# it works
 			self.decompile()
-			if not idaapi.get_tinfo(tif, self.get_start):
+			if not idaapi.get_tinfo(tif, self.get_start()):
 				print("Failed to get tinfo for", self.get_name())
 				return None
 		return tif
