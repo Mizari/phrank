@@ -121,10 +121,9 @@ class FuncWrapper(object):
 		return tif
 
 	def get_cfunc(self):
-		if self.__is_decompiled:
-			return self.__cfunc
-		
-		self.decompile()
+		if not self.__is_decompiled:
+			self.decompile()
+
 		return self.__cfunc
 
 	def decompile(self):
