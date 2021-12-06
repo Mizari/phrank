@@ -11,7 +11,7 @@ idaapi.parse_decl(voidptr_tinfo, idaapi.get_idati(), "void*;", 0)
 assert voidptr_tinfo.is_correct()
 
 void_func = idaapi.tinfo_t()
-idaapi.parse_decl(void_func, idaapi.get_idati(), "__int64 (*)(void);", 0)
+idaapi.parse_decl(void_func, idaapi.get_idati(), "__int64 (*)();", 0)
 assert void_func.is_correct()
 
 def iterate_all_functions():
