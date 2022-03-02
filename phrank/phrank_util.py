@@ -6,13 +6,17 @@ ptr_size = None
 get_data = None
 
 
-voidptr_tinfo = idaapi.tinfo_t()
-idaapi.parse_decl(voidptr_tinfo, idaapi.get_idati(), "void*;", 0)
-assert voidptr_tinfo.is_correct()
+def get_voidptr_tinfo():
+	voidptr_tinfo = idaapi.tinfo_t()
+	idaapi.parse_decl(voidptr_tinfo, idaapi.get_idati(), "void*;", 0)
+	assert voidptr_tinfo.is_correct()
+	return voidptr_tinfo
 
-void_func = idaapi.tinfo_t()
-idaapi.parse_decl(void_func, idaapi.get_idati(), "__int64 (*)();", 0)
-assert void_func.is_correct()
+def get_voidfunc_tinfo():
+	void_func = idaapi.tinfo_t()
+	idaapi.parse_decl(void_func, idaapi.get_idati(), "__int64 (*)();", 0)
+	assert void_func.is_correct()
+	return void_func
 
 def iterate_all_functions():
 	for segea in idautils.Segments():

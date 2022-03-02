@@ -139,7 +139,7 @@ class FuncWrapper(object):
 				tif = None
 
 		if tif is None and self.is_movrax_ret():
-			tif = p_util.void_func.copy()
+			tif = p_util.get_voidfunc_tinfo()
 
 		if tif is None:
 			print("Failed to get tinfo for", hex(self.get_start()), self.get_name())
