@@ -37,8 +37,13 @@ class VtableMaker(idaapi.action_handler_t):
 	def update(self, ctx):
 		return idaapi.AST_ENABLE_ALWAYS
 
-idaapi.unregister_action("vtblmkr")
 
-idaapi.register_action(
-	idaapi.action_desc_t("vtblmkr", "make vtable", VtableMaker(), "Alt-Q")
-)
+def register_actions():
+	idaapi.unregister_action("vtblmkr")
+
+	idaapi.register_action(
+		idaapi.action_desc_t("vtblmkr", "make vtable", VtableMaker(), "Alt-Q")
+	)
+
+
+register_actions()
