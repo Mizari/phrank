@@ -1,10 +1,10 @@
 import idaapi
 import idautils
 import idc
-import phrank_func as p_func
-import phrank_util as p_util
-import phrank_hexrays as p_hrays
-import phrank_containers as p_cont
+import phrank.phrank_func as p_func
+import phrank.phrank_util as p_util
+import phrank.phrank_hexrays as p_hrays
+import phrank.phrank_containers as p_cont
 
 from typing import Optional
 
