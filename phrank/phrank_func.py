@@ -1,8 +1,8 @@
 import idc
 import idaapi
 import idautils
-import phrank_settings
-import phrank_util as p_util
+import phrank.phrank_settings as phrank_settings
+import phrank.phrank_util as p_util
 from typing import Optional
 
 import re

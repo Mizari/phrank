@@ -3,9 +3,9 @@ import idc
 import idautils
 import ida_struct
 
-import phrank_func as p_func
-import phrank_util as p_util
-import phrank_settings as p_settings
+import phrank.phrank_func as p_func
+import phrank.phrank_util as p_util
+import phrank.phrank_settings as p_settings
 
 
 

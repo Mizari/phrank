@@ -1,18 +1,18 @@
 import idaapi
 import idc
-idaapi.require("phrank_func")
-idaapi.require("phrank_cpp")
-idaapi.require("phrank_containers")
-idaapi.require("phrank_hexrays")
-idaapi.require("phrank_util")
-idaapi.require("phrank_settings")
+idaapi.require("phrank.phrank_func")
+idaapi.require("phrank.phrank_cpp")
+idaapi.require("phrank.phrank_containers")
+idaapi.require("phrank.phrank_hexrays")
+idaapi.require("phrank.phrank_util")
+idaapi.require("phrank.phrank_settings")
 
-import phrank_cpp
-import phrank_containers
-import phrank_hexrays
-import phrank_util
-import phrank_func
-import phrank_settings
+import phrank.phrank_cpp as phrank_cpp
+import phrank.phrank_containers as phrank_containers
+import phrank.phrank_hexrays as phrank_hexrays
+import phrank.phrank_util as phrank_util
+import phrank.phrank_func as phrank_func
+import phrank.phrank_settings as phrank_settings
 
 import time
 
