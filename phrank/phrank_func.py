@@ -80,6 +80,9 @@ class FuncWrapper(object):
 		assert rv, "Failed to modify lvar"
 
 		self.__cfunc = None
+	
+	def get_var(self, var_idx):
+		return self.get_cfunc().lvars[var_idx]
 
 	def get_arg_type(self, arg_id):
 		# XXX do not refactor this into one liner, 

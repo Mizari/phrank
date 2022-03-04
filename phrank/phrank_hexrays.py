@@ -331,10 +331,10 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 		return max(0, max_write_sz, max_func_sz) # zero in case only negative offsets are found
 
 	def get_arg_var(self, arg_id):
-		return self._func.get_cfunc().arguments[arg_id]
+		return self._func.get_var(arg_id)
 
 	def get_var(self, var_ref):
-		return self._func.get_cfunc().lvars[var_ref.idx]
+		return self._func.get_var(var_ref.idx)
 
 	def handle_call(self, expr):
 		fc = FuncCall(call_expr=expr)
