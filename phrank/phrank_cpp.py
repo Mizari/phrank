@@ -666,7 +666,7 @@ class CppClassFactory(object):
 
 	def analyze_class_sizes(self):
 		for cpp_class in self._created_classes:
-			sizes = [p_hrays.FuncAnalysisVisitor.create(addr=cdtor.get_ea()).get_arg_use_size() for cdtor in cpp_class._cdtors]
+			sizes = [p_hrays.FuncAnalysisVisitor.create(addr=cdtor.get_ea()).get_var_use_size() for cdtor in cpp_class._cdtors]
 			new_class_sz = max(sizes)
 			cpp_class.resize(new_class_sz)
 
