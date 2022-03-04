@@ -44,6 +44,11 @@ class IdaStruc(object):
 			if self.strucid == idaapi.BADADDR:
 				self.strucid = idc.add_struc(idaapi.BADADDR, name, is_union)
 
+	def get_tinfo(self):
+		tif = idaapi.tinfo_t()
+		assert tif.get_named_type(idaapi.get_idati(), self.get_name())
+		return tif
+
 	def delete(self):
 		if self.strucid == idaapi.BADADDR:
 			return

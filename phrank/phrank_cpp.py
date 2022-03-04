@@ -252,11 +252,6 @@ class CppClass(p_cont.Struct):
 			self.set_member_type(offset, vtbl.get_name() + '*')
 			return None
 
-	def get_tinfo(self):
-		tif = idaapi.tinfo_t()
-		assert tif.get_named_type(idaapi.get_idati(), self.get_name())
-		return tif
-
 	def get_shifted_member_ptr_tinfo(self, offset):
 		retval = idaapi.tinfo_t()
 
