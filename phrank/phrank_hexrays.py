@@ -244,7 +244,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 		self._varptr_writes : list[VarPtrWrite] = []
 		self._var_writes: list[VarWrite] = []
 		self._calls : list[FuncCall] = []
-		self._func = p_func.FuncWrapper.create(*args, **kwargs)
+		self._func : p_func.FuncWrapper = p_func.FuncWrapper.create(*args, **kwargs)
 		self._is_visited = False
 
 	def get_func(self):
