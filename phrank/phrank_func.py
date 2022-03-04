@@ -161,6 +161,10 @@ class FuncWrapper(object):
 
 		return self.__cfunc
 
+	def set_cfunc(self, cfunc):
+		self.__is_decompiled = True
+		self.__cfunc = cfunc
+
 	def decompile(self):
 		if self.__is_decompiled:
 			return
