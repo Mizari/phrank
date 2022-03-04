@@ -6,6 +6,7 @@ import phrank.phrank_func as phrank_func
 import phrank.phrank_settings as phrank_settings
 import phrank.phrank_containers as phrank_containers
 import phrank.phrank_hexrays as phrank_hexrays
+import phrank.phrank_struct_analysis as struct_analysis
 
 import time
 
@@ -17,6 +18,9 @@ def analyze_func(addr):
 
 def analyze_vtable(addr):
 	phrank_cpp.CppClassFactory().analyze_vtable(addr)
+
+def analyze_variable(cfunc, var):
+	struct_analysis.StructFactory().analyze_variable(cfunc, var)
 
 def create_cpp_vtables():
 	phrank_cpp.CppVtableFactory().create_all_vtables()
