@@ -11,4 +11,9 @@ It is also possible to just run phrank.py during analysis without installation
 
 ## Capabilities
 1) Analyze pointer variable: automatically calculate pointed structure size, create new structure and set variable type
+<p align='center'>
+<img src='pictures/before.PNG'>
+<img src='pictures/after.PNG'>
+</p>
 2) Analyze C++ classes with multiple inheritance: detect multiple inheritance among C++ classses, detect virtual tables, create structures for virtual tables, detect and set C++ objects in functions
+
