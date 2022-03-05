@@ -50,7 +50,6 @@ class StructMaker(idaapi.action_handler_t):
 			return 0
 
 		hx_view = idaapi.get_widget_vdui(ctx.widget)
-		help(hx_view)
 		cfunc = hx_view.cfunc
 		citem = hx_view.item
 		if citem.citype != idaapi.VDI_EXPR:
