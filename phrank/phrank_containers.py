@@ -458,7 +458,12 @@ class Vtable(Struct):
 			print("[*] WARNING", "created new function at", hex(potential_func))
 			return ptrs
 
-		return []
+		bad_idx = ptrs.index(potential_func)
+		ptrs = ptrs[:bad_idx]
+		if len(ptrs) < minsize:
+			return []
+
+		return ptrs
 
 	@staticmethod
 	def calculate_vtable_size(addr):
