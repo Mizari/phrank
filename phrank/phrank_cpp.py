@@ -6,6 +6,7 @@ import phrank.phrank_util as p_util
 import phrank.phrank_hexrays as p_hrays
 import phrank.phrank_containers as p_cont
 
+from __future__ import annotations
 from typing import Optional
 
 class CppVtable(p_cont.Vtable):
