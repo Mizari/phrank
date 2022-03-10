@@ -26,4 +26,4 @@ class StructFactory:
 		new_struct_tif = new_struct.get_tinfo()
 		new_struct_tif.create_ptr(new_struct_tif)
 
-		func.set_argvar_type(var_id, new_struct_tif)
+		func.set_var_type(var_id, new_struct_tif)

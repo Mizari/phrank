@@ -63,8 +63,8 @@ class FuncWrapper(object):
 		assert rv, "Failed to get func details"
 		return func_details
 
-	def set_argvar_type(self, arg, var_type):
-		var = self.get_cfunc().arguments[arg]
+	def set_var_type(self, var_id, var_type):
+		var = self.get_cfunc().lvars[var_id]
 		# var.set_user_type()
 		# var.set_final_lvar_type(var_type)
 
