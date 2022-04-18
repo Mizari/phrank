@@ -68,12 +68,8 @@ class FuncWrapper(object):
 		# var.set_user_type()
 		# var.set_final_lvar_type(var_type)
 
-		ll = idaapi.lvar_locator_t()
-		rv = idaapi.locate_lvar(ll, self.__func.start_ea, var.name)
-		assert rv, "Failed to locate lvar"
-
 		info = idaapi.lvar_saved_info_t()
-		info.ll = ll
+		info.ll = var
 		info.type = var_type
 		info.name = var.name
 		rv = idaapi.modify_user_lvar_info(self.__func.start_ea, idaapi.MLI_TYPE, info)
