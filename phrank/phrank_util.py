@@ -38,10 +38,14 @@ def unique(uid_getter_func):
 		cls._instances[uid] = obj
 		return obj
 
+	def clear_cached_instances(cls):
+		cls._instances.clear()
+
 	def _unique(cls):
 		cls._getter = uid_getter_func
 		cls._instances = {}
 		cls.create = create
+		cls.clear_cached_instances = clear_cached_instances
 		return cls
 	return _unique
 

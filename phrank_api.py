@@ -10,21 +10,39 @@ import phrank.phrank_struct_analysis as struct_analysis
 
 import time
 
+def clear_caches():
+	phrank_func.FuncWrapper.clear_cached_instances()
+	phrank_hexrays.FuncAnalysisVisitor.clear_cached_instances()
+
+def analysis_api(func):
+	def fwrapper(*args, **kwargs):
+		clear_caches()
+		rv = func(*args, **kwargs)
+		clear_caches()
+		return rv
+	return fwrapper
+
+@analysis_api
 def analyze_everything():
 	phrank_cpp.CppClassFactory().analyze_everything()
 
+@analysis_api
 def analyze_func(addr):
 	phrank_cpp.CppClassFactory().analyze_func(addr)
 
+@analysis_api
 def analyze_vtable(addr):
 	phrank_cpp.CppClassFactory().analyze_vtable(addr)
 
+@analysis_api
 def analyze_variable(cfunc, var):
 	struct_analysis.StructFactory().analyze_variable(cfunc, var)
 
+@analysis_api
 def create_cpp_vtables():
 	phrank_cpp.CppVtableFactory().create_all_vtables()
 
+@analysis_api
 def create_vtables():
 	phrank_containers.VtableFactory().create_all_vtables()
 
