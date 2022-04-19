@@ -208,7 +208,7 @@ class FuncCall:
 		arg_expr = self._call_expr.a[arg_id]
 		return get_var_offset(arg_expr)
 
-	def get_arg_use_size(self, arg_id=0):
+	def get_var_use_size(self, arg_id=0):
 		if arg_id == 0:
 			if self._func_name in ARRAY_FUNCS:
 				arg2 = self._call_expr.a[2]
@@ -233,7 +233,8 @@ class FuncCall:
 		if idaapi.get_func(self._func_ea) is None:
 			return 0
 
-		return FuncAnalysisVisitor.create(addr=self._func_ea).get_arg_use_size(arg_id)
+		fav: FuncAnalysisVisitor = FuncAnalysisVisitor.create(addr=self._func_ea)
+		return fav.get_var_use_size(arg_id)
 
 @p_util.unique(p_func.get_func_start)
 class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
@@ -266,7 +267,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 				print("write", hex(w.get_offset()), w.get_val().opname)
 
 		for c in self._calls:
-			print("call", c.get_name(), hex(c.get_offset(0)), c.get_nargs(), c.get_arg_use_size(0), [a.opname for a in c.get_args()])
+			print("call", c.get_name(), hex(c.get_offset(0)), c.get_nargs(), c.get_var_use_size(0), [a.opname for a in c.get_args()])
 
 	def varptr_writes(self, **kwargs):
 		if not self._is_visited: self.visit()
@@ -325,7 +326,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 			if var_ref.idx != var_id:
 				continue
 
-			call_sz = func_call.get_arg_use_size(var_id)
+			call_sz = func_call.get_var_use_size(var_id)
 			if offset + call_sz > max_func_sz:
 				max_func_sz = offset + call_sz
 		return max(0, max_write_sz, max_func_sz) # zero in case only negative offsets are found
