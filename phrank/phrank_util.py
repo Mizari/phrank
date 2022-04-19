@@ -38,6 +38,7 @@ def unique(uid_getter_func):
 		cls._instances[uid] = obj
 		return obj
 
+	@classmethod
 	def clear_cached_instances(cls):
 		cls._instances.clear()
 
