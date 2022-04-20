@@ -3,7 +3,7 @@ SHOULD_SET_VTABLE_TYPES = True
 
 # when decompiling X decompile functions called from X first
 # for better type propagation
-DECOMPILE_RECURSIVELY = True
+DECOMPILE_RECURSIVELY = False
 
 # when decompiling skip functions, that start with these prefixes
 FUNCTION_PREFIXES_DECOMPILATION_SKIP_LIST = {
