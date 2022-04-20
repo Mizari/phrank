@@ -154,9 +154,9 @@ class FuncWrapper(object):
 			return None
 		return tif
 
-	def get_cfunc(self):
+	def get_cfunc(self, decompile_recursively=False):
 		if not self.__is_decompiled:
-			self.decompile()
+			self.decompile(decompile_recursively=decompile_recursively)
 
 		return self.__cfunc
 
@@ -164,13 +164,13 @@ class FuncWrapper(object):
 		self.__is_decompiled = True
 		self.__cfunc = cfunc
 
-	def decompile(self):
+	def decompile(self, decompile_recursively=False):
 		if self.__is_decompiled:
 			return
 
 		self.__is_decompiled = True
 
-		if phrank_settings.DECOMPILE_RECURSIVELY:
+		if decompile_recursively or phrank_settings.DECOMPILE_RECURSIVELY:
 			for subcall in p_util.get_func_calls_from(self.get_start()):
 				decompile(subcall)
 
