@@ -172,7 +172,7 @@ class FuncWrapper(object):
 
 		if decompile_recursively or phrank_settings.DECOMPILE_RECURSIVELY:
 			for subcall in p_util.get_func_calls_from(self.get_start()):
-				decompile(subcall)
+				decompile(subcall, decompile_recursively=True)
 
 		try:
 			self.__cfunc = idaapi.decompile(self.get_start())
@@ -232,8 +232,8 @@ def set_func_argvar_type(addr, arg_id, var_type):
 		raise BaseException("No such function")
 	return f.set_argvar_type(arg_id, var_type)
 
-def decompile(addr):
+def decompile(addr, decompile_recursively=False):
 	f = FuncWrapper.create(addr=addr, noraise=True)
 	if f is None:
 		raise BaseException("No such function")
-	return f.decompile()
+	return f.decompile(decompile_recursively=decompile_recursively)
