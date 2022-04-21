@@ -138,7 +138,7 @@ class FuncWrapper(object):
 			if cf is None:
 				tif = None
 			elif not idaapi.get_tinfo(tif, self.get_start()):
-				tif = None
+				cf.get_func_type(tif)
 
 		if tif is None and self.is_movrax_ret():
 			tif = p_util.get_voidfunc_tinfo()
