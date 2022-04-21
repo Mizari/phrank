@@ -6,6 +6,11 @@ ptr_size = None
 get_data = None
 
 
+def str2tif(s):
+	tinfo = idaapi.tinfo_t()
+	idaapi.parse_decl(tinfo, idaapi.get_idati(), s, 0)
+	return tinfo
+
 def get_voidptr_tinfo():
 	voidptr_tinfo = idaapi.tinfo_t()
 	idaapi.parse_decl(voidptr_tinfo, idaapi.get_idati(), "void*;", 0)

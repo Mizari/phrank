@@ -87,6 +87,9 @@ class FuncWrapper(object):
 		return fdet[arg_id].type.copy()
 
 	def set_arg_type(self, arg_id, arg_type):
+		if isinstance(arg_type, str):
+			arg_type = p_util.str2tif(arg_type)
+
 		func_details = self.get_func_details()
 		func_details[arg_id].type = arg_type.copy()
 
