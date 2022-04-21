@@ -38,6 +38,18 @@ def get_var_write(expr):
 
 	return None
 
+def get_var_access(expr):
+	if expr.op == idaapi.cot_idx:
+		if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
+			return None
+
+		return expr.x.v, (expr.y.n._value + 1) * expr.x.type.get_size()
+
+	if expr.op == idaapi.cot_ptr:
+		return get_var_offset(expr.x)
+
+	return None
+
 def get_varptr_write_offset(expr):
 	if expr.op == idaapi.cot_idx:
 		if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
@@ -130,6 +142,17 @@ class Write:
 		if isinstance(val, int):
 			return self.is_int(val)
 		return self.get_val() == val
+
+class VarAccess:
+	def __init__(self, varref, offset):
+		self.varref = varref
+		self.offset = offset
+
+	def get_varref(self):
+		return self.varref
+
+	def get_offset(self):
+		return self.offset
 
 class VarWrite(Write):
 	__slots__ = "_varref"
@@ -244,6 +267,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
 		self._varptr_writes : list[VarPtrWrite] = []
 		self._var_writes: list[VarWrite] = []
+		self._var_accesses : list[VarAccess] = []
 		self._calls : list[FuncCall] = []
 		self._func : p_func.FuncWrapper = p_func.FuncWrapper.create(*args, **kwargs)
 		self._is_visited = False
@@ -255,6 +279,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 		self._var_writes.clear()
 		self._varptr_writes.clear()
 		self._calls.clear()
+		self._var_accesses.clear()
 
 	def print_uses(self):
 		if self._is_visited is False:
@@ -299,17 +324,27 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 
 	def visit_expr(self, expr):
 		if expr.op == idaapi.cot_asg:
-			rv = self.handle_assignment(expr)
+			should_prune = self.handle_assignment(expr)
 		elif expr.op == idaapi.cot_call:
-			rv = self.handle_call(expr)
+			should_prune = self.handle_call(expr)
 		else:
-			rv = False
+			should_prune = self.handle_expr(expr)
+
+		if should_prune:
+			self.prune_now()
 
 		return 0
 
 	def get_var_use_size(self, var_id=0):
 		if not self._is_visited:
 			self.visit()
+
+		max_access_sz = 0
+		for w in self._var_accesses:
+			if w.get_varref().idx != var_id:
+				continue
+
+			max_access_sz = max(max_access_sz, w.get_offset())
 
 		max_write_sz = 0
 		for w in self._varptr_writes:
@@ -331,7 +366,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 			call_sz = func_call.get_var_use_size(var_id)
 			if offset + call_sz > max_func_sz:
 				max_func_sz = offset + call_sz
-		return max(0, max_write_sz, max_func_sz) # zero in case only negative offsets are found
+		return max(0, max_write_sz, max_func_sz, max_access_sz) # zero in case only negative offsets are found
 
 	def get_arg_var(self, arg_id):
 		return self._func.get_var(arg_id)
@@ -342,6 +377,8 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 	def handle_call(self, expr):
 		fc = FuncCall(call_expr=expr)
 		self._calls.append(fc)
+		for arg in expr.a:
+			self.apply_to_exprs(arg, None)
 		return True
 
 	def handle_assignment(self, expr):
@@ -350,12 +387,27 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 			varref, offset = var_offset
 			w = VarPtrWrite(varref, expr.y, offset)
 			self._varptr_writes.append(w)
-			return True
 
-		varref = get_var_write(expr.x)
-		if varref is not None:
-			w = VarWrite(varref, expr.y)
-			self._var_writes.append(w)
+		else:
+			varref = get_var_write(expr.x)
+			if varref is not None:
+				w = VarWrite(varref, expr.y)
+				self._var_writes.append(w)
+
+			else:
+				self.apply_to(expr.x, None)
+
+		self.apply_to(expr.y, None)
+
+		return True
+
+	def handle_expr(self, expr):
+		var_access = get_var_access(expr)
+		if var_access is not None:
+			varref, offset = var_access
+			w = VarAccess(varref, offset)
+			print("var access", w.get_varref().idx, hex(w.get_offset()))
+			self._var_accesses.append(w)
 			return True
 
 		return False
