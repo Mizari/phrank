@@ -16,7 +16,6 @@ def clear_caches():
 
 def analysis_api(func):
 	def fwrapper(*args, **kwargs):
-		clear_caches()
 		rv = func(*args, **kwargs)
 		clear_caches()
 		return rv
