@@ -13,6 +13,7 @@ idaapi.require("phrank.phrank_cpp")
 idaapi.require("phrank_api")
 
 import phrank_api
+import phrank.phrank_hexrays as p_hrays
 
 
 class VtableMaker(idaapi.action_handler_t):
@@ -26,8 +27,20 @@ class VtableMaker(idaapi.action_handler_t):
 		hx_view = idaapi.get_widget_vdui(ctx.widget)
 		cfunc = hx_view.cfunc
 		citem = hx_view.item
-		intval = phrank_api.citem_to_int(cfunc, citem)
-		if intval == idaapi.BADADDR:
+		expr = citem.it.to_specific_type
+
+		parent_asg = expr
+		while parent_asg is not None:
+			if parent_asg.op == idaapi.cot_asg:
+				break
+			parent_asg = cfunc.body.find_parent_of(parent_asg).to_specific_type
+
+		if parent_asg is None:
+			print("Failed to get int value")
+			return 0
+
+		intval = p_hrays.get_int(expr)
+		if intval is None:
 			print("Failed to get int value")
 			return 0
 

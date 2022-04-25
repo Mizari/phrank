@@ -48,27 +48,6 @@ def create_vtable(addr):
 	factory = phrank_containers.VtableFactory()
 	return factory.create_vtable(addr=addr)
 
-def citem_to_int(cfunc, citem):
-	if citem.citype != idaapi.VDI_EXPR:
-		return idaapi.BADADDR
-
-	expr = citem.it.to_specific_type
-
-	parent_asg = expr
-	while parent_asg is not None:
-		if parent_asg.op == idaapi.cot_asg:
-			break
-		parent_asg = cfunc.body.find_parent_of(parent_asg).to_specific_type
-
-	if parent_asg is None:
-		return idaapi.BADADDR
-
-	intval = phrank_hexrays.get_int(parent_asg.y)
-	if intval is None:
-		return idaapi.BADADDR
-
-	return intval
-
 def decompile_all():
 	fwrappers = [phrank_func.FuncWrapper(addr=fea) for fea in phrank_util.iterate_all_functions()]
 	fwrappers = filter(None, fwrappers)
