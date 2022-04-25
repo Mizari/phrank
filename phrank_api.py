@@ -15,9 +15,10 @@ def clear_caches():
 	phrank_hexrays.FuncAnalysisVisitor.clear_cached_instances()
 
 def analysis_api(func):
-	def fwrapper(*args, **kwargs):
+	def fwrapper(*args, should_clear_cache=True, **kwargs):
 		rv = func(*args, **kwargs)
-		clear_caches()
+		if should_clear_cache:
+			clear_caches()
 		return rv
 	return fwrapper
 
