@@ -65,16 +65,6 @@ class VtableMaker(HRActionHandler):
 			return 0
 
 		expr = citem.it.to_specific_type
-		parent_asg = expr
-		while parent_asg is not None:
-			if parent_asg.op == idaapi.cot_asg:
-				break
-			parent_asg = cfunc.body.find_parent_of(parent_asg).to_specific_type
-
-		if parent_asg is None:
-			print("Failed to get int value")
-			return 0
-
 		intval = p_hrays.get_int(expr)
 		if intval is None:
 			print("Failed to get int value")
@@ -96,15 +86,8 @@ class StructMaker(HRActionHandler):
 		if citem.citype != idaapi.VDI_EXPR:
 			return 0
 
-		expr = citem.it
-
-		while expr is not None:
-			expr = expr.to_specific_type
-			if expr.op == idaapi.cot_var:
-				break
-			expr = cfunc.body.find_parent_of(expr)
-
-		if expr is None:
+		expr = citem.it.to_specific_type
+		if expr.op != idaapi.cot_var:
 			print("no variable found under cursor")
 			return 0
 
