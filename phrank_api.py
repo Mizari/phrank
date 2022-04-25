@@ -90,16 +90,13 @@ def should_skip_decompiling(func_wrapper):
 
 	return False
 
-def decompile_wrappers(fwrappers):
-	for fw in fwrappers:
-		fw.decompile()
-
 def decompile_all():
 	fwrappers = [phrank_func.FuncWrapper(addr=fea) for fea in phrank_util.iterate_all_functions()]
 	fwrappers = filter(None, fwrappers)
 	fwrappers = filter(lambda x: not should_skip_decompiling(x), fwrappers)
 	fwrappers = list(fwrappers)
 	phrank_settings.DECOMPILE_RECURSIVELY = True
-	decompile_wrappers(fwrappers)
+	for fw in fwrappers:
+		fw.decompile()
 	phrank_settings.DECOMPILE_RECURSIVELY = False
 
