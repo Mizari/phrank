@@ -95,8 +95,5 @@ def decompile_all():
 	fwrappers = filter(None, fwrappers)
 	fwrappers = filter(lambda x: not should_skip_decompiling(x), fwrappers)
 	fwrappers = list(fwrappers)
-	phrank_settings.DECOMPILE_RECURSIVELY = True
 	for fw in fwrappers:
-		fw.decompile()
-	phrank_settings.DECOMPILE_RECURSIVELY = False
-
+		fw.decompile(decompile_recursively=True)
