@@ -191,6 +191,25 @@ class FuncWrapper(object):
 	def get_nargs(self):
 		return self.get_tinfo().get_nargs()
 
+	def should_skip_decompiling(self):
+		fname = self.get_name()
+		if fname is None:
+			print("emtpy name %s" % hex(self.get_start()))
+			return True
+
+		if phrank_settings.should_skip_by_prefix(fname):
+			return True
+
+		# global constructors
+		if fname.startswith("_GLOBAL__sub_I_"):
+			return True
+
+		dfname = idaapi.demangle_name(fname, idaapi.MNG_NODEFINIT | idaapi.MNG_NORETTYPE)
+		if dfname is not None and phrank_settings.should_skip_by_prefix(dfname):
+			return True
+
+		return False
+
 def get_func_tinfo(func_addr):
 	f = FuncWrapper.create(addr=func_addr, noraise=True)
 	if f is None:
