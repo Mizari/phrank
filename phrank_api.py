@@ -8,8 +8,6 @@ import phrank.phrank_containers as phrank_containers
 import phrank.phrank_hexrays as phrank_hexrays
 import phrank.phrank_struct_analysis as struct_analysis
 
-import time
-
 def clear_caches():
 	phrank_func.FuncWrapper.clear_cached_instances()
 	phrank_hexrays.FuncAnalysisVisitor.clear_cached_instances()
