@@ -17,3 +17,5 @@ It is also possible to just run phrank.py during analysis without installation
 </p>
 2) Analyze C++ classes with multiple inheritance: detect multiple inheritance among C++ classses, detect virtual tables, create structures for virtual tables, detect and set C++ objects in functions
 
+## How to use
+There are currently two ways to use phrank: hotkey actions (described [here](https://github.com/Mizari/phrank/wiki/Phrank-plugin-and-actions) and in comments [here](https://github.com/Mizari/phrank/blob/master/phrank.py)) and phrank_api (described in docstring comments [here](https://github.com/Mizari/phrank/blob/master/phrank_api.py)).
