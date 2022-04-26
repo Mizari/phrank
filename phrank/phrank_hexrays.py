@@ -385,14 +385,12 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 			if w.get_varref().idx != var_id:
 				continue
 			write_sz = w.get_offset() + w.get_write_size()
-			if write_sz > max_write_sz:
-				max_write_sz = write_sz
+			max_write_sz = max(max_write_sz, write_sz)
 
 		max_func_sz = 0
 		for func_call in self._calls:
 			call_sz = func_call.get_var_use_size(var_id)
-			if call_sz > max_func_sz:
-				max_func_sz = call_sz
+			max_func_sz = max(max_func_sz, call_sz)
 		return max(0, max_write_sz, max_func_sz, max_access_sz) # zero in case only negative offsets are found
 
 	def get_arg_var(self, arg_id):
