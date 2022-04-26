@@ -39,6 +39,9 @@ def get_var_write(expr):
 	return None
 
 def get_var_access(expr):
+	if expr.op == idaapi.cot_cast:
+		return get_var_access(expr.x)
+
 	if expr.op == idaapi.cot_idx:
 		if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
 			return None
@@ -224,12 +227,16 @@ class FuncCall:
 	def get_name(self):
 		return self._func_name
 
-	def get_arg_var_offset(self, arg_id):
-		if len(self._call_expr.a) <= arg_id:
-			return None
+	def get_var_offset(self, var_id):
+		for arg in self._call_expr.a:
+			var_offset = get_var_offset(arg)
+			if var_offset is None:
+				continue
 
-		arg_expr = self._call_expr.a[arg_id]
-		return get_var_offset(arg_expr)
+			var_ref, offset = var_offset
+			if var_ref.idx != var_id:
+				continue
+		return None
 
 	def get_var_use_size(self, arg_id=0):
 		if arg_id == 0:
@@ -356,7 +363,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 
 		max_func_sz = 0
 		for func_call in self._calls:
-			var_offset = func_call.get_arg_var_offset(var_id)
+			var_offset = func_call.get_var_offset(var_id)
 			if var_offset is None:
 				continue
 			var_ref, offset = var_offset
