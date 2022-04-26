@@ -234,8 +234,8 @@ class FuncCall:
 				continue
 
 			var_ref, offset = var_offset
-			if var_ref.idx != var_id:
-				continue
+			if var_ref.idx == var_id:
+				return offset
 		return None
 
 	def get_var_use_size(self, arg_id=0):
@@ -363,11 +363,8 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 
 		max_func_sz = 0
 		for func_call in self._calls:
-			var_offset = func_call.get_var_offset(var_id)
-			if var_offset is None:
-				continue
-			var_ref, offset = var_offset
-			if var_ref.idx != var_id:
+			offset = func_call.get_var_offset(var_id)
+			if offset is None:
 				continue
 
 			call_sz = func_call.get_var_use_size(var_id)
