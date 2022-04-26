@@ -238,22 +238,36 @@ class FuncCall:
 				return offset
 		return None
 
-	def get_var_use_size(self, arg_id=0):
-		if arg_id == 0:
-			if self._func_name in ARRAY_FUNCS:
-				arg2 = self._call_expr.a[2]
-				if arg2.op == idaapi.cot_num:
-					return arg2.n._value
-			elif self._func_name in WARRAY_FUNCS:
-				arg2 = self._call_expr.a[2]
-				if arg2.op == idaapi.cot_num:
-					return arg2.n._value * 2
-			elif self._func_name in PRINTF_FUNCS:
-				arg2 = self._call_expr.a[1]
-				if arg2.op == idaapi.cot_num:
-					return arg2.n._value
+	def get_var_use_size(self, var_id=0):
+		nargs = self.get_nargs()
+		if nargs == 0:
+			return
 
-		elif self._func_ea == idaapi.BADADDR:
+		arg0 = self._call_expr.a[0]
+		var_offset = get_var_offset(arg0)
+		if var_offset is not None:
+			var_ref, offset = var_offset
+			if var_ref.idx == var_id:
+				if self._func_name in ARRAY_FUNCS:
+					arg2 = self._call_expr.a[2]
+					if arg2.op == idaapi.cot_num:
+						func_use_value = arg2.n._value
+				elif self._func_name in WARRAY_FUNCS:
+					arg2 = self._call_expr.a[2]
+					if arg2.op == idaapi.cot_num:
+						func_use_value = arg2.n._value * 2
+				elif self._func_name in PRINTF_FUNCS:
+					arg2 = self._call_expr.a[1]
+					if arg2.op == idaapi.cot_num:
+						func_use_value = arg2.n._value
+				else:
+					func_use_value = 0
+
+				if func_use_value != 0:
+					return offset + func_use_value
+
+		# sanity check
+		if self._func_ea == idaapi.BADADDR:
 			return 0
 
 		# cant look into imported funcs, assume that args are somehow used there
@@ -263,8 +277,21 @@ class FuncCall:
 		if idaapi.get_func(self._func_ea) is None:
 			return 0
 
-		fav: FuncAnalysisVisitor = FuncAnalysisVisitor.create(addr=self._func_ea)
-		return fav.get_var_use_size(arg_id)
+		max_var_use = 0
+		for arg_id in range(nargs):
+			arg = self._call_expr.a[arg_id]
+			var_offset = get_var_offset(arg)
+			if var_offset is None:
+				continue
+
+			var_ref, offset = var_offset
+			if var_ref.idx != var_id:
+				continue
+
+			fav: FuncAnalysisVisitor = FuncAnalysisVisitor.create(addr=self._func_ea)
+			var_use = fav.get_var_use_size(arg_id)
+			max_var_use = max(max_var_use, var_use + offset)
+		return max_var_use
 
 @p_util.unique(p_func.get_func_start)
 class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
@@ -363,13 +390,10 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 
 		max_func_sz = 0
 		for func_call in self._calls:
-			offset = func_call.get_var_offset(var_id)
-			if offset is None:
-				continue
-
 			call_sz = func_call.get_var_use_size(var_id)
-			if offset + call_sz > max_func_sz:
-				max_func_sz = offset + call_sz
+			if call_sz > max_func_sz:
+				max_func_sz = call_sz
+		print("max access", max_access_sz, "max write", max_write_sz, "max func", max_func_sz)
 		return max(0, max_write_sz, max_func_sz, max_access_sz) # zero in case only negative offsets are found
 
 	def get_arg_var(self, arg_id):
