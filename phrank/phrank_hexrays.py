@@ -393,7 +393,6 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 			call_sz = func_call.get_var_use_size(var_id)
 			if call_sz > max_func_sz:
 				max_func_sz = call_sz
-		print("max access", max_access_sz, "max write", max_write_sz, "max func", max_func_sz)
 		return max(0, max_write_sz, max_func_sz, max_access_sz) # zero in case only negative offsets are found
 
 	def get_arg_var(self, arg_id):
