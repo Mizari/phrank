@@ -406,7 +406,6 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 		if var_access is not None:
 			varref, offset = var_access
 			w = VarAccess(varref, offset)
-			print("var access", w.get_varref().idx, hex(w.get_offset()))
 			self._var_accesses.append(w)
 			return True
 
