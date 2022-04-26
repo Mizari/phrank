@@ -156,6 +156,12 @@ class VarAccess:
 
 	def get_offset(self):
 		return self.offset
+	
+	def get_var_use(self, var_id):
+		if self.get_varref().idx != var_id:
+			return 0
+		else:
+			return self.get_offset()
 
 class VarWrite(Write):
 	__slots__ = "_varref"
@@ -187,6 +193,11 @@ class VarPtrWrite(Write):
 
 	def get_int(self):
 		return get_int(self._val)
+	
+	def get_var_use(self, var_id):
+		if self.get_varref().idx != var_id:
+			return 0
+		return self.get_offset() + self.get_write_size()
 
 	def check(self, **kwargs):
 		offset = kwargs.get("offset", None)
@@ -375,22 +386,15 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 
 		max_access_sz = 0
 		for w in self._var_accesses:
-			if w.get_varref().idx != var_id:
-				continue
-
-			max_access_sz = max(max_access_sz, w.get_offset())
+			max_access_sz = max(max_access_sz, w.get_var_use(var_id))
 
 		max_write_sz = 0
 		for w in self._varptr_writes:
-			if w.get_varref().idx != var_id:
-				continue
-			write_sz = w.get_offset() + w.get_write_size()
-			max_write_sz = max(max_write_sz, write_sz)
+			max_write_sz = max(max_write_sz, w.get_var_use(var_id))
 
 		max_func_sz = 0
 		for func_call in self._calls:
-			call_sz = func_call.get_var_use_size(var_id)
-			max_func_sz = max(max_func_sz, call_sz)
+			max_func_sz = max(max_func_sz, func_call.get_var_use_size(var_id))
 		return max(0, max_write_sz, max_func_sz, max_access_sz) # zero in case only negative offsets are found
 
 	def get_arg_var(self, arg_id):
