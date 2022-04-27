@@ -37,7 +37,8 @@ class HRActionHandler(idaapi.action_handler_t):
 		citem = hx_view.item
 
 		rv = self.handler(cfunc, citem)
-		hx_view.refresh_view(1)
+		if rv == 1:
+			hx_view.refresh_view(1)
 		return rv
 
 	def handler(self, cfunc, citem):
@@ -73,9 +74,10 @@ class VtableMaker(HRActionHandler):
 		vtbl = phrank_api.create_vtable(intval)
 		if vtbl is None:
 			print("failed to create vtable at", hex(intval))
+			return 0
 		else:
 			print("successfully created vtable", vtbl.get_name(), "at", hex(intval))
-		return 1
+			return 1
 
 
 class StructMaker(HRActionHandler):
