@@ -63,6 +63,9 @@ def get_varptr_write_offset(expr):
 	if expr.op == idaapi.cot_ptr:
 		return get_var_offset(expr.x)
 
+	if expr.op == idaapi.cot_memptr and expr.x.op == idaapi.cot_var:
+		return expr.x.v, expr.m
+
 	return None
 
 # trying to get various forms of "var + X", where X is int
