@@ -259,6 +259,7 @@ class FuncCall:
 		if var_offset is not None:
 			var_ref, offset = var_offset
 			if var_ref.idx == var_id:
+				func_use_value = 0
 				if self._func_name in ARRAY_FUNCS:
 					arg2 = self._call_expr.a[2]
 					if arg2.op == idaapi.cot_num:
@@ -271,8 +272,6 @@ class FuncCall:
 					arg2 = self._call_expr.a[1]
 					if arg2.op == idaapi.cot_num:
 						func_use_value = arg2.n._value
-				else:
-					func_use_value = 0
 
 				if func_use_value != 0:
 					return offset + func_use_value
