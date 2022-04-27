@@ -258,7 +258,7 @@ class FuncCall:
 	def get_var_use_size(self, var_id=0):
 		nargs = self.get_nargs()
 		if nargs == 0:
-			return
+			return 0
 
 		arg0 = self._call_expr.a[0]
 		var_offset = get_var_offset(arg0)
