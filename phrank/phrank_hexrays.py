@@ -42,6 +42,9 @@ def get_var_access(expr):
 	if expr.op == idaapi.cot_cast:
 		return get_var_access(expr.x)
 
+	if expr.op == idaapi.cot_memptr and expr.x.op == idaapi.cot_var:
+		return expr.x.v, expr.m + expr.x.type.get_size()
+
 	if expr.op == idaapi.cot_idx:
 		if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
 			return None
