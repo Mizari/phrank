@@ -99,7 +99,6 @@ class StructMaker(HRActionHandler):
 actions = [
 	VtableMaker("phrank::vtable_maker", "Alt-Q", "make vtable"),
 	StructMaker("phrank::struct_maker", "Shift-A", "make struct"),
-	HRActionHandler("phrank::qwe", "Alt-M", "qwe"),
 ]
 
 def register_actions(*actions):
