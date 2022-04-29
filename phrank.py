@@ -97,7 +97,12 @@ class StructMaker(HRActionHandler):
 		return 1
 
 actions = [
+	# will create vtable structure from the address calculated from int cexpr value
 	VtableMaker("phrank::vtable_maker", "Alt-Q", "make vtable"),
+
+	# will calculate size of the pointer in variable at cursor
+	# then will create struct structure with that size or adjust size of existing one
+	# then will set variable to new type, if created
 	StructMaker("phrank::struct_maker", "Shift-A", "make struct"),
 ]
 
