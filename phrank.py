@@ -58,9 +58,6 @@ class HRActionHandler(idaapi.action_handler_t):
 
 
 class VtableMaker(HRActionHandler):
-	def __init__(self, action_name, hotkey, label):
-		super().__init__(action_name, hotkey, label)
-
 	def handler(self, cfunc, citem):
 		if citem.citype != idaapi.VDI_EXPR:
 			return 0
@@ -81,9 +78,6 @@ class VtableMaker(HRActionHandler):
 
 
 class StructMaker(HRActionHandler):
-	def __init__(self, action_name, hotkey, label):
-		super().__init__(action_name, hotkey, label)
-
 	def handler(self, cfunc, citem):
 		if citem.citype != idaapi.VDI_EXPR:
 			return 0
