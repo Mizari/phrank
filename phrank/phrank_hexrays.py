@@ -485,13 +485,6 @@ class ThisUsesVisitor:
 			return None
 		return subst_offset
 
-	def check_var(self, var_id):
-		return self.get_this_offset(var_id) is not None
-
-	def is_write_to_this(self, write):
-		varref = write.get_varref()
-		return self.check_var(varref.idx)
-
 	def this_writes(self, **kwargs):
 		if self._fav._func.get_nargs() == 0:
 			return
