@@ -488,6 +488,9 @@ class ThisUsesVisitor:
 		return self.check_var(varref.idx)
 
 	def this_writes(self, **kwargs):
+		if self._fav._func.get_nargs() == 0:
+			return
+
 		for w in self._fav.varptr_writes(**kwargs):
 			varref = w.get_varref()
 			this_offset = self.get_this_offset(varref.idx)
@@ -499,6 +502,9 @@ class ThisUsesVisitor:
 			yield w
 
 	def get_this_calls(self):
+		if self._fav._func.get_nargs() == 0:
+			return []
+
 		calls = []
 		for func_call in self._fav.get_calls():
 			var_offset = func_call.get_arg_var_offset(0)
