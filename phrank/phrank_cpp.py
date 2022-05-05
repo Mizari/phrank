@@ -485,9 +485,6 @@ class CppClassFactory(object):
 			return
 		
 		func_tuv = p_hrays.ThisUsesVisitor(addr=func_addr)
-		if not func_tuv.is_this_func:
-			return
-
 		vtbls = set()
 		for w in func_tuv.this_writes():
 			intval = w.get_int()
