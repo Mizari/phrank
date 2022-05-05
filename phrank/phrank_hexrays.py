@@ -178,6 +178,9 @@ class VarWrite(Write):
 	def get_varref(self):
 		return self._varref
 
+	def get_varid(self):
+		return self._varref.idx
+
 	def check(self, **kwargs):
 		val = kwargs.get("val", None)
 		if val is not None and not self.check_val(val):
@@ -381,7 +384,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 			if varref.idx == vid:
 				continue
 
-			vid = w.get_varref().idx
+			vid = w.get_varid()
 			curr = self._var_substitutes.get(vid, None)
 			if curr is not None:
 				print("[*] WARNING", "var", vid, "is already substituted with", curr[0], "overwriting")
