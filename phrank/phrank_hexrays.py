@@ -455,8 +455,7 @@ class ThisUsesVisitor:
 
 		self._fav = FuncAnalysisVisitor.create(*args, **kwargs)
 		self._this_var_offsets = {0:0}
-		self.is_this_func = self._analyze_this()
-		if not self.is_this_func:
+		if not self._analyze_this():
 			self._this_var_offsets.clear()
 
 	def _analyze_this(self):
