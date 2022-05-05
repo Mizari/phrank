@@ -317,6 +317,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
 		self._varptr_writes : list[VarPtrWrite] = []
 		self._var_writes: list[VarWrite] = []
+		self._var_substitutes = {} # var_id_i -> (var_id_j, offset). for situations like "Vi = Vj + offset"
 		self._var_accesses : list[VarAccess] = []
 		self._calls : list[FuncCall] = []
 		self._func : p_func.FuncWrapper = p_func.FuncWrapper.create(*args, **kwargs)
@@ -371,6 +372,24 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 				self.apply_to_exprs(cfunc.body, None)
 		except idaapi.DecompilationFailure:
 			print("[*] WARNING", "failed to decompile function", idaapi.get_name(self._func.get_start()), "aborting analysis")
+
+		for w in self.var_writes():
+			var_offset = get_var_offset(w.get_val())
+			if var_offset is None:
+				continue
+			varref, offset = var_offset
+
+			vid = w.get_varref().idx
+			curr = self._var_substitutes.get(vid, None)
+			if curr is not None:
+				print("[*] WARNING", "var", vid, "is already substituted with", curr[0], "overwriting")
+			self._var_substitutes[vid] = (varref.idx, offset)
+
+	def get_substitute(self, varid):
+		subst = self._var_substitutes.get(varid, None)
+		if subst is None:
+			return varid, 0
+		return subst
 
 	def visit_expr(self, expr):
 		if expr.op == idaapi.cot_asg:
@@ -453,46 +472,25 @@ class ThisUsesVisitor:
 		if addr is None:
 			raise BaseException("Failed to get function start")
 
-		self._fav = FuncAnalysisVisitor.create(*args, **kwargs)
-		self._this_var_offsets = {0:0}
-		if not self._analyze_this():
-			self._this_var_offsets.clear()
+		self._fav: FuncAnalysisVisitor = FuncAnalysisVisitor.create(*args, **kwargs)
 
-	def _analyze_this(self):
-		if self._fav._func.get_nargs() == 0:
-			return False
+	def get_this_offset(self, var_id):
+		subst_id, subst_offset = self._fav.get_substitute(var_id)
+		if subst_id == var_id:
+			return None
+		return subst_offset
 
-		for w in self._fav.var_writes():
-			vid = w.get_varref().idx
-			if vid == 0:
-				return False
-
-			val = w.get_val()
-			var_offset = get_var_offset(val)
-			if var_offset is None:
-				continue
-			varref, offset = var_offset
-			if varref.idx == 0:
-				curr = self._this_var_offsets.get(vid, None)
-				if curr is not None:
-					return False
-				self._this_var_offsets[vid] = offset
-		return True
-
-	def get_this_offset(self, varref):
-		return self._this_var_offsets.get(varref.idx, None)
-
-	def check_var(self, varref):
-		return self.get_this_offset(varref) is not None
+	def check_var(self, var_id):
+		return self.get_this_offset(var_id) is not None
 
 	def is_write_to_this(self, write):
 		varref = write.get_varref()
-		return self.check_var(varref)
+		return self.check_var(varref.idx)
 
 	def this_writes(self, **kwargs):
 		for w in self._fav.varptr_writes(**kwargs):
 			varref = w.get_varref()
-			this_offset = self.get_this_offset(varref)
+			this_offset = self.get_this_offset(varref.idx)
 			if this_offset is None:
 				continue
 
@@ -508,7 +506,7 @@ class ThisUsesVisitor:
 				continue
 
 			varref, offset = var_offset
-			if not self.check_var(varref):
+			if not self.check_var(varref.idx):
 				continue
 
 			calls.append((offset, func_call))
