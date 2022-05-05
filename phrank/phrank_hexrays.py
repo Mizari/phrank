@@ -378,6 +378,8 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 			if var_offset is None:
 				continue
 			varref, offset = var_offset
+			if varref.idx == vid:
+				continue
 
 			vid = w.get_varref().idx
 			curr = self._var_substitutes.get(vid, None)
