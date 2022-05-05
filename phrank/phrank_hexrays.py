@@ -512,15 +512,16 @@ class ThisUsesVisitor:
 
 		calls = []
 		for func_call in self._fav.get_calls():
-			var_offset = func_call.get_arg_var_offset(0)
+			arg_offset = func_call.get_arg_var_offset(0)
+			if arg_offset is None:
+				continue
+			varref, arg_offset = arg_offset
+
+			var_offset = self.get_this_offset(varref.idx)
 			if var_offset is None:
 				continue
 
-			varref, offset = var_offset
-			if not self.check_var(varref.idx):
-				continue
-
-			calls.append((offset, func_call))
+			calls.append((var_offset + arg_offset, func_call))
 		return calls
 
 	def get_this_call(self, addr):
