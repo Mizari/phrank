@@ -211,7 +211,7 @@ class FuncWrapper(object):
 		return False
 
 def get_func_tinfo(func_addr):
-	f = FuncWrapper.create(addr=func_addr, noraise=True)
+	f: FuncWrapper = FuncWrapper.create(addr=func_addr, noraise=True)
 	if f is None:
 		return None
 	return f.get_tinfo()
@@ -221,14 +221,14 @@ def get_func_nargs(func_addr):
 	return ftif.get_nargs()
 
 def get_func_ptr_tinfo(func_addr):
-	f = FuncWrapper.create(addr=func_addr, noraise=True)
+	f: FuncWrapper = FuncWrapper.create(addr=func_addr, noraise=True)
 	if f is None:
 		return None
 	
 	return f.get_ptr_tinfo()
 
 def get_func_cfunc(addr):
-	f = FuncWrapper.create(addr=addr, noraise=True)
+	f: FuncWrapper = FuncWrapper.create(addr=addr, noraise=True)
 	if f is None:
 		return None
 	return f.get_cfunc()
@@ -237,25 +237,25 @@ def is_function_start(func_addr):
 	return func_addr == get_func_start(func_addr)
 
 def set_func_arg_type(addr, arg_id, arg_type):
-	f = FuncWrapper.create(addr=addr, noraise=True)
+	f: FuncWrapper = FuncWrapper.create(addr=addr, noraise=True)
 	if f is None:
 		raise BaseException("No such function")
 	return f.set_arg_type(arg_id, arg_type)
 
 def get_func_arg_type(addr, arg_id):
-	f = FuncWrapper.create(addr=addr, noraise=True)
+	f: FuncWrapper = FuncWrapper.create(addr=addr, noraise=True)
 	if f is None:
 		raise BaseException("No such function")
 	return f.get_arg_type(arg_id)
 
 def set_func_argvar_type(addr, arg_id, var_type):
-	f = FuncWrapper.create(addr=addr, noraise=True)
+	f: FuncWrapper = FuncWrapper.create(addr=addr, noraise=True)
 	if f is None:
 		raise BaseException("No such function")
 	return f.set_var_type(arg_id, var_type)
 
 def decompile(addr, decompile_recursively=False):
-	f = FuncWrapper.create(addr=addr, noraise=True)
+	f: FuncWrapper = FuncWrapper.create(addr=addr, noraise=True)
 	if f is None:
 		raise BaseException("No such function")
 	return f.decompile(decompile_recursively=decompile_recursively)
