@@ -385,10 +385,11 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 			if var_offset is None:
 				continue
 			varref, offset = var_offset
+
+			vid = w.get_varid()
 			if varref.idx == vid:
 				continue
 
-			vid = w.get_varid()
 			curr = self._var_substitutes.get(vid, None)
 			if curr is not None:
 				print("[*] WARNING", "var", vid, "is already substituted with", curr[0], "overwriting")
@@ -515,9 +516,8 @@ class ThisUsesVisitor:
 			arg_offset = func_call.get_var_offset(0)
 			if arg_offset is None:
 				continue
-			varref, arg_offset = arg_offset
 
-			var_offset = self.get_this_offset(varref.idx)
+			var_offset = self.get_this_offset(0)
 			if var_offset is None:
 				continue
 
