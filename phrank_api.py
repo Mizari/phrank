@@ -1,4 +1,5 @@
 import idaapi
+import functools
 
 import phrank.phrank_cpp as phrank_cpp
 import phrank.phrank_util as phrank_util
@@ -9,6 +10,7 @@ import phrank.phrank_hexrays as phrank_hexrays
 import phrank.phrank_struct_analysis as struct_analysis
 
 def _analysis_api(func):
+	@functools.wraps(func)
 	def fwrapper(*args, should_clear_cache=True, **kwargs):
 		rv = func(*args, **kwargs)
 		if should_clear_cache:
