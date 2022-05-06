@@ -252,7 +252,7 @@ def set_func_argvar_type(addr, arg_id, var_type):
 	f = FuncWrapper.create(addr=addr, noraise=True)
 	if f is None:
 		raise BaseException("No such function")
-	return f.set_argvar_type(arg_id, var_type)
+	return f.set_var_type(arg_id, var_type)
 
 def decompile(addr, decompile_recursively=False):
 	f = FuncWrapper.create(addr=addr, noraise=True)
