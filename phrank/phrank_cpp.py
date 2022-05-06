@@ -525,6 +525,9 @@ class CppClassFactory(object):
 		elif isinstance(vtbl, CppVtable):
 			addr = vtbl.get_ea()
 
+		if vtbl is None:
+			return
+
 		if self._cctx.get_vtable(addr) is not None:
 			return
 
