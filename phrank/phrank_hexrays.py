@@ -490,6 +490,9 @@ class ThisUsesVisitor:
 		subst_id, subst_offset = self._fav.get_substitute(var_id)
 		if subst_id == var_id:
 			return None
+		
+		if subst_id != 0:
+			return None
 		return subst_offset
 
 	def this_writes(self, **kwargs):
