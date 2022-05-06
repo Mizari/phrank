@@ -391,6 +391,8 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 			self._var_substitutes[vid] = (varref.idx, offset)
 
 	def get_substitute(self, varid):
+		if not self._is_visited: self.visit()
+
 		subst = self._var_substitutes.get(varid, None)
 		if subst is None:
 			return varid, 0
