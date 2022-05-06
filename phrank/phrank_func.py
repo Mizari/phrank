@@ -143,7 +143,7 @@ class FuncWrapper(object):
 		if tif is None and self.is_movrax_ret():
 			tif = p_util.get_voidfunc_tinfo()
 
-		if not tif.is_correct():
+		if tif is not None and not tif.is_correct():
 			tif = None
 
 		if tif is None:
