@@ -493,7 +493,10 @@ class ThisUsesVisitor:
 
 		for w in self._fav.varptr_writes(**kwargs):
 			varref = w.get_varref()
-			this_offset = self.get_this_offset(varref.idx)
+			if varref.idx == 0:
+				this_offset = 0
+			else:
+				this_offset = self.get_this_offset(varref.idx)
 			if this_offset is None:
 				continue
 
