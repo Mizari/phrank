@@ -334,6 +334,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 		self._varptr_writes.clear()
 		self._calls.clear()
 		self._var_accesses.clear()
+		self._var_substitutes.clear()
 
 	def print_uses(self):
 		if self._is_visited is False:
