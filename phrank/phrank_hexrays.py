@@ -512,7 +512,7 @@ class ThisUsesVisitor:
 
 		calls = []
 		for func_call in self._fav.get_calls():
-			arg_offset = func_call.get_arg_var_offset(0)
+			arg_offset = func_call.get_var_offset(0)
 			if arg_offset is None:
 				continue
 			varref, arg_offset = arg_offset
