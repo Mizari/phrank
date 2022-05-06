@@ -197,6 +197,9 @@ class VarPtrWrite(Write):
 	def get_varref(self):
 		return self._varref
 
+	def get_varid(self):
+		return self._varref.idx
+
 	def get_offset(self):
 		return self._offset
 
@@ -493,17 +496,15 @@ class ThisUsesVisitor:
 			return
 
 		for w in self._fav.varptr_writes(**kwargs):
-			varref = w.get_varref()
-			if varref.idx == 0:
+			if w.get_varid() == 0:
 				this_offset = 0
 			else:
-				this_offset = self.get_this_offset(varref.idx)
+				this_offset = self.get_this_offset(w.get_varid())
 			if this_offset is None:
 				continue
 
 			write_offset = w.get_offset() + this_offset
-			w = VarPtrWrite(varref, w.get_val(), write_offset)
-			yield w
+			yield VarPtrWrite(w.get_varref(), w.get_val(), write_offset)
 
 	def get_this_calls(self):
 		if self._fav._func.get_nargs() == 0:
