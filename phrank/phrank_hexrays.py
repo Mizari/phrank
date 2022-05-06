@@ -250,15 +250,14 @@ class FuncCall:
 	def get_name(self):
 		return self._func_name
 
-	def get_var_offset(self, var_id):
+	def get_var_offset(self):
 		for arg in self._call_expr.a:
 			var_offset = get_var_offset(arg)
 			if var_offset is None:
 				continue
 
 			var_ref, offset = var_offset
-			if var_ref.idx == var_id:
-				return offset
+			return var_ref, offset
 		return None
 
 	def get_var_use_size(self, var_id=0):
@@ -516,11 +515,15 @@ class ThisUsesVisitor:
 
 		calls = []
 		for func_call in self._fav.get_calls():
-			arg_offset = func_call.get_var_offset(0)
+			arg_offset = func_call.get_var_offset()
 			if arg_offset is None:
 				continue
+			arg_varref, arg_offset = arg_offset
 
-			var_offset = self.get_this_offset(0)
+			if arg_varref.idx == 0:
+				var_offset = 0
+			else:
+				var_offset = self.get_this_offset(arg_varref.idx)
 			if var_offset is None:
 				continue
 
