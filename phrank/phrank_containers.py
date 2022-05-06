@@ -152,10 +152,8 @@ class IdaStruc(object):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
 
 		if isinstance(member_type, str):
-			if member_type[-1] != ';': member_type = member_type + ';'
-			tif = idaapi.tinfo_t()
-			idaapi.parse_decl(tif, idaapi.get_idati(), member_type, 0)
-			if not tif.is_correct():
+			tif = p_util.str2tif(member_type)
+			if tif is None:
 				raise BaseException("Failed to get type from string")
 			return self.set_member_type(member_offset, tif)
 

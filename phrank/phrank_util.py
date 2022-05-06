@@ -6,9 +6,14 @@ ptr_size = None
 get_data = None
 
 
-def str2tif(s):
+def str2tif(type_str):
+	if type_str[-1] != ';': type_str = type_str + ';'
+
 	tinfo = idaapi.tinfo_t()
-	idaapi.parse_decl(tinfo, idaapi.get_idati(), s, 0)
+	idaapi.parse_decl(tinfo, idaapi.get_idati(), type_str, 0)
+	if not tinfo.is_correct():
+		print("[*] WARNING: Failed to parse type: {}".format(type_str))
+		return None
 	return tinfo
 
 def get_voidptr_tinfo():
