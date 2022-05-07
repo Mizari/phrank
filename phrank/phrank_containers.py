@@ -362,6 +362,8 @@ class Vtable(Struct):
 			member_name = self.get_member_name(member_offset)
 			func_addr = idc.get_name_ea_simple(member_name)
 			func_ptr_tif = p_func.get_func_ptr_tinfo(func_addr)
+			if func_ptr_tif is None:
+				continue
 			self.set_member_type(member_offset, func_ptr_tif)
 
 	def get_member_name(self, moffset):
