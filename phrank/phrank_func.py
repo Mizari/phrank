@@ -212,6 +212,17 @@ class FuncWrapper(object):
 	def get_nargs(self):
 		return self.get_tinfo().get_nargs()
 
+	def get_lvars_counter(self):
+		cfunc = self.get_cfunc()
+		if cfunc is None: return 0
+
+		counter = 0
+		for lv in cfunc.get_lvars():
+			if lv.name == '':
+				continue
+			counter += 1
+		return counter
+
 	def should_skip_decompiling(self):
 		fname = self.get_name()
 		if fname is None:
