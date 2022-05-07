@@ -518,9 +518,8 @@ class ThisUsesVisitor:
 
 	def get_this_calls(self):
 		if self._fav._func.get_nargs() == 0:
-			return []
+			return
 
-		calls = []
 		for func_call in self._fav.get_calls():
 			arg_offset = func_call.get_var_offset()
 			if arg_offset is None:
@@ -528,14 +527,13 @@ class ThisUsesVisitor:
 			arg_varref, arg_offset = arg_offset
 
 			if arg_varref.idx == 0:
-				var_offset = 0
-			else:
-				var_offset = self._fav.get_var_substitute_to(arg_varref.idx, 0)
-			if var_offset is None:
-				continue
+				yield arg_offset, func_call
+				continue 
 
-			calls.append((var_offset + arg_offset, func_call))
-		return calls
+			var_offset = self._fav.get_var_substitute_to(arg_varref.idx, 0)
+			if var_offset is not None:
+				yield var_offset + arg_offset, func_call
+
 
 	def get_this_call(self, addr):
 		for _, func_call in self.get_this_calls():
