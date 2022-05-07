@@ -394,11 +394,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 
 	def get_var_substitute(self, varid):
 		if not self._is_visited: self.visit()
-
-		subst = self._var_substitutes.get(varid, None)
-		if subst is None:
-			return varid, 0
-		return subst
+		return self._var_substitutes.get(varid, None)
 
 	def visit_expr(self, expr):
 		if expr.op == idaapi.cot_asg:
@@ -484,10 +480,11 @@ class ThisUsesVisitor:
 		self._fav: FuncAnalysisVisitor = FuncAnalysisVisitor.create(*args, **kwargs)
 
 	def get_this_offset(self, var_id):
-		subst_id, subst_offset = self._fav.get_var_substitute(var_id)
-		if subst_id == var_id:
+		var_subst = self._fav.get_var_substitute(var_id)
+		if var_subst is None:
 			return None
-		
+
+		subst_id, subst_offset = var_subst
 		if subst_id != 0:
 			return None
 		return subst_offset
