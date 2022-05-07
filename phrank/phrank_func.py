@@ -132,23 +132,23 @@ class FuncWrapper(object):
 
 	def get_tinfo(self):
 		tif = idaapi.tinfo_t()
-		if not idaapi.get_tinfo(tif, self.get_start()):
-			# it works
-			cf = self.get_cfunc()
-			if cf is None:
-				tif = None
-			elif not idaapi.get_tinfo(tif, self.get_start()):
-				cf.get_func_type(tif)
 
-		if tif is None and self.is_movrax_ret():
+		cfunc = self.get_cfunc()
+		if cfunc is not None:
+			cfunc.get_func_type(tif)
+			if tif.is_correct():
+				return tif
+
+		if idaapi.get_tinfo(tif, self.get_start()) and tif.is_correct():
+			return tif
+
+		if self.is_movrax_ret():
 			tif = p_util.get_voidfunc_tinfo()
+			if tif.is_correct():
+				return tif
 
-		if tif is not None and not tif.is_correct():
-			tif = None
-
-		if tif is None:
-			print("Failed to get tinfo for", hex(self.get_start()), self.get_name())
-		return tif
+		print("Failed to get tinfo for", hex(self.get_start()), self.get_name())
+		return None
 
 	def get_ptr_tinfo(self):
 		tif = self.get_tinfo()
