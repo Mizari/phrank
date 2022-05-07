@@ -211,12 +211,10 @@ class VarPtrWrite(Write):
 			return 0
 		return self.get_offset() + self.get_write_size()
 
-	def check(self, **kwargs):
-		offset = kwargs.get("offset", None)
+	def check(self, offset=None, val=None):
 		if offset is not None and self.get_offset() != offset:
 			return False
 
-		val = kwargs.get("val", None)
 		if val is not None and not self.check_val(val):
 			return False
 		return True
@@ -351,11 +349,11 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 		for c in self._calls:
 			print("call", c.get_name(), hex(c.get_offset(0)), c.get_nargs(), c.get_var_use_size(0), [a.opname for a in c.get_args()])
 
-	def varptr_writes(self, **kwargs):
+	def varptr_writes(self, offset=None, val=None):
 		if not self._is_visited: self.visit()
 
 		for w in self._varptr_writes:
-			if w.check(**kwargs):
+			if w.check(offset, val):
 				yield w
 
 	def var_writes(self, **kwargs):
@@ -494,11 +492,11 @@ class ThisUsesVisitor:
 			return None
 		return subst_offset
 
-	def this_writes(self, **kwargs):
+	def this_writes(self, offset=None, val=None):
 		if self._fav._func.get_nargs() == 0:
 			return
 
-		for w in self._fav.varptr_writes(**kwargs):
+		for w in self._fav.varptr_writes(offset, val):
 			if w.get_varid() == 0:
 				this_offset = 0
 			else:
