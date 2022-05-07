@@ -694,6 +694,14 @@ class CppClassFactory(object):
 					print("[*] WARNING:", "vtable has no parent class in", idaapi.get_name(cdtor.get_ea()), hex(vtbl.get_ea()))
 					continue
 
+				if cpp_class.get_name() == parent.get_name():
+					print("Attempting to make recursive inheritance in %s, skipping" % cpp_class.get_name())
+					continue
+
+				if offset <= 0:
+					print("Attempting to make inheritance with illegal offset <= 0 (%s), skipping" % offset)
+					continue
+
 				cpp_class.add_parent(offset, parent)
 				parent.add_child(cpp_class)
 
