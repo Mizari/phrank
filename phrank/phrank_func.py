@@ -58,13 +58,23 @@ class FuncWrapper(object):
 
 	def get_func_details(self):
 		func_tinfo = self.get_tinfo()
+		if func_tinfo is None:
+			return None
+
 		func_details = idaapi.func_type_data_t()
 		rv = func_tinfo.get_func_details(func_details)
-		assert rv, "Failed to get func details"
+		if not rv:
+			print("Failed to get func details in", self.get_name())
+			return None
 		return func_details
 
 	def set_var_type(self, var_id, var_type):
-		var = self.get_cfunc().lvars[var_id]
+		cfunc = self.get_cfunc()
+		if cfunc is None:
+			print("Failed to change variable type, because of decompilation failure in", self.get_name())
+			return
+
+		var = cfunc.lvars[var_id]
 		# var.set_user_type()
 		# var.set_final_lvar_type(var_type)
 
@@ -84,6 +94,10 @@ class FuncWrapper(object):
 		# XXX do not refactor this into one liner, 
 		# XXX because ida will lose arg type somewhere along the way
 		fdet = self.get_func_details()
+		if fdet is None:
+			print("Failed to get func details in", self.get_name())
+			return
+
 		return fdet[arg_id].type.copy()
 
 	def set_arg_type(self, arg_id, arg_type):
@@ -91,6 +105,10 @@ class FuncWrapper(object):
 			arg_type = p_util.str2tif(arg_type)
 
 		func_details = self.get_func_details()
+		if func_details is None:
+			print("Failed to change argument type (no func details) in", self.get_name())
+			return
+
 		func_details[arg_id].type = arg_type.copy()
 
 		new_func_tinfo = idaapi.tinfo_t()
