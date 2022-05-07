@@ -392,7 +392,7 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 				print("[*] WARNING", "var", vid, "is already substituted with", curr[0], "overwriting")
 			self._var_substitutes[vid] = (varref.idx, offset)
 
-	def get_substitute(self, varid):
+	def get_var_substitute(self, varid):
 		if not self._is_visited: self.visit()
 
 		subst = self._var_substitutes.get(varid, None)
@@ -484,7 +484,7 @@ class ThisUsesVisitor:
 		self._fav: FuncAnalysisVisitor = FuncAnalysisVisitor.create(*args, **kwargs)
 
 	def get_this_offset(self, var_id):
-		subst_id, subst_offset = self._fav.get_substitute(var_id)
+		subst_id, subst_offset = self._fav.get_var_substitute(var_id)
 		if subst_id == var_id:
 			return None
 		
