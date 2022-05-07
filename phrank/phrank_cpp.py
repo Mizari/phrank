@@ -785,9 +785,6 @@ class CppClassFactory(object):
 	def change_this_in_func(self, new_arg_tinfo, func):
 		func_tinfo = p_func.get_func_tinfo(func)
 
-		if "__thiscall" not in str(func_tinfo):
-			return
-
 		if p_func.get_func_nargs(func) == 0:
 			return
 
