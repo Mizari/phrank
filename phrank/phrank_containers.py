@@ -169,7 +169,7 @@ class IdaStruc(object):
 			return rv
 
 		else:
-			raise BaseException("Invalid type(member type)")
+			raise BaseException("Invalid type(member type) %s %s" % (str(type(member_type)), str(member_type)))
 
 	def add_member(self, member_offset, name):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
