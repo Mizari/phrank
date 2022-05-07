@@ -409,6 +409,22 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 
 		return 0
 
+	def get_writes_into_var(self, var_id, offset=None, val=None):
+		for w in self.varptr_writes(offset, val):
+			var_offset = None
+			if w.get_varid() == var_id:
+				var_offset = 0
+			else:
+				var_subst = self.get_var_substitute(w.get_varid())
+				if var_subst is not None and var_subst[0] == var_id:
+					var_offset = var_subst[1]
+
+			if var_offset is None:
+				continue
+
+			write_offset = w.get_offset() + var_offset
+			yield VarPtrWrite(w.get_varref(), w.get_val(), write_offset)
+
 	def get_var_use_size(self, var_id=0):
 		if not self._is_visited:
 			self.visit()
@@ -493,16 +509,8 @@ class ThisUsesVisitor:
 		if self._fav._func.get_nargs() == 0:
 			return
 
-		for w in self._fav.varptr_writes(offset, val):
-			if w.get_varid() == 0:
-				this_offset = 0
-			else:
-				this_offset = self.get_this_offset(w.get_varid())
-			if this_offset is None:
-				continue
-
-			write_offset = w.get_offset() + this_offset
-			yield VarPtrWrite(w.get_varref(), w.get_val(), write_offset)
+		for w in self._fav.get_writes_into_var(0, offset, val):
+			yield w
 
 	def get_this_calls(self):
 		if self._fav._func.get_nargs() == 0:
