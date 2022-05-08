@@ -526,10 +526,14 @@ class ThisUsesVisitor:
 				continue
 			arg_varref, arg_offset = arg_offset
 
+			func_ea = None
 			if arg_varref.idx == 0:
-				yield arg_offset, func_call
-				continue 
+				var_offset = 0
+				func_ea = func_call.get_ea()
+			else:
+				var_offset = self._fav.get_var_substitute_to(arg_varref.idx, 0)
+				if var_offset is not None:
+					func_ea = func_call.get_ea()
 
-			var_offset = self._fav.get_var_substitute_to(arg_varref.idx, 0)
-			if var_offset is not None:
-				yield var_offset + arg_offset, func_call
+			if func_ea is not None:
+				yield var_offset + arg_offset, func_ea

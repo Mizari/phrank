@@ -506,15 +506,12 @@ class CppClassFactory(object):
 			self.search_vtable(v)
 
 		# calls_from = p_util.get_func_calls_from(addr)
-		for _, callee in func_tuv.get_this_calls():
-			callee_addr = callee.get_ea()
-			if callee_addr is None:
-				continue
+		for _, callee_addr in func_tuv.get_this_calls():
 			self.search_func(callee_addr)
 
 		for caller_addr in p_util.get_func_calls_to(func_addr):
 			caller_tuv = p_hrays.ThisUsesVisitor(addr=caller_addr)
-			if any(w[1].get_ea() == caller_addr for w in caller_tuv.get_this_calls()):
+			if any(w[1] == caller_addr for w in caller_tuv.get_this_calls()):
 				continue
 			self.search_func(caller_addr)
 
@@ -706,8 +703,8 @@ class CppClassFactory(object):
 				parent.add_child(cpp_class)
 
 		tuv = p_hrays.ThisUsesVisitor(addr=cdtor.get_ea())
-		for offset, func_call in tuv.get_this_calls():
-			parent_cdtor = self._cctx.get_cdtor(func_call._func_ea)
+		for offset, func_call_ea in tuv.get_this_calls():
+			parent_cdtor = self._cctx.get_cdtor(func_call_ea)
 			if parent_cdtor is None:
 				continue
 
