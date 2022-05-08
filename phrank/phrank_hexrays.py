@@ -509,13 +509,6 @@ class ThisUsesVisitor:
 
 		self._fav: FuncAnalysisVisitor = FuncAnalysisVisitor.create(*args, **kwargs)
 
-	def this_writes(self, offset=None, val=None):
-		if self._fav._func.get_nargs() == 0:
-			return
-
-		for w in self._fav.get_writes_into_var(0, offset, val):
-			yield w
-
 	def get_this_calls(self):
 		if self._fav._func.get_nargs() == 0:
 			return
