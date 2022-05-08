@@ -533,9 +533,3 @@ class ThisUsesVisitor:
 			var_offset = self._fav.get_var_substitute_to(arg_varref.idx, 0)
 			if var_offset is not None:
 				yield var_offset + arg_offset, func_call
-
-
-	def get_this_call(self, addr):
-		for _, func_call in self.get_this_calls():
-			if func_call.get_ea() == addr:
-				return func_call

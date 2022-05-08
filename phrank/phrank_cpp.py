@@ -514,7 +514,7 @@ class CppClassFactory(object):
 
 		for caller_addr in p_util.get_func_calls_to(func_addr):
 			caller_tuv = p_hrays.ThisUsesVisitor(addr=caller_addr)
-			if caller_tuv.get_this_call(func_addr) is None:
+			if any(w[1].get_ea() == caller_addr for w in caller_tuv.get_this_calls()):
 				continue
 			self.search_func(caller_addr)
 
