@@ -65,8 +65,8 @@ class CppVtable(p_cont.Vtable):
 			if p_func.get_func_nargs(func_addr) != 2:
 				return False
 
-			tuv = p_hrays.ThisUsesVisitor(addr=func_addr)
-			writes = [w for w in tuv.this_writes(offset=0, val=vtbl_ea)]
+			fav: p_hrays.FuncAnalysisVisitor = p_hrays.FuncAnalysisVisitor.create(addr=func_addr)
+			writes = [w for w in fav.get_writes_into_var(0, offset=0, val=vtbl_ea)]
 			if len(writes) == 0:
 				return False
 
@@ -131,8 +131,8 @@ class CppVtableFactory(p_cont.VtableFactory):
 			return None
 
 		def get_n_callers(func, vea):
-			fuv = p_hrays.ThisUsesVisitor(addr=func)
-			return len([w for w in fuv.this_writes(val=vea)])
+			fav : p_hrays.FuncAnalysisVisitor = p_hrays.FuncAnalysisVisitor.create(addr=func)
+			return len([w for w in fav.get_writes_into_var(0, val=vea)])
 
 		callers = p_util.get_func_calls_to(addr)
 		if any([get_n_callers(f, addr) != 0 for f in callers]):
@@ -296,7 +296,7 @@ class CDtor(object):
 
 		factory = CppVtableFactory()
 		self._vtbl_writes = {}
-		for write in p_hrays.ThisUsesVisitor(addr=fea).this_writes():
+		for write in p_hrays.FuncAnalysisVisitor(addr=fea).get_writes_into_var(0):
 			int_write_val = write.get_int()
 			if int_write_val is None:
 				continue
@@ -483,10 +483,10 @@ class CppClassFactory(object):
 
 		if not p_func.is_function_start(func_addr):
 			return
-		
-		func_tuv = p_hrays.ThisUsesVisitor(addr=func_addr)
+
 		vtbls = set()
-		for w in func_tuv.this_writes():
+		func_fav = p_hrays.FuncAnalysisVisitor(addr=func_addr)
+		for w in func_fav.get_writes_into_var(0):
 			intval = w.get_int()
 			if intval is None:
 				continue
@@ -505,7 +505,7 @@ class CppClassFactory(object):
 		for v in vtbls:
 			self.search_vtable(v)
 
-		# calls_from = p_util.get_func_calls_from(addr)
+		func_tuv = p_hrays.ThisUsesVisitor(addr=func_addr)
 		for _, callee_addr in func_tuv.get_this_calls():
 			self.search_func(callee_addr)
 
@@ -580,8 +580,8 @@ class CppClassFactory(object):
 		return cpp_class
 
 	def create_class_per_cdtor(self, cdtor: CDtor):
-		tuv = p_hrays.ThisUsesVisitor(addr=cdtor.get_ea())
-		writes = [w for w in tuv.this_writes()]
+		fav = p_hrays.FuncAnalysisVisitor(addr=cdtor.get_ea())
+		writes = [w for w in fav.get_writes_into_var(0)]
 		if len(writes) == 0:
 			print("[*] WARNING", "no writes to thisptr found in cdtor at", idaapi.get_name(cdtor.get_ea()))
 			return
