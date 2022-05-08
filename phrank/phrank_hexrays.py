@@ -520,20 +520,3 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 			return True
 
 		return False
-
-class ThisUsesVisitor:
-	__slots__ = "_this_var_offsets", "_fav", "is_this_func"
-
-	def __init__(self, *args, **kwargs):
-		addr = p_func.get_func_start(*args, **kwargs)
-		if addr is None:
-			raise BaseException("Failed to get function start")
-
-		self._fav: FuncAnalysisVisitor = FuncAnalysisVisitor.create(*args, **kwargs)
-
-	def get_this_calls(self):
-		if self._fav._func.get_nargs() == 0:
-			return
-
-		for w in self._fav.get_var_uses_in_calls(0):
-			yield w
