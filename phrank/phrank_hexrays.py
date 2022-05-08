@@ -439,6 +439,28 @@ class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
 			write_offset = w.get_offset() + var_offset
 			yield VarPtrWrite(w.get_varref(), w.get_val(), write_offset)
 
+	def get_var_uses_in_calls(self, var_id):
+		if var_id >= self._func.get_lvars_counter():
+			return
+
+		for func_call in self.get_calls():
+			arg_offset = func_call.get_var_offset()
+			if arg_offset is None:
+				continue
+			arg_varref, arg_offset = arg_offset
+
+			func_ea = None
+			if arg_varref.idx == var_id:
+				var_offset = 0
+				func_ea = func_call.get_ea()
+			else:
+				var_offset = self.get_var_substitute_to(arg_varref.idx, var_id)
+				if var_offset is not None:
+					func_ea = func_call.get_ea()
+
+			if func_ea is not None:
+				yield var_offset + arg_offset, func_ea
+
 	def get_var_use_size(self, var_id=0):
 		if not self._is_visited:
 			self.visit()
@@ -513,20 +535,5 @@ class ThisUsesVisitor:
 		if self._fav._func.get_nargs() == 0:
 			return
 
-		for func_call in self._fav.get_calls():
-			arg_offset = func_call.get_var_offset()
-			if arg_offset is None:
-				continue
-			arg_varref, arg_offset = arg_offset
-
-			func_ea = None
-			if arg_varref.idx == 0:
-				var_offset = 0
-				func_ea = func_call.get_ea()
-			else:
-				var_offset = self._fav.get_var_substitute_to(arg_varref.idx, 0)
-				if var_offset is not None:
-					func_ea = func_call.get_ea()
-
-			if func_ea is not None:
-				yield var_offset + arg_offset, func_ea
+		for w in self._fav.get_var_uses_in_calls(0):
+			yield w
