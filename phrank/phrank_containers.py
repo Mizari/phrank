@@ -207,7 +207,7 @@ class Union(IdaStruc):
 		return
 
 
-class Struct(IdaStruc):
+class Structure(IdaStruc):
 	def __init__ (self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		if idaapi.is_union(self.strucid):
@@ -271,7 +271,7 @@ class Struct(IdaStruc):
 		idc.SetType(ida_struct.get_member_id(self.strucid, offset), struc.get_name() + "*")
 
 
-class Vtable(Struct):
+class Vtable(Structure):
 	__slots__ = "_v_ea"
 	REUSE_DELIM = "___V"
 	def __init_existing(self, *args, **kwargs):

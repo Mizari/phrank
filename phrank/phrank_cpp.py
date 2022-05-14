@@ -148,7 +148,7 @@ class CppVtableFactory(p_cont.VtableFactory):
 		return CppVtable(*args, **kwargs)
 
 
-class CppClass(p_cont.Struct):
+class CppClass(p_cont.Structure):
 	__slots__ = "_cdtors", "_vtables", "_parents", "_children"
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -228,7 +228,7 @@ class CppClass(p_cont.Struct):
 		if mname == "vtable" or mname == "vtable_" + hex(offset)[2:]:
 			member_vtbl = self.get_member_tinfo(offset)
 			member_vtbl = str(member_vtbl.get_pointed_object())
-			member_vtbl = p_cont.Struct(name=member_vtbl)
+			member_vtbl = p_cont.Structure(name=member_vtbl)
 
 			vtbl_union_name = "vtables_union_0"
 			vtbl_union_name = p_util.get_next_available_strucname(vtbl_union_name)
