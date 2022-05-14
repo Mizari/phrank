@@ -6,11 +6,14 @@ import idc
 import phrank.phrank_func as p_func
 import phrank.phrank_util as p_util
 import phrank.phrank_hexrays as p_hrays
-import phrank.phrank_containers as p_cont
+
+from phrank.containers.vtable import Vtable, VtableFactory
+from phrank.containers.structure import Structure
+from phrank.containers.vtables_union import VtablesUnion
 
 from typing import Optional
 
-class CppVtable(p_cont.Vtable):
+class CppVtable(Vtable):
 	__slots__ = "_vdtor", "_callers", "_vdtor_calls", "_cpp_class", "_cpp_class_offset"
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -100,7 +103,7 @@ class CppVtable(p_cont.Vtable):
 		return list(retval)
 
 
-class CppVtableFactory(p_cont.VtableFactory):
+class CppVtableFactory(VtableFactory):
 	__instance = None
 	def __new__(cls, *args, **kwargs):
 		if CppVtableFactory.__instance is not None:
@@ -148,7 +151,7 @@ class CppVtableFactory(p_cont.VtableFactory):
 		return CppVtable(*args, **kwargs)
 
 
-class CppClass(p_cont.Structure):
+class CppClass(Structure):
 	__slots__ = "_cdtors", "_vtables", "_parents", "_children"
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -218,8 +221,8 @@ class CppClass(p_cont.Structure):
 			return parent.set_vtable(offset - parent_offset, vtbl)
 
 		mtif = self.get_member_tinfo(offset)
-		if p_cont.VtablesUnion.is_vtables_union(mtif):
-			vu = p_cont.VtablesUnion(name=str(mtif))
+		if VtablesUnion.is_vtables_union(mtif):
+			vu = VtablesUnion(name=str(mtif))
 			vu.add_vtable(vtbl)
 			return None
 
@@ -228,11 +231,11 @@ class CppClass(p_cont.Structure):
 		if mname == "vtable" or mname == "vtable_" + hex(offset)[2:]:
 			member_vtbl = self.get_member_tinfo(offset)
 			member_vtbl = str(member_vtbl.get_pointed_object())
-			member_vtbl = p_cont.Structure(name=member_vtbl)
+			member_vtbl = Structure(name=member_vtbl)
 
 			vtbl_union_name = "vtables_union_0"
 			vtbl_union_name = p_util.get_next_available_strucname(vtbl_union_name)
-			vu = p_cont.VtablesUnion(name=vtbl_union_name)
+			vu = VtablesUnion(name=vtbl_union_name)
 			# need to add vtbl to union first, otherwise ida cant set member type, because its size is 0
 			vu.add_vtable(vtbl)
 			vu.add_vtable(member_vtbl)
@@ -403,7 +406,7 @@ class CppClassFactory(object):
 		CppClassFactory.__instance = self
 
 		self._created_classes : list[CppClass] = []
-		self._created_unions : list[p_cont.VtablesUnion] = []
+		self._created_unions : list[VtablesUnion] = []
 		self._original_func_types : dict[tuple[int, int], idaapi.tinfo_t] = {}
 		self._cctx = ClassConstructionContext()
 

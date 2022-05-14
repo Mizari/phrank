@@ -4,10 +4,10 @@ import functools
 import phrank.phrank_cpp as phrank_cpp
 import phrank.phrank_util as phrank_util
 import phrank.phrank_func as phrank_func
-import phrank.phrank_settings as phrank_settings
-import phrank.phrank_containers as phrank_containers
 import phrank.phrank_hexrays as phrank_hexrays
 import phrank.phrank_struct_analysis as struct_analysis
+
+from phrank.containers.vtable import VtableFactory
 
 def _analysis_api(func):
 	@functools.wraps(func)
@@ -16,7 +16,7 @@ def _analysis_api(func):
 		if should_clear_cache:
 			phrank_func.FuncWrapper.clear_cached_instances()
 			phrank_hexrays.FuncAnalysisVisitor.clear_cached_instances()
-			phrank_containers.VtableFactory().clear_created_vtables()
+			VtableFactory().clear_created_vtables()
 			phrank_cpp.CppVtableFactory().clear_created_vtables()
 		return rv
 	return fwrapper
@@ -58,13 +58,13 @@ def create_cpp_vtables():
 
 @_analysis_api
 def create_vtables():
-	phrank_containers.VtableFactory().create_all_vtables()
+	VtableFactory().create_all_vtables()
 
 def create_vtable(addr):
 	"""
 	Creates a virtual table at given address.
 	"""
-	factory = phrank_containers.VtableFactory()
+	factory = VtableFactory()
 	return factory.create_vtable(addr=addr)
 
 @_analysis_api
