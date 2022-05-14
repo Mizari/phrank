@@ -9,7 +9,6 @@ idaapi.require("phrank.phrank_hexrays")
 idaapi.require("phrank.containers")
 
 idaapi.require("phrank.phrank_struct_analysis")
-idaapi.require("phrank.phrank_cpp")
 
 idaapi.require("phrank_api")
 

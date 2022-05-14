@@ -1,0 +1,147 @@
+from __future__ import annotations
+
+import idaapi
+import idautils
+
+from typing import Optional
+
+import phrank.phrank_util as p_util
+import phrank.phrank_hexrays as p_hrays
+import phrank.phrank_func as p_func
+
+from phrank.containers.vtable import Vtable, VtableFactory
+
+class CppVtable(Vtable):
+	__slots__ = "_vdtor", "_callers", "_vdtor_calls", "_cpp_class", "_cpp_class_offset"
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self._vdtor : Optional[int] = None
+		self._callers : Optional[dict[int, int]] = None
+		self._vdtor_calls : Optional[set[int]] = None
+		self._cpp_class = None
+		self._cpp_class_offset = idaapi.BADSIZE
+
+	def make_callers(self) -> None:
+		callers = [p_util.get_func_start(x.frm) for x in idautils.XrefsTo(self.get_ea())]
+		callers = list(filter(lambda x: x != idaapi.BADADDR, callers))
+
+		self._callers = {}
+		for c in callers:
+			fuv = p_hrays.FuncAnalysisVisitor.create(addr=c)
+			writes = [w for w in fuv.varptr_writes(val=self.get_ea())]
+			if len(writes) > 1:
+				print("[*] WARNING:", "Vtable is written several times to this ptr", idaapi.get_name(c), idaapi.get_name(self.get_ea()))
+
+			if len(writes) == 0:
+				print("[*] WARNING:", "Vtable is not used as write to this ptr", idaapi.get_name(c), idaapi.get_name(self.get_ea()))
+				continue
+
+			write_offset = writes[0].get_offset()
+			l = self._callers.setdefault(write_offset, [])
+			l.append(c)
+
+		self._cpp_class = None
+		self._cpp_class_offset = None
+
+	def set_class_offset(self, cpp_cls , offset: int) -> None:
+		if self._cpp_class is not None:
+			if self._cpp_class != cpp_cls or self._cpp_class_offset != offset:
+				print("[*] ERROR:", hex(offset), idaapi.get_name(self.get_ea()))
+				raise BaseException("Setting class in vtable, that already has a class")
+			return
+
+		self._cpp_class = cpp_cls
+		self._cpp_class_offset = offset
+
+	def get_class(self):
+		return self._cpp_class
+
+	def get_virtual_dtor(self) -> int:
+		if self._vdtor is not None:
+			return self._vdtor
+
+		def is_vdtor(func_addr, vtbl_ea):
+			if p_func.get_func_nargs(func_addr) != 2:
+				return False
+
+			fav: p_hrays.FuncAnalysisVisitor = p_hrays.FuncAnalysisVisitor.create(addr=func_addr)
+			writes = [w for w in fav.get_writes_into_var(0, offset=0, val=vtbl_ea)]
+			if len(writes) == 0:
+				return False
+
+			return True
+
+		vdtor = idaapi.get_dword(self.get_ea())
+		if is_vdtor(vdtor, self.get_ea()):
+			self._vdtor = vdtor
+		else:
+			self._vdtor = idaapi.BADADDR
+
+		return self._vdtor
+
+	def get_virtual_dtor_calls(self) -> set[int]:
+		if self._vdtor_calls is None:
+			self._vdtor_calls = set()
+			if self.get_virtual_dtor() is not None:
+				self._vdtor_calls.update(p_util.get_func_calls_from(self._vdtor))
+		return self._vdtor_calls
+
+	def get_callers(self, write_offset: int = None) -> list[int]:
+		if self._callers is None:
+			self.make_callers()
+
+		if write_offset is not None:
+			return self._callers.get(write_offset, [])
+
+		retval = set()
+		for x in self._callers.values():
+			retval.update(x)
+		return list(retval)
+
+
+class CppVtableFactory(VtableFactory):
+	__instance = None
+	def __new__(cls, *args, **kwargs):
+		if CppVtableFactory.__instance is not None:
+			return CppVtableFactory.__instance
+
+		return super().__new__(cls, *args, **kwargs)
+
+	def __init__(self):
+		if CppVtableFactory.__instance is not None:
+			return
+
+		super().__init__()
+		CppVtableFactory.__instance = self
+
+	def downgrade_classless_vtables(self):
+		vid = 0
+		for vtbl in self._created_vtables.values():
+			if vtbl.get_class() is not None:
+				continue
+			new_name = "vtable_" + str(vid)
+			new_name = p_util.get_next_available_strucname(new_name)
+			vtbl.rename(new_name)
+			vid += 1
+
+	def get_candidate_at(self, addr):
+		vfcs = super().get_candidate_at(addr)
+		if vfcs is None:
+			return None
+
+		def get_n_callers(func, vea):
+			fav : p_hrays.FuncAnalysisVisitor = p_hrays.FuncAnalysisVisitor.create(addr=func)
+			return len([w for w in fav.get_writes_into_var(0, val=vea)])
+
+		callers = p_util.get_func_calls_to(addr)
+		if any([get_n_callers(f, addr) != 0 for f in callers]):
+			return vfcs
+		return None
+
+	def get_new_vtbl_name(self):
+		vtbl_name = "cpp_vtable_" + str(len(self._created_vtables))
+		vtbl_name = p_util.get_next_available_strucname(vtbl_name)
+		return vtbl_name
+
+	def new_vtable(self, *args, **kwargs):
+		return CppVtable(*args, **kwargs)

@@ -1,13 +1,13 @@
-import idaapi
 import functools
 
-import phrank.phrank_cpp as phrank_cpp
 import phrank.phrank_util as phrank_util
 import phrank.phrank_func as phrank_func
 import phrank.phrank_hexrays as phrank_hexrays
 import phrank.phrank_struct_analysis as struct_analysis
 
 from phrank.containers.vtable import VtableFactory
+from phrank.containers.cpp_vtable import CppVtableFactory
+from phrank.containers.cpp_class import CppClassFactory
 
 def _analysis_api(func):
 	@functools.wraps(func)
@@ -17,7 +17,7 @@ def _analysis_api(func):
 			phrank_func.FuncWrapper.clear_cached_instances()
 			phrank_hexrays.FuncAnalysisVisitor.clear_cached_instances()
 			VtableFactory().clear_created_vtables()
-			phrank_cpp.CppVtableFactory().clear_created_vtables()
+			CppVtableFactory().clear_created_vtables()
 		return rv
 	return fwrapper
 
@@ -26,21 +26,21 @@ def analyze_everything():
 	"""
 	Starts analysis with all virtual tables. Then proceeds to analyze all functions from them.
 	"""
-	phrank_cpp.CppClassFactory().analyze_everything()
+	CppClassFactory().analyze_everything()
 
 @_analysis_api
 def analyze_func(addr):
 	"""
 	Does a C++ analysis of a function.
 	"""
-	phrank_cpp.CppClassFactory().analyze_func(addr)
+	CppClassFactory().analyze_func(addr)
 
 @_analysis_api
 def analyze_vtable(addr):
 	"""
 	Does a C++ analysis of a virtual table.
 	"""
-	phrank_cpp.CppClassFactory().analyze_vtable(addr)
+	CppClassFactory().analyze_vtable(addr)
 
 @_analysis_api
 def analyze_variable(cfunc, var):
@@ -54,7 +54,7 @@ def create_cpp_vtables():
 	"""
 	Creates C++ virtual tables in data segment
 	"""
-	phrank_cpp.CppVtableFactory().create_all_vtables()
+	CppVtableFactory().create_all_vtables()
 
 @_analysis_api
 def create_vtables():
