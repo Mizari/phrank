@@ -5,9 +5,9 @@ import phrank.phrank_func as phrank_func
 import phrank.phrank_hexrays as phrank_hexrays
 import phrank.phrank_struct_analysis as struct_analysis
 
-from phrank.containers.vtable import VtableFactory
-from phrank.containers.cpp_vtable import CppVtableFactory
-from phrank.containers.cpp_class import CppClassFactory
+from phrank.factories.vtable_factory import VtableFactory
+from phrank.factories.cpp_vtable_factory import CppVtableFactory
+from phrank.factories.cpp_class_factory import CppClassFactory
 
 def _analysis_api(func):
 	@functools.wraps(func)
