@@ -95,33 +95,7 @@ class IdaStrucWrapper(object):
 		if rv == 0:
 			print("Failed to set member name " + str(member_name) + " in " + self.get_name() + ' ' + hex(member_offset))
 		return rv
-	
-	def get_member_tinfo(self, member_offset):
-		# TODO add ability to get member by offset or by name
-		# get_member_by_fullname(fullname) -> member_t Get a member by its fully qualified name, "struct.field".
-		# get_member_by_name(sptr, membername) -> member_t
 
-		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
-		if idc.is_union(self.strucid):
-			if member_offset >= idc.get_member_qty(self.strucid):
-				print("fokk", self.get_name(), idc.get_member_qty(self.strucid), hex(member_offset))
-				raise BaseException("Offset too big")
-		else:
-			if member_offset >= self.get_size():
-				raise BaseException("Offset too big")
-
-		sptr = ida_struct.get_struc(self.strucid)
-		mptr = ida_struct.get_member(sptr, member_offset)
-		# member is unset
-		if mptr is None:
-			return None
-
-		tif = idaapi.tinfo_t()
-		# member has no type
-		if not ida_struct.get_member_tinfo(tif, mptr):
-			return None
-		return tif
-	
 	def member_offsets(self):
 		member_offset = idc.get_first_member(self.strucid)
 		while member_offset != idaapi.BADADDR:
@@ -189,4 +163,3 @@ class IdaStrucWrapper(object):
 		ret = idc.add_struc_member(self.strucid, name, -1, p_util.size2dataflags(1), -1, 1)
 		handle_addstrucmember_ret(ret)
 		idc.SetType(idc.get_member_id(self.strucid, self.get_size()), struc.get_name() + "*")
-

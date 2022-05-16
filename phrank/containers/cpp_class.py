@@ -115,30 +115,6 @@ class CppClass(Structure):
 			self.set_member_type(offset, vtbl.get_name() + '*')
 			return None
 
-	def get_shifted_member_ptr_tinfo(self, offset):
-		retval = idaapi.tinfo_t()
-
-		class_tif = self.get_tinfo()
-		if offset == 0:
-			assert retval.create_ptr(class_tif)
-
-		else:
-			# TODO check offset correctness
-			# TODO looking into inner struct
-
-			parent, parent_offset = self.get_parent_offset(offset)
-			if parent is None:
-				member_tinfo = self.get_member_tinfo(offset)
-			else:
-				if offset == parent_offset:
-					member_tinfo = self.get_member_tinfo(offset)
-				else:
-					member_tinfo = parent.get_member_tinfo(offset - parent_offset)
-
-			retval = p_util.make_shifted_ptr(class_tif, member_tinfo, offset)
-
-		return retval
-
 	def get_parent_vtable(self, offset):
 		parent, parent_offset = self.get_parent_offset(offset)
 		if parent is None:

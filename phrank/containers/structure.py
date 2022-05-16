@@ -67,3 +67,53 @@ class Structure(IdaStrucWrapper):
 		ret = ida_struct.add_struc_member(self.strucid, name, offset, p_util.size2dataflags(ptr_size), -1, ptr_size)
 		handle_addstrucmember_ret(ret)
 		idc.SetType(ida_struct.get_member_id(self.strucid, offset), struc.get_name() + "*")
+
+	def get_member_tinfo(self, member_offset):
+		# TODO add ability to get member by offset or by name
+		# get_member_by_fullname(fullname) -> member_t Get a member by its fully qualified name, "struct.field".
+		# get_member_by_name(sptr, membername) -> member_t
+
+		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
+		if idc.is_union(self.strucid):
+			if member_offset >= idc.get_member_qty(self.strucid):
+				print("fokk", self.get_name(), idc.get_member_qty(self.strucid), hex(member_offset))
+				raise BaseException("Offset too big")
+		else:
+			if member_offset >= self.get_size():
+				raise BaseException("Offset too big")
+
+		sptr = ida_struct.get_struc(self.strucid)
+		mptr = ida_struct.get_member(sptr, member_offset)
+		# member is unset
+		if mptr is None:
+			return None
+
+		tif = idaapi.tinfo_t()
+		# member has no type
+		if not ida_struct.get_member_tinfo(tif, mptr):
+			return None
+		return tif
+
+	def get_shifted_member_ptr_tinfo(self, offset):
+		retval = idaapi.tinfo_t()
+
+		class_tif = self.get_tinfo()
+		if offset == 0:
+			assert retval.create_ptr(class_tif)
+
+		else:
+			# TODO check offset correctness
+			# TODO looking into inner struct
+
+			parent, parent_offset = self.get_parent_offset(offset)
+			if parent is None:
+				member_tinfo = self.get_member_tinfo(offset)
+			else:
+				if offset == parent_offset:
+					member_tinfo = self.get_member_tinfo(offset)
+				else:
+					member_tinfo = parent.get_member_tinfo(offset - parent_offset)
+
+			retval = p_util.make_shifted_ptr(class_tif, member_tinfo, offset)
+
+		return retval
