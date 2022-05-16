@@ -7,6 +7,7 @@ idaapi.require("phrank.phrank_func")
 idaapi.require("phrank.phrank_hexrays")
 
 idaapi.require("phrank.containers")
+idaapi.require("phrank.factories")
 
 idaapi.require("phrank.phrank_struct_analysis")
 
