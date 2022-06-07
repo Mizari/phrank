@@ -9,7 +9,7 @@ import phrank.phrank_util as p_util
 import phrank.phrank_hexrays as p_hrays
 import phrank.phrank_func as p_func
 
-from phrank.containers.vtable import Vtable, VtableFactory
+from phrank.containers.vtable import Vtable
 
 class CppVtable(Vtable):
 	__slots__ = "_vdtor", "_callers", "_vdtor_calls", "_cpp_class", "_cpp_class_offset"
