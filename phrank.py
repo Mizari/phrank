@@ -106,3 +106,19 @@ def register_actions(*actions):
 		a.register()
 
 register_actions(*actions)
+
+class PhrankPlugin(idaapi.plugin_t):
+	flags = 0
+	wanted_name = "phrank"
+
+	def init(self):
+		return idaapi.PLUGIN_SKIP
+	
+	def run(self, arg):
+		return
+
+	def term(self):
+		return
+
+def PLUGIN_ENTRY():
+	return PhrankPlugin()
