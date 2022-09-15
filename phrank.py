@@ -110,6 +110,9 @@ register_actions(*actions)
 class PhrankPlugin(idaapi.plugin_t):
 	flags = 0
 	wanted_name = "phrank"
+	comment = ""
+	help = ""
+	wanted_hotkey = ""
 
 	def init(self):
 		return idaapi.PLUGIN_SKIP
