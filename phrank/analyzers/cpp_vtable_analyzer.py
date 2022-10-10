@@ -5,20 +5,20 @@ import phrank.phrank_hexrays as p_hrays
 from phrank.factories.vtable_factory import VtableFactory
 from phrank.containers.cpp_vtable import CppVtable
 
-class CppVtableFactory(VtableFactory):
+class CppVtableAnalyzer(VtableFactory):
 	__instance = None
 	def __new__(cls, *args, **kwargs):
-		if CppVtableFactory.__instance is not None:
-			return CppVtableFactory.__instance
+		if CppVtableAnalyzer.__instance is not None:
+			return CppVtableAnalyzer.__instance
 
 		return super().__new__(cls, *args, **kwargs)
 
 	def __init__(self):
-		if CppVtableFactory.__instance is not None:
+		if CppVtableAnalyzer.__instance is not None:
 			return
 
 		super().__init__()
-		CppVtableFactory.__instance = self
+		CppVtableAnalyzer.__instance = self
 
 	def downgrade_classless_vtables(self):
 		vid = 0

@@ -3,11 +3,11 @@ import functools
 import phrank.phrank_util as phrank_util
 import phrank.phrank_func as phrank_func
 import phrank.phrank_hexrays as phrank_hexrays
-import phrank.phrank_struct_analysis as struct_analysis
 
-from phrank.factories.vtable_factory import VtableFactory
-from phrank.factories.cpp_vtable_factory import CppVtableFactory
-from phrank.factories.cpp_class_factory import CppClassFactory
+from phrank.analyzers.struct_analyzer import StructAnalyzer
+from phrank.analyzers.vtable_analyzer import VtableAnalyzer
+from phrank.analyzers.cpp_vtable_analyzer import CppVtableAnalyzer
+from phrank.analyzers.cpp_class_analyzer import CppClassAnalyzer
 
 def _analysis_api(func):
 	@functools.wraps(func)
@@ -16,8 +16,8 @@ def _analysis_api(func):
 		if should_clear_cache:
 			phrank_func.FuncWrapper.clear_cached_instances()
 			phrank_hexrays.FuncAnalysisVisitor.clear_cached_instances()
-			VtableFactory().clear_created_vtables()
-			CppVtableFactory().clear_created_vtables()
+			VtableAnalyzer().clear_created_vtables()
+			CppVtableAnalyzer().clear_created_vtables()
 		return rv
 	return fwrapper
 
@@ -26,45 +26,45 @@ def analyze_everything():
 	"""
 	Starts analysis with all virtual tables. Then proceeds to analyze all functions from them.
 	"""
-	CppClassFactory().analyze_everything()
+	CppClassAnalyzer().analyze_everything()
 
 @_analysis_api
 def analyze_func(addr):
 	"""
 	Does a C++ analysis of a function.
 	"""
-	CppClassFactory().analyze_func(addr)
+	CppClassAnalyzer().analyze_func(addr)
 
 @_analysis_api
 def analyze_vtable(addr):
 	"""
 	Does a C++ analysis of a virtual table.
 	"""
-	CppClassFactory().analyze_vtable(addr)
+	CppClassAnalyzer().analyze_vtable(addr)
 
 @_analysis_api
 def analyze_variable(cfunc, var):
 	"""
 	Analyzes a memory pointer in a variable.
 	"""
-	struct_analysis.StructFactory().analyze_variable(cfunc, var)
+	StructAnalyzer().analyze_variable(cfunc, var)
 
 @_analysis_api
 def create_cpp_vtables():
 	"""
 	Creates C++ virtual tables in data segment
 	"""
-	CppVtableFactory().create_all_vtables()
+	CppVtableAnalyzer().create_all_vtables()
 
 @_analysis_api
 def create_vtables():
-	VtableFactory().create_all_vtables()
+	VtableAnalyzer().create_all_vtables()
 
 def create_vtable(addr):
 	"""
 	Creates a virtual table at given address.
 	"""
-	factory = VtableFactory()
+	factory = VtableAnalyzer()
 	return factory.create_vtable(addr=addr)
 
 @_analysis_api

@@ -49,7 +49,7 @@ class ClassConstructionContext(object):
 		return self._vtables.get(addr, None)
 
 
-class CppClassFactory(object):
+class CppClassAnalyzer(object):
 	__slots__ = "_created_classes", "_created_unions",\
 		"_original_func_types", "_cctx", "user_ctors", "user_dtors"
 	__instance = None
@@ -60,9 +60,9 @@ class CppClassFactory(object):
 		return cls.__instance
 
 	def __init__(self, *args, **kwargs):
-		if CppClassFactory.__instance is not None:
+		if CppClassAnalyzer.__instance is not None:
 			return
-		CppClassFactory.__instance = self
+		CppClassAnalyzer.__instance = self
 
 		self._created_classes : list[CppClass] = []
 		self._created_unions : list[VtablesUnion] = []

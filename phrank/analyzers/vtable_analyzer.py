@@ -5,21 +5,21 @@ import phrank.phrank_util as p_util
 
 from phrank.containers.vtable import Vtable
 
-class VtableFactory(object):
+class VtableAnalyzer(object):
 	__slots__ = "_created_vtables", "_min_vtbl_size"
 	__instance = None
 	def __new__(cls, *args, **kwargs):
-		if VtableFactory.__instance is not None:
-			return VtableFactory.__instance
+		if VtableAnalyzer.__instance is not None:
+			return VtableAnalyzer.__instance
 
 		return super().__new__(cls, *args, **kwargs)
 
 	def __init__(self):
-		if VtableFactory.__instance is not None:
+		if VtableAnalyzer.__instance is not None:
 			return
 
 		super().__init__()
-		VtableFactory.__instance = self
+		VtableAnalyzer.__instance = self
 
 		self._created_vtables : dict[int, Vtable] = {}
 		self._min_vtbl_size = 2

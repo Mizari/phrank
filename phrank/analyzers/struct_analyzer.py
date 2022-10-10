@@ -2,7 +2,7 @@ import phrank.phrank_hexrays as p_hrays
 
 from phrank.containers.structure import Structure
 
-class StructFactory:
+class StructAnalyzer:
 	def __init__(self):
 		return
 
