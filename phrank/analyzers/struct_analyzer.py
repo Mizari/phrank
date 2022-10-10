@@ -1,10 +1,11 @@
 import phrank.phrank_hexrays as p_hrays
 
+from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.containers.structure import Structure
 
-class StructAnalyzer:
+class StructAnalyzer(TypeAnalyzer):
 	def __init__(self):
-		return
+		super().__init__()
 
 	def analyze_variable(self, cfunc, var_id, force_new_type=False):
 		fuv : p_hrays.FuncAnalysisVisitor = p_hrays.FuncAnalysisVisitor.create(addr=cfunc.entry_ea)

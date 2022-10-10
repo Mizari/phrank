@@ -8,11 +8,13 @@ import phrank.phrank_util as p_util
 from phrank.containers.cpp_class import CDtor, CppClass
 from phrank.containers.cpp_vtable import CppVtable
 from phrank.containers.vtables_union import VtablesUnion
+from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.analyzers.cpp_vtable_analyzer import CppVtableAnalyzer
 
-class ClassConstructionContext(object):
+class ClassConstructionContext(TypeAnalyzer):
 	__slots__ = "_cdtors", "_vtables"
 	def __init__(self):
+		super().__init__()
 		self._cdtors : dict[int, CDtor] = {}
 		self._vtables : dict[int, CppVtable] = {}
 

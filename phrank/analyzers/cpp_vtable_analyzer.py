@@ -3,6 +3,7 @@ import phrank.phrank_util as p_util
 import phrank.phrank_hexrays as p_hrays
 
 from phrank.analyzers.vtable_analyzer import VtableAnalyzer
+from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.containers.cpp_vtable import CppVtable
 
 class CppVtableAnalyzer(VtableAnalyzer):

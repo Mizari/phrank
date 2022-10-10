@@ -3,9 +3,10 @@ import idc
 
 import phrank.phrank_util as p_util
 
+from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.containers.vtable import Vtable
 
-class VtableAnalyzer(object):
+class VtableAnalyzer(TypeAnalyzer):
 	__slots__ = "_created_vtables", "_min_vtbl_size"
 	__instance = None
 	def __new__(cls, *args, **kwargs):
