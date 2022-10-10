@@ -6,7 +6,7 @@ import phrank.phrank_hexrays as p_hrays
 from phrank.containers.structure import Structure
 from phrank.containers.vtables_union import VtablesUnion
 from phrank.containers.cpp_vtable import CppVtable
-from phrank.factories.cpp_vtable_factory import CppVtableFactory
+from phrank.analyzers.cpp_vtable_analyzer import CppVtableAnalyzer
 
 class CppClass(Structure):
 	__slots__ = "_cdtors", "_vtables", "_parents", "_children"
@@ -130,7 +130,7 @@ class CDtor(object):
 		self._is_dtor : bool = False
 		self._cpp_class : CppClass = None
 
-		factory = CppVtableFactory()
+		factory = CppVtableAnalyzer()
 		self._vtbl_writes = {}
 		for write in p_hrays.FuncAnalysisVisitor(addr=fea).get_writes_into_var(0):
 			int_write_val = write.get_int()
