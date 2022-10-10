@@ -51,8 +51,6 @@ class ClassConstructionContext(TypeAnalyzer):
 
 
 class CppClassAnalyzer(object):
-	__slots__ = "_created_classes", "_created_unions",\
-		"_original_func_types", "_cctx", "user_ctors", "user_dtors"
 	__instance = None
 
 	def __new__(cls, *args, **kwargs):
