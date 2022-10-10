@@ -12,7 +12,6 @@ from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.analyzers.cpp_vtable_analyzer import CppVtableAnalyzer
 
 class ClassConstructionContext(TypeAnalyzer):
-	__slots__ = "_cdtors", "_vtables"
 	def __init__(self):
 		super().__init__()
 		self._cdtors : dict[int, CDtor] = {}
