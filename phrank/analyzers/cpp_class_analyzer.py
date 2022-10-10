@@ -8,7 +8,7 @@ import phrank.phrank_util as p_util
 from phrank.containers.cpp_class import CDtor, CppClass
 from phrank.containers.cpp_vtable import CppVtable
 from phrank.containers.vtables_union import VtablesUnion
-from phrank.factories.cpp_vtable_factory import CppVtableFactory
+from phrank.analyzers.cpp_vtable_analyzer import CppVtableAnalyzer
 
 class ClassConstructionContext(object):
 	__slots__ = "_cdtors", "_vtables"
@@ -108,7 +108,7 @@ class CppClassAnalyzer(object):
 
 	def post_analysis(self):
 		self.create_classes()
-		CppVtableFactory().downgrade_classless_vtables()
+		CppVtableAnalyzer().downgrade_classless_vtables()
 
 		self.analyze_class_sizes()
 		self.analyze_inheritance()
@@ -119,7 +119,7 @@ class CppClassAnalyzer(object):
 
 		# try:
 
-		fact = CppVtableFactory()
+		fact = CppVtableAnalyzer()
 		fact.create_all_vtables()
 		print("[*] INFO: found", len(fact.get_vtables()), "vtables")
 		for vtbl in fact._created_vtables:
@@ -153,7 +153,7 @@ class CppClassAnalyzer(object):
 			if intval is None:
 				continue
 
-			vtbl = CppVtableFactory().make_vtable(intval)
+			vtbl = CppVtableAnalyzer().make_vtable(intval)
 			if vtbl is None:
 				continue
 
@@ -179,7 +179,7 @@ class CppClassAnalyzer(object):
 	def search_vtable(self, vtbl):
 		if isinstance(vtbl, int):
 			addr = vtbl
-			vtbl = CppVtableFactory().make_vtable(addr)
+			vtbl = CppVtableAnalyzer().make_vtable(addr)
 		elif isinstance(vtbl, CppVtable):
 			addr = vtbl.get_ea()
 
