@@ -37,7 +37,6 @@ def get_func_start(*args, **kwargs):
 
 @p_util.unique(get_func_start)
 class FuncWrapper(object):
-	__slots__ = "__func", "__cfunc", "__is_decompiled"
 	_instances = {}
 
 	def get_start(self):

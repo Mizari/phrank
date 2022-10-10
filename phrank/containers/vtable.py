@@ -9,7 +9,6 @@ import phrank.phrank_settings as p_settings
 from phrank.containers.structure import Structure
 
 class Vtable(Structure):
-	__slots__ = "_v_ea"
 	REUSE_DELIM = "___V"
 	def __init_existing(self, *args, **kwargs):
 		# create vtable from existing one by name/strucid

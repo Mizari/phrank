@@ -9,7 +9,6 @@ from phrank.containers.cpp_vtable import CppVtable
 from phrank.analyzers.cpp_vtable_analyzer import CppVtableAnalyzer
 
 class CppClass(Structure):
-	__slots__ = "_cdtors", "_vtables", "_parents", "_children"
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self._cdtors : set[CDtor] = set()

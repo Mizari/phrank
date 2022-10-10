@@ -12,7 +12,6 @@ import phrank.phrank_func as p_func
 from phrank.containers.vtable import Vtable
 
 class CppVtable(Vtable):
-	__slots__ = "_vdtor", "_callers", "_vdtor_calls", "_cpp_class", "_cpp_class_offset"
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self._vdtor : Optional[int] = None

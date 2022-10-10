@@ -19,7 +19,6 @@ def handle_addstrucmember_ret(ret):
 
 
 class IdaStrucWrapper(object):
-	__slots__ = "strucid"
 	def __init__(self, *args, **kwargs):
 		self.strucid : int = idaapi.BADADDR
 
