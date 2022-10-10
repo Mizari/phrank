@@ -1,18 +1,5 @@
 import idaapi
 
-idaapi.require("phrank.phrank_settings")
-idaapi.require("phrank.phrank_util")
-idaapi.require("phrank.phrank_func")
-
-idaapi.require("phrank.phrank_hexrays")
-
-idaapi.require("phrank.containers")
-idaapi.require("phrank.factories")
-
-idaapi.require("phrank.phrank_struct_analysis")
-
-idaapi.require("phrank_api")
-
 import phrank_api
 import phrank.phrank_hexrays as p_hrays
 
