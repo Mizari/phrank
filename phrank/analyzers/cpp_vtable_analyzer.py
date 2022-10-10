@@ -2,10 +2,10 @@
 import phrank.phrank_util as p_util
 import phrank.phrank_hexrays as p_hrays
 
-from phrank.factories.vtable_factory import VtableFactory
+from phrank.analyzers.vtable_analyzer import VtableAnalyzer
 from phrank.containers.cpp_vtable import CppVtable
 
-class CppVtableAnalyzer(VtableFactory):
+class CppVtableAnalyzer(VtableAnalyzer):
 	__instance = None
 	def __new__(cls, *args, **kwargs):
 		if CppVtableAnalyzer.__instance is not None:
