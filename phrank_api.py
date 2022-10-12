@@ -15,7 +15,7 @@ def _analysis_api(func):
 		rv = func(*args, **kwargs)
 		if should_clear_cache:
 			phrank_func.FuncWrapper.clear_cached_instances()
-			phrank_hexrays.FuncAnalysisVisitor.clear_cached_instances()
+			phrank_hexrays.ASTAnalysis.clear_cached_instances()
 			VtableAnalyzer().clear_created_vtables()
 			CppVtableAnalyzer().clear_created_vtables()
 		return rv

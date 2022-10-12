@@ -26,7 +26,7 @@ class CppVtable(Vtable):
 
 		self._callers = {}
 		for c in callers:
-			fuv = p_hrays.FuncAnalysisVisitor.create(addr=c)
+			fuv = p_hrays.ASTAnalysis.create(addr=c)
 			writes = [w for w in fuv.varptr_writes(val=self.get_ea())]
 			if len(writes) > 1:
 				print("[*] WARNING:", "Vtable is written several times to this ptr", idaapi.get_name(c), idaapi.get_name(self.get_ea()))
@@ -63,7 +63,7 @@ class CppVtable(Vtable):
 			if p_func.get_func_nargs(func_addr) != 2:
 				return False
 
-			fav: p_hrays.FuncAnalysisVisitor = p_hrays.FuncAnalysisVisitor.create(addr=func_addr)
+			fav: p_hrays.ASTAnalysis = p_hrays.ASTAnalysis.create(addr=func_addr)
 			writes = [w for w in fav.get_writes_into_var(0, offset=0, val=vtbl_ea)]
 			if len(writes) == 0:
 				return False

@@ -131,7 +131,7 @@ class CDtor(object):
 
 		factory = CppVtableAnalyzer()
 		self._vtbl_writes = {}
-		for write in p_hrays.FuncAnalysisVisitor(addr=fea).get_writes_into_var(0):
+		for write in p_hrays.ASTAnalysis(addr=fea).get_writes_into_var(0):
 			int_write_val = write.get_int()
 			if int_write_val is None:
 				continue

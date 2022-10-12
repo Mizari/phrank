@@ -303,13 +303,13 @@ class FuncCall:
 			if var_ref.idx != var_id:
 				continue
 
-			fav: FuncAnalysisVisitor = FuncAnalysisVisitor.create(addr=self._func_ea)
+			fav: ASTAnalysis = ASTAnalysis.create(addr=self._func_ea)
 			var_use = fav.get_var_use_size(arg_id)
 			max_var_use = max(max_var_use, var_use + offset)
 		return max_var_use
 
 @p_util.unique(p_func.get_func_start)
-class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
+class ASTAnalysis(idaapi.ctree_visitor_t):
 	def __init__(self, *args, **kwargs):
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
 		self._varptr_writes : list[VarPtrWrite] = []

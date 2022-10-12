@@ -36,7 +36,7 @@ class CppVtableAnalyzer(VtableAnalyzer):
 			return None
 
 		def get_n_callers(func, vea):
-			fav : p_hrays.FuncAnalysisVisitor = p_hrays.FuncAnalysisVisitor.create(addr=func)
+			fav : p_hrays.ASTAnalysis = p_hrays.ASTAnalysis.create(addr=func)
 			return len([w for w in fav.get_writes_into_var(0, val=vea)])
 
 		callers = p_util.get_func_calls_to(addr)
