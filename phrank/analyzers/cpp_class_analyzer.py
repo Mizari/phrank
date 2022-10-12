@@ -11,9 +11,8 @@ from phrank.containers.vtables_union import VtablesUnion
 from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.analyzers.cpp_vtable_analyzer import CppVtableAnalyzer
 
-class ClassConstructionContext(TypeAnalyzer):
+class ClassConstructionContext(object):
 	def __init__(self):
-		super().__init__()
 		self._cdtors : dict[int, CDtor] = {}
 		self._vtables : dict[int, CppVtable] = {}
 
@@ -50,7 +49,7 @@ class ClassConstructionContext(TypeAnalyzer):
 		return self._vtables.get(addr, None)
 
 
-class CppClassAnalyzer(object):
+class CppClassAnalyzer(TypeAnalyzer):
 	__instance = None
 
 	def __new__(cls, *args, **kwargs):
@@ -63,6 +62,7 @@ class CppClassAnalyzer(object):
 			return
 		CppClassAnalyzer.__instance = self
 
+		super().__init__()
 		self._created_classes : list[CppClass] = []
 		self._created_unions : list[VtablesUnion] = []
 		self._original_func_types : dict[tuple[int, int], idaapi.tinfo_t] = {}
