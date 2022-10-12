@@ -1,4 +1,5 @@
 
+import phrank.util_ast as util_ast
 
 
 class TypeAnalyzer:
@@ -23,6 +24,9 @@ class TypeAnalyzer:
 		self.new_gvars = []    # changed types of global variables
 		self.new_fields = []   # changed types of struct fields
 		self.new_retvals = []  # changed types of function return values
+
+	def get_ast_analysis(func_ea):
+		return util_ast.ASTAnalysis(addr=func_ea)
 
 	def clear_analysis(self):
 		return
