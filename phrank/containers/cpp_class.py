@@ -1,7 +1,7 @@
 import idaapi
 
-import phrank.phrank_util as p_util
-import phrank.phrank_hexrays as p_hrays
+import phrank.util_aux as p_util
+import phrank.util_ast as p_hrays
 
 from phrank.containers.structure import Structure
 from phrank.containers.vtables_union import VtablesUnion

@@ -1,8 +1,8 @@
 import functools
 
-import phrank.phrank_util as phrank_util
-import phrank.phrank_func as phrank_func
-import phrank.phrank_hexrays as phrank_hexrays
+import phrank.util_aux as util_aux
+import phrank.util_func as util_func
+import phrank.util_ast as util_ast
 
 from phrank.analyzers.struct_analyzer import StructAnalyzer
 from phrank.analyzers.vtable_analyzer import VtableAnalyzer
@@ -14,8 +14,8 @@ def _analysis_api(func):
 	def fwrapper(*args, should_clear_cache=True, **kwargs):
 		rv = func(*args, **kwargs)
 		if should_clear_cache:
-			phrank_func.FuncWrapper.clear_cached_instances()
-			phrank_hexrays.ASTAnalysis.clear_cached_instances()
+			util_func.FuncWrapper.clear_cached_instances()
+			util_ast.ASTAnalysis.clear_cached_instances()
 			VtableAnalyzer().clear_created_vtables()
 			CppVtableAnalyzer().clear_created_vtables()
 		return rv
@@ -72,7 +72,7 @@ def decompile_all():
 	"""
 	Decompiles all functions in the database recursively.
 	"""
-	fwrappers = [phrank_func.FuncWrapper(addr=fea) for fea in phrank_util.iterate_all_functions()]
+	fwrappers = [util_func.FuncWrapper(addr=fea) for fea in util_aux.iterate_all_functions()]
 	fwrappers = filter(None, fwrappers)
 	fwrappers = filter(lambda x: not x.should_skip_decompiling(), fwrappers)
 	fwrappers = list(fwrappers)

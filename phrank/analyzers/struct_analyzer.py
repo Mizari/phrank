@@ -1,4 +1,4 @@
-import phrank.phrank_hexrays as p_hrays
+import phrank.util_ast as p_hrays
 
 from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.containers.structure import Structure

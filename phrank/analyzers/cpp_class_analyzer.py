@@ -1,9 +1,9 @@
 import idaapi
 import idc
 
-import phrank.phrank_func as p_func
-import phrank.phrank_hexrays as p_hrays
-import phrank.phrank_util as p_util
+import phrank.util_func as p_func
+import phrank.util_ast as p_hrays
+import phrank.util_aux as p_util
 
 from phrank.containers.cpp_class import CDtor, CppClass
 from phrank.containers.cpp_vtable import CppVtable

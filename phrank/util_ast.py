@@ -1,6 +1,6 @@
 import idaapi
-import phrank.phrank_util as p_util
-import phrank.phrank_func as p_func
+import phrank.util_aux as p_util
+import phrank.util_func as p_func
 from typing import Optional
 
 

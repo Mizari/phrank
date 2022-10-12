@@ -5,7 +5,7 @@ import ida_struct
 from phrank.containers.union import Union
 from phrank.containers.vtable import Vtable
 
-import phrank.phrank_util as p_util
+import phrank.util_aux as p_util
 
 class VtablesUnion(Union):
 	def __init__(self, *args, **kwargs):

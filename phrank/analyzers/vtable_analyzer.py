@@ -1,7 +1,7 @@
 import idautils
 import idc
 
-import phrank.phrank_util as p_util
+import phrank.util_aux as p_util
 
 from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.containers.vtable import Vtable

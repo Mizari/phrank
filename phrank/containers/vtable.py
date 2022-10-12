@@ -3,8 +3,8 @@ import idautils
 import idc
 import ida_struct
 
-import phrank.phrank_func as p_func
-import phrank.phrank_util as p_util
+import phrank.util_func as p_func
+import phrank.util_aux as p_util
 import phrank.phrank_settings as p_settings
 from phrank.containers.structure import Structure
 

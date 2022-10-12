@@ -2,7 +2,7 @@ import idaapi
 import idc
 import ida_struct
 from phrank.containers.ida_struc_wrapper import IdaStrucWrapper, handle_addstrucmember_ret
-import phrank.phrank_util as p_util
+import phrank.util_aux as p_util
 
 
 class Structure(IdaStrucWrapper):

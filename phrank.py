@@ -1,7 +1,7 @@
 import idaapi
 
 import phrank_api
-import phrank.phrank_hexrays as p_hrays
+import phrank.util_ast as p_hrays
 
 
 class HRActionHandler(idaapi.action_handler_t):
