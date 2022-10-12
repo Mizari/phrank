@@ -124,7 +124,6 @@ def get_int(expr):
 	return None
 
 class Write:
-	__slots__ = "_val"
 	def __init__(self, val):
 		self._val : Optional[idaapi.cexpr_t] = val
 
@@ -170,7 +169,6 @@ class VarAccess:
 			return self.get_offset()
 
 class VarWrite(Write):
-	__slots__ = "_varref"
 	def __init__(self, varref, val):
 		super().__init__(val)
 		self._varref = varref
@@ -188,7 +186,6 @@ class VarWrite(Write):
 		return True
 
 class VarPtrWrite(Write):
-	__slots__ = "_offset", "_varref"
 	def __init__(self, varref, val, offset):
 		super().__init__(val)
 		self._varref = varref
@@ -220,7 +217,6 @@ class VarPtrWrite(Write):
 		return True
 
 class FuncCall:
-	__slots__ = "_call_expr", "_func_ea", "_func_name", "_this_args"
 	def __init__(self, call_expr):
 		self._call_expr : idaapi.cexpr_t = call_expr
 		self._func_ea : int = idaapi.BADADDR
@@ -314,8 +310,6 @@ class FuncCall:
 
 @p_util.unique(p_func.get_func_start)
 class FuncAnalysisVisitor(idaapi.ctree_visitor_t):
-	__slots__ = "_writes", "_calls", "_func", "_is_visited"
-
 	def __init__(self, *args, **kwargs):
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
 		self._varptr_writes : list[VarPtrWrite] = []
