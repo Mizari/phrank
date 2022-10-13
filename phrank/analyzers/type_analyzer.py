@@ -29,7 +29,7 @@ class TypeAnalyzer:
 		self.new_fields = []   # changed types of struct fields
 		self.new_retvals = []  # changed types of function return values
 
-	def get_func_wrapper(self, func_ea: int):
+	def get_func_wrapper(self, func_ea: int) -> util_func.FuncWrapper:
 		fw = self.cached_func_wrappers.get(func_ea)
 		if fw is None:
 			fw = util_func.FuncWrapper.create(addr=func_ea)
@@ -39,7 +39,8 @@ class TypeAnalyzer:
 	def get_ast_analysis(self, func_ea: int) -> util_ast.ASTAnalysis:
 		aa = self.cached_ast_analysis.get(func_ea)
 		if aa is None:
-			aa = util_ast.ASTAnalysis(addr=func_ea)
+			fw = self.get_func_wrapper(func_ea)
+			aa = util_ast.ASTAnalysis(fw)
 			self.cached_ast_analysis[func_ea] = aa
 		return aa
 

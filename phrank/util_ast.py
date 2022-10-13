@@ -308,16 +308,15 @@ class FuncCall:
 			max_var_use = max(max_var_use, var_use + offset)
 		return max_var_use
 
-@p_util.unique(util_func.get_func_start)
 class ASTAnalysis(idaapi.ctree_visitor_t):
-	def __init__(self, *args, **kwargs):
+	def __init__(self, func: util_func.FuncWrapper):
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
 		self._varptr_writes : list[VarPtrWrite] = []
 		self._var_writes: list[VarWrite] = []
 		self._var_substitutes = {} # var_id_i -> (var_id_j, offset). for situations like "Vi = Vj + offset"
 		self._var_accesses : list[VarAccess] = []
 		self._calls : list[FuncCall] = []
-		self._func : util_func.FuncWrapper = util_func.FuncWrapper.create(*args, **kwargs)
+		self._func = func
 		self._is_visited = False
 
 	def get_func(self):
