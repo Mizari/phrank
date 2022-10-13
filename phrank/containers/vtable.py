@@ -3,7 +3,7 @@ import idautils
 import idc
 import ida_struct
 
-import phrank.util_func as p_func
+import phrank.util_func as util_func
 import phrank.util_aux as p_util
 import phrank.phrank_settings as p_settings
 from phrank.containers.structure import Structure
@@ -64,7 +64,7 @@ class Vtable(Structure):
 			if func_name is None:
 				print("Failed to get function name", hex(func_addr))
 
-			func_ptr_tif = p_func.get_func_ptr_tinfo(func_addr)
+			func_ptr_tif = util_func.get_func_ptr_tinfo(func_addr)
 			if func_ptr_tif is None:
 				print("Failed to get function tinfo", hex(func_addr), func_name, "using void* instead")
 				func_ptr_tif = p_util.get_voidptr_tinfo()
@@ -97,7 +97,7 @@ class Vtable(Structure):
 		for member_offset in self.member_offsets():
 			member_name = self.get_member_name(member_offset)
 			func_addr = idc.get_name_ea_simple(member_name)
-			func_ptr_tif = p_func.get_func_ptr_tinfo(func_addr)
+			func_ptr_tif = util_func.get_func_ptr_tinfo(func_addr)
 			if func_ptr_tif is None:
 				continue
 			self.set_member_type(member_offset, func_ptr_tif)

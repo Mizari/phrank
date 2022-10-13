@@ -1,6 +1,6 @@
 import idaapi
 import phrank.util_aux as p_util
-import phrank.util_func as p_func
+import phrank.util_func as util_func
 from typing import Optional
 
 
@@ -308,7 +308,7 @@ class FuncCall:
 			max_var_use = max(max_var_use, var_use + offset)
 		return max_var_use
 
-@p_util.unique(p_func.get_func_start)
+@p_util.unique(util_func.get_func_start)
 class ASTAnalysis(idaapi.ctree_visitor_t):
 	def __init__(self, *args, **kwargs):
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
@@ -317,7 +317,7 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 		self._var_substitutes = {} # var_id_i -> (var_id_j, offset). for situations like "Vi = Vj + offset"
 		self._var_accesses : list[VarAccess] = []
 		self._calls : list[FuncCall] = []
-		self._func : p_func.FuncWrapper = p_func.FuncWrapper.create(*args, **kwargs)
+		self._func : util_func.FuncWrapper = util_func.FuncWrapper.create(*args, **kwargs)
 		self._is_visited = False
 
 	def get_func(self):

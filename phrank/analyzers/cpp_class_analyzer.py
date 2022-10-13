@@ -1,7 +1,7 @@
 import idaapi
 import idc
 
-import phrank.util_func as p_func
+import phrank.util_func as util_func
 import phrank.util_aux as p_util
 
 from phrank.containers.cpp_class import CDtor, CppClass
@@ -82,7 +82,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 
 		for (funcea, arg_id), original_func_type in self._original_func_types.items():
 			try:
-				p_func.set_func_argvar_type(funcea, arg_id, original_func_type)
+				util_func.set_func_argvar_type(funcea, arg_id, original_func_type)
 			except idaapi.DecompilationFailure:
 				args = (idaapi.get_name(funcea), "skipping reverting arg type to", original_func_type)
 				print("[*] WARNING", "failed to decompile function", *args)
@@ -141,7 +141,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 		if func_addr in self._cctx._cdtors:
 			return
 
-		if not p_func.is_function_start(func_addr):
+		if not util_func.is_function_start(func_addr):
 			return
 
 		vtbls = set()
@@ -217,7 +217,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 			if cdtor.get_ea() in vtable0.get_virtual_dtor_calls():
 				cdtor._is_dtor = True
 
-		if p_func.get_func_nargs(cdtor.get_ea()) != 1:
+		if util_func.get_func_nargs(cdtor.get_ea()) != 1:
 			cdtor._is_ctor = True
 
 		if cdtor.get_ea() in self.user_ctors:
@@ -447,14 +447,14 @@ class CppClassAnalyzer(TypeAnalyzer):
 			self.change_this_in_func(new_arg_tinfo, fea)
 
 	def change_this_in_func(self, new_arg_tinfo, func):
-		func_tinfo = p_func.get_func_tinfo(func)
+		func_tinfo = util_func.get_func_tinfo(func)
 
-		if p_func.get_func_nargs(func) == 0:
+		if util_func.get_func_nargs(func) == 0:
 			return
 
-		original_func_arg = p_func.get_func_arg_type(func, 0)
+		original_func_arg = util_func.get_func_arg_type(func, 0)
 		try:
-			p_func.set_func_argvar_type(func, 0, new_arg_tinfo)
+			util_func.set_func_argvar_type(func, 0, new_arg_tinfo)
 			self._original_func_types[(func, 0)] = original_func_arg
 		except idaapi.DecompilationFailure:
 			args = (idaapi.get_name(func), "skipping this arg changing to", new_arg_tinfo)

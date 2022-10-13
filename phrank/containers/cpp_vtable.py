@@ -7,7 +7,7 @@ from typing import Optional
 
 import phrank.util_aux as p_util
 import phrank.util_ast as p_hrays
-import phrank.util_func as p_func
+import phrank.util_func as util_func
 
 from phrank.containers.vtable import Vtable
 
@@ -60,7 +60,7 @@ class CppVtable(Vtable):
 			return self._vdtor
 
 		def is_vdtor(func_addr, vtbl_ea):
-			if p_func.get_func_nargs(func_addr) != 2:
+			if util_func.get_func_nargs(func_addr) != 2:
 				return False
 
 			fav: p_hrays.ASTAnalysis = p_hrays.ASTAnalysis.create(addr=func_addr)
