@@ -1,8 +1,5 @@
-import functools
-
 import phrank.util_aux as util_aux
 import phrank.util_func as util_func
-import phrank.util_ast as util_ast
 
 from phrank.analyzers.struct_analyzer import StructAnalyzer
 from phrank.analyzers.vtable_analyzer import VtableAnalyzer
