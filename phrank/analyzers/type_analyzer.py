@@ -1,5 +1,6 @@
 
 import phrank.util_ast as util_ast
+import phrank.util_func as util_func
 
 
 class TypeAnalyzer:
@@ -27,6 +28,13 @@ class TypeAnalyzer:
 		self.new_gvars = []    # changed types of global variables
 		self.new_fields = []   # changed types of struct fields
 		self.new_retvals = []  # changed types of function return values
+
+	def get_func_wrapper(self, func_ea: int):
+		fw = self.cached_func_wrappers.get(func_ea)
+		if fw is None:
+			fw = util_func.FuncWrapper.create(addr=func_ea)
+			self.cached_func_wrappers[func_ea] = fw
+		return fw
 
 	def get_ast_analysis(self, func_ea: int) -> util_ast.ASTAnalysis:
 		aa = self.cached_ast_analysis.get(func_ea)
