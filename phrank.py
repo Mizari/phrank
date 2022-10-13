@@ -78,7 +78,13 @@ class StructMaker(HRActionHandler):
 		phrank_api.analyze_variable(cfunc, expr.v.idx)
 		return 1
 
-actions = [
+
+def register_actions(*actions):
+	for a in actions:
+		a.register()
+
+
+register_actions([
 	# will create vtable structure from the address calculated from int cexpr value
 	VtableMaker("phrank::vtable_maker", "Alt-Q", "make vtable"),
 
@@ -86,13 +92,8 @@ actions = [
 	# then will create struct structure with that size or adjust size of existing one
 	# then will set variable to new type, if created
 	StructMaker("phrank::struct_maker", "Shift-A", "make struct"),
-]
+])
 
-def register_actions(*actions):
-	for a in actions:
-		a.register()
-
-register_actions(*actions)
 
 class PhrankPlugin(idaapi.plugin_t):
 	flags = 0
