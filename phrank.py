@@ -24,6 +24,10 @@ class HRActionHandler(idaapi.action_handler_t):
 		cfunc = hx_view.cfunc
 		citem = hx_view.item
 
+		if citem.citype != idaapi.VDI_EXPR:
+			return 0
+
+		citem = citem.it.to_specific_type
 		rv = self.handler(cfunc, citem)
 		if rv == 1:
 			hx_view.refresh_view(1)
@@ -47,11 +51,7 @@ class HRActionHandler(idaapi.action_handler_t):
 
 class VtableMaker(HRActionHandler):
 	def handler(self, cfunc, citem):
-		if citem.citype != idaapi.VDI_EXPR:
-			return 0
-
-		expr = citem.it.to_specific_type
-		intval = p_hrays.get_int(expr)
+		intval = p_hrays.get_int(citem)
 		if intval is None:
 			print("Failed to get int value")
 			return 0
@@ -67,15 +67,11 @@ class VtableMaker(HRActionHandler):
 
 class StructMaker(HRActionHandler):
 	def handler(self, cfunc, citem):
-		if citem.citype != idaapi.VDI_EXPR:
-			return 0
-
-		expr = citem.it.to_specific_type
-		if expr.op != idaapi.cot_var:
+		if citem.op != idaapi.cot_var:
 			print("no variable found under cursor")
 			return 0
 
-		phrank_api.analyze_variable(cfunc, expr.v.idx)
+		phrank_api.analyze_variable(cfunc, citem.v.idx)
 		return 1
 
 
