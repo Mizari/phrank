@@ -8,41 +8,28 @@ from typing import Optional
 import re
 
 
-def get_func(*args, **kwargs):
-	addr = None
-	if len(args) != 0:
-		if isinstance(args[0], int):
-			addr = args[0]
-		elif isinstance(args[0], str):
-			funcname = args[0]
-			addr = idc.get_name_ea_simple(funcname)
-		if addr is not None:
-			return idaapi.get_func(addr)
+def get_func(func_loc):
+	if isinstance(func_loc, int):
+		addr = func_loc
+	elif isinstance(func_loc, str):
+		addr = idc.get_name_ea_simple(func_loc)
+	else:
+		raise TypeError("Invalid function location type, should be int|str")
 
-	addr = kwargs.get("addr", None)
-	if addr is None:
-		funcname = kwargs.get("name", None)
-		if funcname is None:
-			raise BaseException("No addr and no name are given, need one from them")
-		addr = idc.get_name_ea_simple(funcname)
+	if addr is not None:
+		return idaapi.get_func(addr)
 
-	func = idaapi.get_func(addr)
-	return func
+	return idaapi.get_func(addr)
 
-def get_func_start(*args, **kwargs):
-	func = get_func(*args, **kwargs)
+def get_func_start(func_loc):
+	func = get_func(func_loc)
 	if func is None:
 		return idaapi.BADADDR
 	return func.start_ea
 
 class FuncWrapper(object):
-	def __init__(self, *args, **kwargs):
-		func = get_func(*args, **kwargs)
-		if func is None:
-			print("ERROR:", args, kwargs)
-			raise BaseException("Failed to get function start")
-
-		self.__func : idaapi.func_t = func
+	def __init__(self, func_loc):
+		self.__func : idaapi.func_t = get_func(func_loc)
 		self.__cfunc : Optional[idaapi.cfunptr_t] = None
 		self.__is_decompiled : bool = False
 
@@ -239,51 +226,28 @@ class FuncWrapper(object):
 		return False
 
 def get_func_tinfo(func_addr):
-	f: FuncWrapper = FuncWrapper.create(addr=func_addr, noraise=True)
-	if f is None:
-		return None
-	return f.get_tinfo()
+	return FuncWrapper(func_addr).get_tinfo()
 
 def get_func_nargs(func_addr):
-	ftif = get_func_tinfo(func_addr)
-	return ftif.get_nargs()
+	return get_func_tinfo(func_addr).get_nargs()
 
 def get_func_ptr_tinfo(func_addr):
-	f: FuncWrapper = FuncWrapper.create(addr=func_addr, noraise=True)
-	if f is None:
-		return None
-	
-	return f.get_ptr_tinfo()
+	return FuncWrapper(func_addr).get_ptr_tinfo()
 
 def get_func_cfunc(addr):
-	f: FuncWrapper = FuncWrapper.create(addr=addr, noraise=True)
-	if f is None:
-		return None
-	return f.get_cfunc()
+	return FuncWrapper(addr).get_cfunc()
 
 def is_function_start(func_addr):
 	return func_addr == get_func_start(func_addr)
 
 def set_func_arg_type(addr, arg_id, arg_type):
-	f: FuncWrapper = FuncWrapper.create(addr=addr, noraise=True)
-	if f is None:
-		raise BaseException("No such function")
-	return f.set_arg_type(arg_id, arg_type)
+	return FuncWrapper(addr).set_arg_type(arg_id, arg_type)
 
 def get_func_arg_type(addr, arg_id):
-	f: FuncWrapper = FuncWrapper.create(addr=addr, noraise=True)
-	if f is None:
-		raise BaseException("No such function")
-	return f.get_arg_type(arg_id)
+	return FuncWrapper(addr).get_arg_type(arg_id)
 
 def set_func_argvar_type(addr, arg_id, var_type):
-	f: FuncWrapper = FuncWrapper.create(addr=addr, noraise=True)
-	if f is None:
-		raise BaseException("No such function")
-	return f.set_var_type(arg_id, var_type)
+	return FuncWrapper(addr).set_var_type(arg_id, var_type)
 
 def decompile(addr, decompile_recursively=False):
-	f: FuncWrapper = FuncWrapper.create(addr=addr, noraise=True)
-	if f is None:
-		raise BaseException("No such function")
-	return f.decompile(decompile_recursively=decompile_recursively)
+	return FuncWrapper(addr).decompile(decompile_recursively=decompile_recursively)
