@@ -80,7 +80,7 @@ def register_actions(*actions):
 		a.register()
 
 
-register_actions([
+register_actions(
 	# will create vtable structure from the address calculated from int cexpr value
 	VtableMaker("phrank::vtable_maker", "Alt-Q", "make vtable"),
 
@@ -88,7 +88,7 @@ register_actions([
 	# then will create struct structure with that size or adjust size of existing one
 	# then will set variable to new type, if created
 	StructMaker("phrank::struct_maker", "Shift-A", "make struct"),
-])
+)
 
 
 class PhrankPlugin(idaapi.plugin_t):
