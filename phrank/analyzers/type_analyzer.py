@@ -1,5 +1,5 @@
 
-import phrank.util_ast as util_ast
+from phrank.ast_analyzer import ASTAnalysis
 import phrank.util_func as util_func
 
 
@@ -36,11 +36,11 @@ class TypeAnalyzer:
 			self.cached_func_wrappers[func_ea] = fw
 		return fw
 
-	def get_ast_analysis(self, func_ea: int) -> util_ast.ASTAnalysis:
+	def get_ast_analysis(self, func_ea: int) -> ASTAnalysis:
 		aa = self.cached_ast_analysis.get(func_ea)
 		if aa is None:
 			fw = self.get_func_wrapper(func_ea)
-			aa = util_ast.ASTAnalysis(fw)
+			aa = ASTAnalysis(fw)
 			self.cached_ast_analysis[func_ea] = aa
 		return aa
 
