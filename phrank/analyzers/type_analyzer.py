@@ -4,6 +4,9 @@ import phrank.util_ast as util_ast
 
 class TypeAnalyzer:
 	def __init__(self) -> None:
+		self.cached_ast_analysis = {}
+		self.cached_func_wrappers = {}
+
 		# analysis context
 		# type analysis
 		self.type2func = {}
@@ -25,8 +28,12 @@ class TypeAnalyzer:
 		self.new_fields = []   # changed types of struct fields
 		self.new_retvals = []  # changed types of function return values
 
-	def get_ast_analysis(func_ea: int) -> util_ast.ASTAnalysis:
-		return util_ast.ASTAnalysis(addr=func_ea)
+	def get_ast_analysis(self, func_ea: int) -> util_ast.ASTAnalysis:
+		aa = self.cached_ast_analysis.get(func_ea)
+		if aa is None:
+			aa = util_ast.ASTAnalysis(addr=func_ea)
+			self.cached_ast_analysis[func_ea] = aa
+		return aa
 
 	def clear_analysis(self):
 		return
