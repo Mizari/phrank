@@ -7,19 +7,8 @@ from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.containers.vtable import Vtable
 
 class VtableAnalyzer(TypeAnalyzer):
-	__instance = None
-	def __new__(cls, *args, **kwargs):
-		if VtableAnalyzer.__instance is not None:
-			return VtableAnalyzer.__instance
-
-		return super().__new__(cls, *args, **kwargs)
-
 	def __init__(self):
-		if VtableAnalyzer.__instance is not None:
-			return
-
 		super().__init__()
-		VtableAnalyzer.__instance = self
 
 		self._created_vtables : dict[int, Vtable] = {}
 		self._min_vtbl_size = 2
