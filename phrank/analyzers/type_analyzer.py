@@ -25,7 +25,7 @@ class TypeAnalyzer:
 		self.new_fields = []   # changed types of struct fields
 		self.new_retvals = []  # changed types of function return values
 
-	def get_ast_analysis(func_ea):
+	def get_ast_analysis(func_ea: int) -> util_ast.ASTAnalysis:
 		return util_ast.ASTAnalysis(addr=func_ea)
 
 	def clear_analysis(self):
