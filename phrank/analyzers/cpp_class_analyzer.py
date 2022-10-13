@@ -2,7 +2,7 @@ import idaapi
 import idc
 
 import phrank.util_func as util_func
-import phrank.util_aux as p_util
+import phrank.util_aux as util_aux
 
 from phrank.containers.cpp_class import CDtor, CppClass
 from phrank.containers.cpp_vtable import CppVtable
@@ -156,7 +156,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 		for _, callee_addr in func_fav.get_var_uses_in_calls(0):
 			self.search_func(callee_addr)
 
-		for caller_addr in p_util.get_func_calls_to(func_addr):
+		for caller_addr in util_aux.get_func_calls_to(func_addr):
 			caller_fav = self.get_ast_analysis(caller_addr)
 			if any(w[1] == caller_addr for w in caller_fav.get_var_uses_in_calls(0)):
 				continue
@@ -221,7 +221,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 
 	def create_cpp_class(self):
 		class_name = "cpp_class_" + str(len(self._created_classes))
-		class_name = p_util.get_next_available_strucname(class_name)
+		class_name = util_aux.get_next_available_strucname(class_name)
 		cpp_class = CppClass(name=class_name)
 		self._created_classes.append(cpp_class)
 		return cpp_class
@@ -295,9 +295,9 @@ class CppClassAnalyzer(TypeAnalyzer):
 
 	def check_path(self, cdtor, ctors, dtors):
 		# constructors call constructors, destructors call destructors
-		if p_util.got_path(cdtor.get_ea(), ctors):
+		if util_aux.got_path(cdtor.get_ea(), ctors):
 			cdtor._is_ctor = True
-		elif p_util.got_path(cdtor.get_ea(), dtors):
+		elif util_aux.got_path(cdtor.get_ea(), dtors):
 			cdtor._is_dtor = True
 
 	def check_single_dtor(self, cdtor):
@@ -420,7 +420,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 			self.change_this_in_vtable(new_arg_tinfo, vtbl, parent_vtbl)
 
 	def change_this_in_vtable(self, new_arg_tinfo, vtbl, parent_vtbl=None):
-		for member_offset in range(0, vtbl.get_size(), p_util.get_ptr_size()):
+		for member_offset in range(0, vtbl.get_size(), util_aux.get_ptr_size()):
 			fname = vtbl.get_member_name(member_offset)
 
 			# do not set if found in parent, will be updated later in parent

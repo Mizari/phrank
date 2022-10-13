@@ -5,7 +5,7 @@ import idautils
 
 from typing import Optional
 
-import phrank.util_aux as p_util
+import phrank.util_aux as util_aux
 import phrank.util_ast as p_hrays
 import phrank.util_func as util_func
 
@@ -21,7 +21,7 @@ class CppVtable(Vtable):
 		self._cpp_class_offset = idaapi.BADSIZE
 
 	def make_callers(self) -> None:
-		callers = [p_util.get_func_start(x.frm) for x in idautils.XrefsTo(self.get_ea())]
+		callers = [util_aux.get_func_start(x.frm) for x in idautils.XrefsTo(self.get_ea())]
 		callers = list(filter(lambda x: x != idaapi.BADADDR, callers))
 
 		self._callers = {}
@@ -82,7 +82,7 @@ class CppVtable(Vtable):
 		if self._vdtor_calls is None:
 			self._vdtor_calls = set()
 			if self.get_virtual_dtor() is not None:
-				self._vdtor_calls.update(p_util.get_func_calls_from(self._vdtor))
+				self._vdtor_calls.update(util_aux.get_func_calls_from(self._vdtor))
 		return self._vdtor_calls
 
 	def get_callers(self, write_offset: int = None) -> list[int]:

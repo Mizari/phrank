@@ -4,7 +4,7 @@ import idc
 import ida_struct
 
 import phrank.util_func as util_func
-import phrank.util_aux as p_util
+import phrank.util_aux as util_aux
 import phrank.phrank_settings as p_settings
 from phrank.containers.structure import Structure
 
@@ -53,7 +53,7 @@ class Vtable(Structure):
 		if vtbl_funcs is None:
 			vtbl_funcs = Vtable.get_vtable_functions_at_addr(self._v_ea)
 		v_sz = len(vtbl_funcs)
-		ptr_size = p_util.get_ptr_size()
+		ptr_size = util_aux.get_ptr_size()
 		self.resize(v_sz * ptr_size)
 
 		field_names = set()
@@ -67,7 +67,7 @@ class Vtable(Structure):
 			func_ptr_tif = util_func.get_func_ptr_tinfo(func_addr)
 			if func_ptr_tif is None:
 				print("Failed to get function tinfo", hex(func_addr), func_name, "using void* instead")
-				func_ptr_tif = p_util.get_voidptr_tinfo()
+				func_ptr_tif = util_aux.get_voidptr_tinfo()
 			self.set_member_type(member_offset, func_ptr_tif)
 			self.set_member_comment(member_offset, hex(func_addr))
 
@@ -134,7 +134,7 @@ class Vtable(Structure):
 		if ida_struct.is_union(vinfo):
 			return False
 
-		if ida_struct.get_struc_size(vinfo) % p_util.get_ptr_size() != 0:
+		if ida_struct.get_struc_size(vinfo) % util_aux.get_ptr_size() != 0:
 			return False
 
 		# vtable has one data xref max
@@ -162,15 +162,15 @@ class Vtable(Structure):
 		if len([x for x in idautils.XrefsTo(addr)]) == 0:
 			return []
 
-		ptr_size = p_util.get_ptr_size()
-		ptrs = [p_util.read_ptr(addr)]
+		ptr_size = util_aux.get_ptr_size()
+		ptrs = [util_aux.read_ptr(addr)]
 		addr += ptr_size
 		while True:
 			# on next xref next vtable starts, vtables are used as pointers only
 			if len([x for x in idautils.XrefsTo(addr)]) != 0:
 				break
 
-			ptr = p_util.read_ptr(addr)
+			ptr = util_aux.read_ptr(addr)
 			if not idaapi.is_loaded(ptr):
 				break
 
@@ -180,7 +180,7 @@ class Vtable(Structure):
 		if len(ptrs) < minsize:
 			return []
 
-		addrs, not_addrs = p_util.split_list(ptrs, lambda x: p_util.get_func_start(x) == x)
+		addrs, not_addrs = util_aux.split_list(ptrs, lambda x: util_aux.get_func_start(x) == x)
 		if len(addrs) == len(ptrs):
 			return ptrs
 

@@ -2,7 +2,7 @@ import idaapi
 import idc
 import ida_struct
 
-import phrank.util_aux as p_util
+import phrank.util_aux as util_aux
 
 
 def handle_addstrucmember_ret(ret):
@@ -121,7 +121,7 @@ class IdaStrucWrapper(object):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
 
 		if isinstance(member_type, str):
-			tif = p_util.str2tif(member_type)
+			tif = util_aux.str2tif(member_type)
 			if tif is None:
 				raise BaseException("Failed to get type from string")
 			return self.set_member_type(member_offset, tif)
@@ -143,22 +143,22 @@ class IdaStrucWrapper(object):
 	def add_member(self, member_offset, name):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
 		# ret = ida_struct.add_struc_member(self.strucid, name, 0, idaapi.FF_DATA | idaapi.FF_DWORD, -1, putil.get_ptr_size())
-		ret = idc.add_struc_member(self.strucid, name, member_offset, idaapi.FF_DATA | idaapi.FF_DWORD, -1, p_util.get_ptr_size())
+		ret = idc.add_struc_member(self.strucid, name, member_offset, idaapi.FF_DATA | idaapi.FF_DWORD, -1, util_aux.get_ptr_size())
 		handle_addstrucmember_ret(ret)
 
 	def append_member(self, name, size):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
-		ret = idc.add_struc_member(self.strucid, name, -1, p_util.size2dataflags(size), -1, size)
+		ret = idc.add_struc_member(self.strucid, name, -1, util_aux.size2dataflags(size), -1, size)
 		handle_addstrucmember_ret(ret)
 
 	def append_struc(self, name, struc):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
-		ret = idc.add_struc_member(self.strucid, name, -1, p_util.size2dataflags(1), -1, 1)
+		ret = idc.add_struc_member(self.strucid, name, -1, util_aux.size2dataflags(1), -1, 1)
 		handle_addstrucmember_ret(ret)
 		idc.SetType(idc.get_member_id(self.strucid, self.get_size()), struc.get_name())
 
 	def append_strucptr(self, name, struc):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
-		ret = idc.add_struc_member(self.strucid, name, -1, p_util.size2dataflags(1), -1, 1)
+		ret = idc.add_struc_member(self.strucid, name, -1, util_aux.size2dataflags(1), -1, 1)
 		handle_addstrucmember_ret(ret)
 		idc.SetType(idc.get_member_id(self.strucid, self.get_size()), struc.get_name() + "*")

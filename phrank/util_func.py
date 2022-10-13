@@ -2,7 +2,7 @@ import idc
 import idaapi
 import idautils
 import phrank.phrank_settings as phrank_settings
-import phrank.util_aux as p_util
+import phrank.util_aux as util_aux
 from typing import Optional
 
 import re
@@ -98,7 +98,7 @@ class FuncWrapper(object):
 
 	def set_arg_type(self, arg_id, arg_type):
 		if isinstance(arg_type, str):
-			arg_type = p_util.str2tif(arg_type)
+			arg_type = util_aux.str2tif(arg_type)
 
 		func_details = self.get_func_details()
 		if func_details is None:
@@ -157,7 +157,7 @@ class FuncWrapper(object):
 			return tif
 
 		if self.is_movrax_ret():
-			tif = p_util.get_voidfunc_tinfo()
+			tif = util_aux.get_voidfunc_tinfo()
 			if tif.is_correct():
 				return tif
 
@@ -191,7 +191,7 @@ class FuncWrapper(object):
 		self.__is_decompiled = True
 
 		if decompile_recursively or phrank_settings.DECOMPILE_RECURSIVELY:
-			for subcall in p_util.get_func_calls_from(self.get_start()):
+			for subcall in util_aux.get_func_calls_from(self.get_start()):
 				decompile(subcall, decompile_recursively=True)
 
 		try:

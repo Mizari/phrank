@@ -1,7 +1,7 @@
 import idautils
 import idc
 
-import phrank.util_aux as p_util
+import phrank.util_aux as util_aux
 
 from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.containers.vtable import Vtable
@@ -35,7 +35,7 @@ class VtableAnalyzer(TypeAnalyzer):
 
 	def get_new_vtbl_name(self):
 		vtbl_name = "vtable_" + str(len(self._created_vtables))
-		vtbl_name = p_util.get_next_available_strucname(vtbl_name)
+		vtbl_name = util_aux.get_next_available_strucname(vtbl_name)
 		return vtbl_name
 
 	def new_vtable(self, *args, **kwargs):
@@ -66,7 +66,7 @@ class VtableAnalyzer(TypeAnalyzer):
 		return vfcs
 
 	def find_candidates_at(self, ea_start, ea_end):
-		ptr_size = p_util.get_ptr_size()
+		ptr_size = util_aux.get_ptr_size()
 		it_ea = ea_start
 		while it_ea < ea_end:
 			vfcs = self.get_candidate_at(it_ea)

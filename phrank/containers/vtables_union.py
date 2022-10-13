@@ -5,7 +5,7 @@ import ida_struct
 from phrank.containers.union import Union
 from phrank.containers.vtable import Vtable
 
-import phrank.util_aux as p_util
+import phrank.util_aux as util_aux
 
 class VtablesUnion(Union):
 	def __init__(self, *args, **kwargs):
@@ -61,7 +61,7 @@ class VtablesUnion(Union):
 			if str(mtif) == vname + " *":
 				return
 
-		self.append_member(vname, p_util.get_ptr_size())
+		self.append_member(vname, util_aux.get_ptr_size())
 		tif = idaapi.tinfo_t()
 		if not tif.get_named_type(idaapi.get_idati(), vname):
 			raise BaseException("Failed to get tinfo from vtable struct")

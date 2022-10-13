@@ -1,5 +1,5 @@
 import idaapi
-import phrank.util_aux as p_util
+import phrank.util_aux as util_aux
 import phrank.util_func as util_func
 from typing import Optional
 
@@ -286,7 +286,7 @@ class FuncCall:
 			return 0
 
 		# cant look into imported funcs, assume that args are somehow used there
-		if p_util.is_func_import(self._func_ea):
+		if util_aux.is_func_import(self._func_ea):
 			return 1
 
 		if idaapi.get_func(self._func_ea) is None:

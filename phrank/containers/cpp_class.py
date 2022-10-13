@@ -1,6 +1,6 @@
 import idaapi
 
-import phrank.util_aux as p_util
+import phrank.util_aux as util_aux
 import phrank.util_ast as p_hrays
 
 from phrank.containers.structure import Structure
@@ -90,7 +90,7 @@ class CppClass(Structure):
 			member_vtbl = Structure(name=member_vtbl)
 
 			vtbl_union_name = "vtables_union_0"
-			vtbl_union_name = p_util.get_next_available_strucname(vtbl_union_name)
+			vtbl_union_name = util_aux.get_next_available_strucname(vtbl_union_name)
 			vu = VtablesUnion(name=vtbl_union_name)
 			# need to add vtbl to union first, otherwise ida cant set member type, because its size is 0
 			vu.add_vtable(vtbl)
