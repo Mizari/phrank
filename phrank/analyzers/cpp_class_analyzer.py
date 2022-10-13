@@ -49,18 +49,7 @@ class ClassConstructionContext(object):
 
 
 class CppClassAnalyzer(TypeAnalyzer):
-	__instance = None
-
-	def __new__(cls, *args, **kwargs):
-		if cls.__instance is None:
-			return super().__new__(cls)
-		return cls.__instance
-
 	def __init__(self, *args, **kwargs):
-		if CppClassAnalyzer.__instance is not None:
-			return
-		CppClassAnalyzer.__instance = self
-
 		super().__init__()
 		self._created_classes : list[CppClass] = []
 		self._created_unions : list[VtablesUnion] = []
