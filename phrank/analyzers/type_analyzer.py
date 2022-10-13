@@ -32,7 +32,7 @@ class TypeAnalyzer:
 	def get_func_wrapper(self, func_ea: int) -> util_func.FuncWrapper:
 		fw = self.cached_func_wrappers.get(func_ea)
 		if fw is None:
-			fw = util_func.FuncWrapper.create(addr=func_ea)
+			fw = util_func.FuncWrapper(addr=func_ea)
 			self.cached_func_wrappers[func_ea] = fw
 		return fw
 
