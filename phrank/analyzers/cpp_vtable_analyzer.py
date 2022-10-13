@@ -1,24 +1,12 @@
 
 import phrank.util_aux as p_util
-import phrank.util_ast as p_hrays
 
 from phrank.analyzers.vtable_analyzer import VtableAnalyzer
 from phrank.containers.cpp_vtable import CppVtable
 
 class CppVtableAnalyzer(VtableAnalyzer):
-	__instance = None
-	def __new__(cls, *args, **kwargs):
-		if CppVtableAnalyzer.__instance is not None:
-			return CppVtableAnalyzer.__instance
-
-		return super().__new__(cls, *args, **kwargs)
-
 	def __init__(self):
-		if CppVtableAnalyzer.__instance is not None:
-			return
-
 		super().__init__()
-		CppVtableAnalyzer.__instance = self
 
 	def downgrade_classless_vtables(self):
 		vid = 0

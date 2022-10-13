@@ -54,7 +54,9 @@ class CppClassAnalyzer(TypeAnalyzer):
 		self._created_classes : list[CppClass] = []
 		self._created_unions : list[VtablesUnion] = []
 		self._original_func_types : dict[tuple[int, int], idaapi.tinfo_t] = {}
+
 		self._cctx = ClassConstructionContext()
+		self.cpp_vtbl_analyzer = CppVtableAnalyzer()
 
 		self.user_ctors : set[int] = set()
 		if ctors is not None:
@@ -93,7 +95,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 
 	def post_analysis(self):
 		self.create_classes()
-		CppVtableAnalyzer().downgrade_classless_vtables()
+		self.cpp_vtbl_analyzer.downgrade_classless_vtables()
 
 		self.analyze_class_sizes()
 		self.analyze_inheritance()
@@ -104,10 +106,9 @@ class CppClassAnalyzer(TypeAnalyzer):
 
 		# try:
 
-		fact = CppVtableAnalyzer()
-		fact.create_all_vtables()
-		print("[*] INFO: found", len(fact.get_vtables()), "vtables")
-		for vtbl in fact._created_vtables:
+		self.cpp_vtbl_analyzer.create_all_vtables()
+		print("[*] INFO: found", len(self.cpp_vtbl_analyzer.get_vtables()), "vtables")
+		for vtbl in self.cpp_vtbl_analyzer._created_vtables:
 			self.search_vtable(vtbl)
 
 		self.post_analysis()
@@ -138,7 +139,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 			if intval is None:
 				continue
 
-			vtbl = CppVtableAnalyzer().make_vtable(intval)
+			vtbl = self.cpp_vtbl_analyzer.make_vtable(intval)
 			if vtbl is None:
 				continue
 
@@ -164,7 +165,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 	def search_vtable(self, vtbl):
 		if isinstance(vtbl, int):
 			addr = vtbl
-			vtbl = CppVtableAnalyzer().make_vtable(addr)
+			vtbl = self.cpp_vtbl_analyzer.make_vtable(addr)
 		elif isinstance(vtbl, CppVtable):
 			addr = vtbl.get_ea()
 
