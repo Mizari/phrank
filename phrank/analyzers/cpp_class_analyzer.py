@@ -49,20 +49,18 @@ class ClassConstructionContext(object):
 
 
 class CppClassAnalyzer(TypeAnalyzer):
-	def __init__(self, *args, **kwargs):
-		super().__init__()
+	def __init__(self, *args, ctors=None, dtors=None, **kwargs):
+		super().__init__(*args, **kwargs)
 		self._created_classes : list[CppClass] = []
 		self._created_unions : list[VtablesUnion] = []
 		self._original_func_types : dict[tuple[int, int], idaapi.tinfo_t] = {}
 		self._cctx = ClassConstructionContext()
 
 		self.user_ctors : set[int] = set()
-		ctors = kwargs.get("ctors", None)
 		if ctors is not None:
 			self.user_ctors.update(ctors)
 
 		self.user_dtors : set[int] = set()
-		dtors = kwargs.get("dtors", None)
 		if dtors is not None:
 			self.user_dtors.update(dtors)
 
