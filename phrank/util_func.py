@@ -1,14 +1,15 @@
+from __future__ import annotations
+
 import idc
 import idaapi
 import idautils
 import phrank.phrank_settings as phrank_settings
 import phrank.util_aux as util_aux
-from typing import Optional
 
 import re
 
 
-def get_func(func_loc):
+def get_func(func_loc) -> idaapi.func_t:
 	if isinstance(func_loc, int):
 		addr = func_loc
 	elif isinstance(func_loc, str):
@@ -26,8 +27,8 @@ def get_func_start(func_loc):
 
 class FuncWrapper(object):
 	def __init__(self, func_loc):
-		self.__func : idaapi.func_t = get_func(func_loc)
-		self.__cfunc : Optional[idaapi.cfunptr_t] = None
+		self.__func = get_func(func_loc)
+		self.__cfunc : idaapi.cfunptr_t|None = None
 		self.__is_decompiled : bool = False
 
 	def get_start(self):
