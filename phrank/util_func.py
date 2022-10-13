@@ -35,13 +35,7 @@ def get_func_start(*args, **kwargs):
 		return idaapi.BADADDR
 	return func.start_ea
 
-@p_util.unique(get_func_start)
 class FuncWrapper(object):
-	_instances = {}
-
-	def get_start(self):
-		return self._func.start_ea
-
 	def __init__(self, *args, **kwargs):
 		func = get_func(*args, **kwargs)
 		if func is None:
@@ -51,6 +45,9 @@ class FuncWrapper(object):
 		self.__func : idaapi.func_t = func
 		self.__cfunc : Optional[idaapi.cfunptr_t] = None
 		self.__is_decompiled : bool = False
+
+	def get_start(self):
+		return self._func.start_ea
 
 	def get_name(self):
 		return idaapi.get_name(self.get_start())

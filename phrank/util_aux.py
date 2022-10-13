@@ -33,32 +33,6 @@ def iterate_all_functions():
 		for funcea in idautils.Functions(segea, idc.get_segm_end(segea)):
 			yield funcea
 
-def unique(uid_getter_func):
-	@classmethod
-	def create(cls, *args, **kwargs):
-		uid = cls._getter(*args, **kwargs)
-		if uid is None:
-			raise BaseException("Failed to get unique object id")
-
-		obj = cls._instances.get(uid, None)
-		if obj is not None:
-			return obj
-
-		obj = cls(*args, **kwargs)
-		cls._instances[uid] = obj
-		return obj
-
-	@classmethod
-	def clear_cached_instances(cls):
-		cls._instances.clear()
-
-	def _unique(cls):
-		cls._getter = uid_getter_func
-		cls._instances = {}
-		cls.create = create
-		cls.clear_cached_instances = clear_cached_instances
-		return cls
-	return _unique
 
 def split_list(l, cond):
 	on_true = []
