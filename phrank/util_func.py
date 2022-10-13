@@ -16,9 +16,6 @@ def get_func(func_loc):
 	else:
 		raise TypeError("Invalid function location type, should be int|str")
 
-	if addr is not None:
-		return idaapi.get_func(addr)
-
 	return idaapi.get_func(addr)
 
 def get_func_start(func_loc):
