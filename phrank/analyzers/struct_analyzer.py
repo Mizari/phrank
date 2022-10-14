@@ -9,7 +9,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def analyze_variable(self, cfunc, var_id, force_new_type=False):
 		fuv = self.get_ast_analysis(cfunc.entry_ea)
-		func = fuv.get_func()
+		func = self.get_func_wrapper(cfunc.entry_ea)
 		func.set_cfunc(cfunc)
 		var_size = fuv.get_var_use_size(var_id)
 		var = func.get_var(var_id)

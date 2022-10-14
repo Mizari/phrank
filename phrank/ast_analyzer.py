@@ -201,9 +201,6 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 		self._func = func
 		self._is_visited = False
 
-	def get_func(self):
-		return self._func
-
 	def clear(self):
 		self._var_writes.clear()
 		self._varptr_writes.clear()
