@@ -315,9 +315,6 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 			yield VarPtrWrite(w.get_varref(), w.get_val(), write_offset)
 
 	def get_var_uses_in_calls(self, var_id):
-		if var_id >= self._func.get_lvars_counter():
-			return
-
 		for func_call in self.get_calls():
 			arg_offset = func_call.get_var_offset()
 			if arg_offset is None:
