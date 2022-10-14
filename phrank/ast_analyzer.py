@@ -293,9 +293,6 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 		return 0
 
 	def get_writes_into_var(self, var_id, offset=None, val=None):
-		if var_id >= self._func.get_lvars_counter():
-			return
-
 		for w in self.varptr_writes(offset, val):
 			var_offset = None
 			if w.get_varid() == var_id:
