@@ -10,7 +10,7 @@ class CppVtableAnalyzer(VtableAnalyzer):
 
 	def downgrade_classless_vtables(self):
 		vid = 0
-		for vtbl in self._created_vtables.values():
+		for vtbl in self._addr2vtbl.values():
 			if vtbl.get_class() is not None:
 				continue
 			new_name = "vtable_" + str(vid)
@@ -33,7 +33,7 @@ class CppVtableAnalyzer(VtableAnalyzer):
 		return None
 
 	def get_new_vtbl_name(self):
-		vtbl_name = "cpp_vtable_" + str(len(self._created_vtables))
+		vtbl_name = "cpp_vtable_" + str(len(self._addr2vtbl))
 		vtbl_name = util_aux.get_next_available_strucname(vtbl_name)
 		return vtbl_name
 

@@ -106,9 +106,9 @@ class CppClassAnalyzer(TypeAnalyzer):
 
 		# try:
 
-		self.cpp_vtbl_analyzer.create_all_vtables()
-		print("[*] INFO: found", len(self.cpp_vtbl_analyzer.get_vtables()), "vtables")
-		for vtbl in self.cpp_vtbl_analyzer._created_vtables:
+		self.cpp_vtbl_analyzer.analyze_everything()
+		print("[*] INFO: found", len(self.cpp_vtbl_analyzer.new_types), "vtables")
+		for vtbl in self.cpp_vtbl_analyzer.new_types:
 			self.search_vtable(vtbl)
 
 		self.post_analysis()
