@@ -13,9 +13,6 @@ class VtableAnalyzer(TypeAnalyzer):
 		self._created_vtables : dict[int, Vtable] = {}
 		self._min_vtbl_size = 2
 
-	def clear_created_vtables(self):
-		self._created_vtables.clear()
-
 	def get_vtable(self, vtable_ea):
 		return self._created_vtables.get(vtable_ea, None)
 
