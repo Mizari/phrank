@@ -350,12 +350,6 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 			max_func_sz = max(max_func_sz, func_call.get_var_use_size(var_id))
 		return max(0, max_write_sz, max_func_sz, max_access_sz) # zero in case only negative offsets are found
 
-	def get_arg_var(self, arg_id):
-		return self._func.get_var(arg_id)
-
-	def get_var(self, var_ref):
-		return self._func.get_var(var_ref.idx)
-
 	def handle_call(self, expr):
 		fc = FuncCall(call_expr=expr)
 		self._calls.append(fc)
