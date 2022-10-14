@@ -10,17 +10,14 @@ class VtableAnalyzer(TypeAnalyzer):
 	def __init__(self):
 		super().__init__()
 
-		self._created_vtables : dict[int, Vtable] = {}
+		self._addr2vtbl : dict[int, Vtable] = {}
 		self._min_vtbl_size = 2
 
 	def get_vtable(self, vtable_ea):
-		return self._created_vtables.get(vtable_ea, None)
-
-	def get_vtables(self):
-		return list(self._created_vtables.values())
+		return self._addr2vtbl.get(vtable_ea, None)
 
 	def make_vtable(self, addr):
-		vtbl = self._created_vtables.get(addr, None)
+		vtbl = self._addr2vtbl.get(addr, None)
 		if vtbl is not None:
 			return vtbl
 		
@@ -31,7 +28,7 @@ class VtableAnalyzer(TypeAnalyzer):
 		return self.create_vtable(addr=addr, vtbl_vuncs=vfcs)
 
 	def get_new_vtbl_name(self):
-		vtbl_name = "vtable_" + str(len(self._created_vtables))
+		vtbl_name = "vtable_" + str(len(self._addr2vtbl))
 		vtbl_name = util_aux.get_next_available_strucname(vtbl_name)
 		return vtbl_name
 
@@ -44,7 +41,7 @@ class VtableAnalyzer(TypeAnalyzer):
 		vtbl = self.new_vtable(*args, **kwargs)
 		vtbl_ea = vtbl.get_ea()
 		if vtbl_ea is not None:
-			self._created_vtables[vtbl_ea] = vtbl
+			self._addr2vtbl[vtbl_ea] = vtbl
 		else:
 			print("[*] WARNING", "created vtable without address", vtbl.get_name())
 		return vtbl
@@ -73,6 +70,7 @@ class VtableAnalyzer(TypeAnalyzer):
 			yield it_ea, vfcs
 			it_ea += len(vfcs) * ptr_size
 
-	def create_all_vtables(self):
+	def analyze_everything(self):
 		for vtbl_ea, vtbl_funcs in self.find_all_candidates():
 			vtbl = self.create_vtable(addr=vtbl_ea, vtbl_vuncs=vtbl_funcs)
+			self.new_types.append(vtbl)
