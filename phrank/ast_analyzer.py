@@ -191,14 +191,14 @@ class FuncCall:
 		return max_var_use
 
 class ASTAnalysis(idaapi.ctree_visitor_t):
-	def __init__(self, func: util_func.FuncWrapper):
+	def __init__(self, cfunc: idaapi.cfunc_t):
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
 		self._varptr_writes : list[VarPtrWrite] = []
 		self._var_writes: list[VarWrite] = []
 		self._var_substitutes = {} # var_id_i -> (var_id_j, offset). for situations like "Vi = Vj + offset"
 		self._var_accesses : list[VarAccess] = []
 		self._calls : list[FuncCall] = []
-		self._func = func
+		self._cfunc = cfunc
 		self._is_visited = False
 
 	def clear(self):
@@ -241,14 +241,10 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 	def visit(self):
 		self.clear()
 		self._is_visited = True
+		if self._cfunc is None:
+			return
 
-		try:
-			cfunc = self._func.get_cfunc()
-			if cfunc is not None:
-				self.apply_to_exprs(cfunc.body, None)
-		except idaapi.DecompilationFailure:
-			print("[*] WARNING", "failed to decompile function", idaapi.get_name(self._func.get_start()), "aborting analysis")
-
+		self.apply_to_exprs(self._cfunc.body, None)
 		for w in self.var_writes():
 			var_offset = get_var_offset(w.get_val())
 			if var_offset is None:

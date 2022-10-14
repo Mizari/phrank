@@ -38,10 +38,13 @@ class TypeAnalyzer:
 
 	def get_ast_analysis(self, func_ea: int) -> ASTAnalysis:
 		aa = self.cached_ast_analysis.get(func_ea)
-		if aa is None:
-			fw = self.get_func_wrapper(func_ea)
-			aa = ASTAnalysis(fw)
-			self.cached_ast_analysis[func_ea] = aa
+		if aa is not None:
+			return aa
+
+		fw = self.get_func_wrapper(func_ea)
+		cfunc = fw.get_cfunc()
+		aa = ASTAnalysis(cfunc)
+		self.cached_ast_analysis[func_ea] = aa
 		return aa
 
 	def clear_analysis(self):
