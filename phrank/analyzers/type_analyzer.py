@@ -1,6 +1,6 @@
-
 from phrank.ast_analyzer import ASTAnalysis
-import phrank.util_func as util_func
+from phrank.containers.ida_struc_wrapper import IdaStrucWrapper
+from phrank.util_func import FuncWrapper
 
 
 class TypeAnalyzer:
@@ -22,17 +22,17 @@ class TypeAnalyzer:
 		self.retval2type = {}
 
 		# analysis results
-		self.new_types = []    # created types
+		self.new_types : list[IdaStrucWrapper] = []    # created types
 		self.new_xrefs = []    # created xrefs
 		self.new_lvars = []    # changed types of local variables
 		self.new_gvars = []    # changed types of global variables
 		self.new_fields = []   # changed types of struct fields
 		self.new_retvals = []  # changed types of function return values
 
-	def get_func_wrapper(self, func_ea: int) -> util_func.FuncWrapper:
+	def get_func_wrapper(self, func_ea: int) -> FuncWrapper:
 		fw = self.cached_func_wrappers.get(func_ea)
 		if fw is None:
-			fw = util_func.FuncWrapper(addr=func_ea)
+			fw = FuncWrapper(addr=func_ea)
 			self.cached_func_wrappers[func_ea] = fw
 		return fw
 
@@ -48,25 +48,28 @@ class TypeAnalyzer:
 		return aa
 
 	def clear_analysis(self):
-		return
+		for t in self.new_types:
+			t.delete()
+		self.new_types.clear()
 
 	def apply_analysis(self):
-		return
+		# new types are already created, simply skip them
+		self.new_types.clear()
 
 	def analyze_everything(self):
-		return
+		raise NotImplementedError
 
 	def analyze_function(self):
-		return
+		raise NotImplementedError
 
 	def analyze_lvar(self):
-		return
+		raise NotImplementedError
 
 	def analyze_gvar(self):
-		return
+		raise NotImplementedError
 
 	def analyze_cexpr(self):
-		return
+		raise NotImplementedError
 
 	def analyze_field(self):
-		return
+		raise NotImplementedError
