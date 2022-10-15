@@ -20,24 +20,21 @@ class Vtable(Structure):
 		if len(xrefs) != 0:
 			self._v_ea = xrefs[0]
 
-	def __init_from_type_at_addr(self, *args, **kwargs):
-		addr = kwargs.get("addr", '')
+	def __init_from_type_at_addr(self, *args, addr='', **kwargs):
 		super().__init__(*args, **kwargs)
 		self._v_ea = addr
 		# TODO check that this structure actually represents vtable at addr
 		return
 
-	def __init__(self, *args, **kwargs):
+	def __init__(self, *args, addr=None, **kwargs):
 		self._v_ea : int = idaapi.BADADDR
 
-		addr = kwargs.get("addr", None)
 		if addr is None:
 			return self.__init_existing(*args, **kwargs)
 
 		t = idc.get_type(addr)
 		if Vtable.is_vtable(t):
-			kwargs["name"] = t
-			return self.__init_from_type_at_addr(*args, **kwargs)
+			return self.__init_from_type_at_addr(*args, name=t, **kwargs)
 
 		return self.__init_new(*args, **kwargs)
 	
