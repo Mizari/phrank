@@ -5,48 +5,42 @@ import ida_struct
 
 import phrank.util_func as util_func
 import phrank.util_aux as util_aux
-import phrank.phrank_settings as p_settings
 from phrank.containers.structure import Structure
 
 class Vtable(Structure):
 	REUSE_DELIM = "___V"
-	def __init_existing(self, *args, **kwargs):
-		# create vtable from existing one by name/strucid
-		super().__init__(*args, **kwargs)
-		if not Vtable.is_vtable(self.strucid):
-			raise BaseException("Structure is not vtable")
-
-		xrefs = [x.frm for x in idautils.XrefsTo(self.strucid)]
-		if len(xrefs) != 0:
-			self._v_ea = xrefs[0]
-
-	def __init_from_type_at_addr(self, *args, addr='', **kwargs):
-		super().__init__(*args, **kwargs)
-		self._v_ea = addr
-		# TODO check that this structure actually represents vtable at addr
-		return
-
-	def __init__(self, *args, addr=None, **kwargs):
+	def __init__(self, addr=None, struc_locator=None, vtbl_funcs=None):
 		self._v_ea : int = idaapi.BADADDR
 
+		# create vtable from existing one by name/strucid
 		if addr is None:
-			return self.__init_existing(*args, **kwargs)
+			super().__init__(struc_locator=struc_locator)
+			if not Vtable.is_vtable(self.strucid):
+				raise BaseException("Structure is not vtable")
 
+			xrefs = [x.frm for x in idautils.XrefsTo(self.strucid)]
+			if len(xrefs) != 0:
+				self._v_ea = xrefs[0]
+			return
+
+		# trying to initialize from type at address
 		t = idc.get_type(addr)
 		if Vtable.is_vtable(t):
-			return self.__init_from_type_at_addr(*args, name=t, **kwargs)
+			super().__init__(struc_locator=struc_locator)
+			self._v_ea = addr
+			# TODO check that this structure actually represents vtable at addr
+			return
 
-		return self.__init_new(*args, **kwargs)
-	
-	def __init_new(self, *args, **kwargs):
+		return self.__init_new(addr=addr, struc_locator=struc_locator, vtbl_funcs=vtbl_funcs)
+
+	def __init_new(self, addr=None, vtbl_funcs=None, struc_locator=None):
 		# create new strucid
 		# TODO better name generation for new vtable structure
 		# TODO if setting type at vtable address, then set name too
 		# TODO can vtable have <2 xrefs to addr? at least 1 ctor and 1 dtor should access vtable, no?
-		super().__init__(*args, **kwargs)
-		self._v_ea = kwargs.get("addr", None)
+		super().__init__(struc_locator=struc_locator)
+		self._v_ea = addr
 
-		vtbl_funcs = kwargs.get("vtbl_funcs", None)
 		if vtbl_funcs is None:
 			vtbl_funcs = Vtable.get_vtable_functions_at_addr(self._v_ea)
 		v_sz = len(vtbl_funcs)
@@ -83,12 +77,6 @@ class Vtable(Structure):
 
 			self.set_member_name(member_offset, func_name)
 			field_names.add(func_name)
-
-		set_type = kwargs.get("set_type", None)
-		if set_type is None:
-			set_type = p_settings.SHOULD_SET_VTABLE_TYPES
-		if set_type:
-			self.set_data()
 
 	def update_func_types(self):
 		for member_offset in self.member_offsets():

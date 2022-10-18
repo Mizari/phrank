@@ -6,10 +6,9 @@ import phrank.util_aux as util_aux
 
 
 class Structure(IdaStrucWrapper):
-	def __init__ (self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		if idaapi.is_union(self.strucid):
-			raise BaseException("Error, should be struct")
+	def __init__ (self, struc_locator=None):
+		super().__init__(struc_locator=struc_locator)
+		assert not self.is_union(), "Error, should be struct"
 
 	def member_names(self):
 		for member_offset in self.member_offsets():

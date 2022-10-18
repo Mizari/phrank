@@ -8,9 +8,6 @@ from phrank.containers.vtable import Vtable
 import phrank.util_aux as util_aux
 
 class VtablesUnion(Union):
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-
 	@staticmethod
 	def is_vtables_union(vtbl_info):
 		# TODO

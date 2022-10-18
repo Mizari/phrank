@@ -19,25 +19,34 @@ def handle_addstrucmember_ret(ret):
 
 
 class IdaStrucWrapper(object):
-	def __init__(self, *args, **kwargs):
-		self.strucid : int = idaapi.BADADDR
+	def __init__(self, struc_locator=None, is_union=False):
+		strucid = self.get_existing_strucid(struc_locator)
+		if strucid == idaapi.BADADDR:
+			# idc.add_struc second arg is name(str) or None
+			if isinstance(struc_locator, int):
+				struc_locator
+			# create new struc
+			strucid = idc.add_struc(idaapi.BADADDR, struc_locator, is_union)
+		self.strucid = strucid
 
-		strucid = kwargs.get("strucid", None)
-		name = kwargs.get("name", None)
-		is_union = kwargs.get("is_union", False)
+	@staticmethod
+	def get_existing_strucid(struc_locator):
+		if struc_locator is None:
+			return idaapi.BADADDR
 
-		if strucid is not None:
-			if idc.get_struc_idx(self.strucid) == idaapi.BADADDR:
-				raise BaseException("Invalid strucid")
-			self.strucid = strucid
+		if isinstance(struc_locator, int):
+			if idc.get_struc_idx(struc_locator) == idaapi.BADADDR:
+				return idaapi.BADADDR
+			return struc_locator
+
+		elif isinstance(struc_locator, str):
+			return idc.get_struc_id(struc_locator)
 
 		else:
-			# check existing
-			if name is not None:
-				self.strucid = idc.get_struc_id(name)
-	
-			if self.strucid == idaapi.BADADDR:
-				self.strucid = idc.add_struc(idaapi.BADADDR, name, is_union)
+			raise TypeError()
+
+	def is_union(self):
+		return idaapi.is_union(self.strucid)
 
 	def get_tinfo(self):
 		tif = idaapi.tinfo_t()
