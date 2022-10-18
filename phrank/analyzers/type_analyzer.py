@@ -1,4 +1,4 @@
-from phrank.ast_analyzer import ASTAnalysis
+from phrank.ast_analysis import ASTAnalysis
 from phrank.containers.ida_struc_wrapper import IdaStrucWrapper
 from phrank.util_func import FuncWrapper
 
