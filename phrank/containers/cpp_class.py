@@ -5,14 +5,14 @@ import phrank.util_ast as p_hrays
 
 from phrank.containers.structure import Structure
 from phrank.containers.vtables_union import VtablesUnion
-from phrank.containers.cpp_vtable import CppVtable
-from phrank.analyzers.cpp_vtable_analyzer import CppVtableAnalyzer
+from phrank.containers.vtable import Vtable
+from phrank.analyzers.vtable_analyzer import VtableAnalyzer
 
 class CppClass(Structure):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self._cdtors : set[CDtor] = set()
-		self._vtables : dict[int, CppVtable]= {}
+		self._vtables : dict[int, Vtable]= {}
 		self._parents : dict[int, CppClass]= {}
 		self._children : set[CppClass] = set()
 
@@ -129,7 +129,7 @@ class CDtor(object):
 		self._is_dtor : bool = False
 		self._cpp_class : CppClass = None
 
-		factory = CppVtableAnalyzer()
+		factory = VtableAnalyzer()
 		self._vtbl_writes = {}
 		for write in p_hrays.ASTAnalysis(addr=fea).get_writes_into_var(0):
 			int_write_val = write.get_int()
@@ -144,7 +144,7 @@ class CDtor(object):
 			l.append(vtbl)
 
 	def get_main_vtables(self):
-		main_vtables: dict[int, CppVtable] = {}
+		main_vtables: dict[int, Vtable] = {}
 		for offset, vtbls in self.vtbl_writes():
 			if len(vtbls) == 1:  main_vtable = vtbls[0]
 			elif self._is_ctor: main_vtable = vtbls[-1]

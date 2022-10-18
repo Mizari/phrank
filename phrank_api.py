@@ -3,7 +3,6 @@ import phrank.util_func as util_func
 
 from phrank.analyzers.struct_analyzer import StructAnalyzer
 from phrank.analyzers.vtable_analyzer import VtableAnalyzer
-from phrank.analyzers.cpp_vtable_analyzer import CppVtableAnalyzer
 from phrank.analyzers.cpp_class_analyzer import CppClassAnalyzer
 
 
@@ -38,14 +37,6 @@ def analyze_variable(cfunc, var):
 	struct_analyzer = StructAnalyzer()
 	struct_analyzer.analyze_variable(cfunc, var)
 	struct_analyzer.apply_analysis()
-
-def create_cpp_vtables():
-	"""
-	Creates C++ virtual tables in data segment
-	"""
-	cpp_analyzer = CppVtableAnalyzer()
-	cpp_analyzer.analyze_everything()
-	cpp_analyzer.apply_analysis()
 
 def create_vtables():
 	vtbl_analyzer = VtableAnalyzer()

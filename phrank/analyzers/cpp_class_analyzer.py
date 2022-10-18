@@ -5,15 +5,15 @@ import phrank.util_func as util_func
 import phrank.util_aux as util_aux
 
 from phrank.containers.cpp_class import CDtor, CppClass
-from phrank.containers.cpp_vtable import CppVtable
+from phrank.containers.vtable import Vtable
 from phrank.containers.vtables_union import VtablesUnion
 from phrank.analyzers.type_analyzer import TypeAnalyzer
-from phrank.analyzers.cpp_vtable_analyzer import CppVtableAnalyzer
+from phrank.analyzers.vtable_analyzer import VtableAnalyzer
 
 class ClassConstructionContext(object):
 	def __init__(self):
 		self._cdtors : dict[int, CDtor] = {}
-		self._vtables : dict[int, CppVtable] = {}
+		self._vtables : dict[int, Vtable] = {}
 
 	def clear(self):
 		self._cdtors.clear()
@@ -56,7 +56,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 		self._original_func_types : dict[tuple[int, int], idaapi.tinfo_t] = {}
 
 		self._cctx = ClassConstructionContext()
-		self.cpp_vtbl_analyzer = CppVtableAnalyzer()
+		self.cpp_vtbl_analyzer = VtableAnalyzer()
 
 		self.user_ctors : set[int] = set()
 		if ctors is not None:
@@ -95,8 +95,6 @@ class CppClassAnalyzer(TypeAnalyzer):
 
 	def post_analysis(self):
 		self.create_classes()
-		self.cpp_vtbl_analyzer.downgrade_classless_vtables()
-
 		self.analyze_class_sizes()
 		self.analyze_inheritance()
 		self.finalize_classes()
@@ -166,7 +164,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 		if isinstance(vtbl, int):
 			addr = vtbl
 			vtbl = self.cpp_vtbl_analyzer.make_vtable(addr)
-		elif isinstance(vtbl, CppVtable):
+		elif isinstance(vtbl, Vtable):
 			addr = vtbl.get_ea()
 
 		if vtbl is None:
