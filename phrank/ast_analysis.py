@@ -2,7 +2,6 @@ import idaapi
 
 from phrank.util_ast import *
 import phrank.util_aux as util_aux
-import phrank.util_func as util_func
 from typing import Optional
 
 class Write:
