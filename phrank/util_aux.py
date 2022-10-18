@@ -137,3 +137,7 @@ def read_ptr(addr):
 def size2dataflags(sz):
 	df = {8: idaapi.FF_QWORD, 4: idaapi.FF_DWORD, 2: idaapi.FF_WORD, 1: idaapi.FF_BYTE}[sz]
 	return df | idaapi.FF_DATA
+
+def iterate_segments():
+	for segea in idautils.Segments():
+		yield idc.get_segm_start(segea), idc.get_segm_end(segea)
