@@ -138,7 +138,7 @@ class Vtable(Structure):
 		return True
 
 	@staticmethod
-	def get_vtable_functions_at_addr(addr, minsize=1):
+	def get_vtable_functions_at_addr(addr, minsize=2):
 		# TODO get list of ptrs inbetween xrefs
 		# TODO get list of ptrs that are idaapi.is_loaded (idaapi.is_mapped?)
 		# TODO get list of get_func_starts (mb try to expand it with add_func)

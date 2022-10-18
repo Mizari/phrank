@@ -48,7 +48,7 @@ def create_vtable(addr):
 	Creates a virtual table at given address.
 	"""
 	vtbl_analyzer = VtableAnalyzer()
-	vtbl_analyzer.create_vtable(addr=addr)
+	vtbl_analyzer.create_vtable(addr)
 	vtbl_analyzer.apply_analysis()
 
 def decompile_all():
