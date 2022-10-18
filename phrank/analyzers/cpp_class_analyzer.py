@@ -56,7 +56,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 		self._original_func_types : dict[tuple[int, int], idaapi.tinfo_t] = {}
 
 		self._cctx = ClassConstructionContext()
-		self.cpp_vtbl_analyzer = VtableAnalyzer()
+		self.vtbl_analyzer = VtableAnalyzer()
 
 		self.user_ctors : set[int] = set()
 		if ctors is not None:
@@ -104,9 +104,9 @@ class CppClassAnalyzer(TypeAnalyzer):
 
 		# try:
 
-		self.cpp_vtbl_analyzer.analyze_everything()
-		print("[*] INFO: found", len(self.cpp_vtbl_analyzer.new_types), "vtables")
-		for vtbl in self.cpp_vtbl_analyzer.new_types:
+		self.vtbl_analyzer.analyze_everything()
+		print("[*] INFO: found", len(self.vtbl_analyzer.new_types), "vtables")
+		for vtbl in self.vtbl_analyzer.new_types:
 			self.search_vtable(vtbl)
 
 		self.post_analysis()
@@ -137,7 +137,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 			if intval is None:
 				continue
 
-			vtbl = self.cpp_vtbl_analyzer.make_vtable(intval)
+			vtbl = self.vtbl_analyzer.make_vtable(intval)
 			if vtbl is None:
 				continue
 
@@ -163,7 +163,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 	def search_vtable(self, vtbl):
 		if isinstance(vtbl, int):
 			addr = vtbl
-			vtbl = self.cpp_vtbl_analyzer.make_vtable(addr)
+			vtbl = self.vtbl_analyzer.make_vtable(addr)
 		elif isinstance(vtbl, Vtable):
 			addr = vtbl.get_ea()
 
