@@ -101,30 +101,19 @@ class Vtable(Structure):
 
 	@staticmethod
 	def is_vtable(vinfo):
-		if vinfo is None:
-			return False
-		
-		if isinstance(vinfo, idaapi.tinfo_t):
-			vinfo = str(vinfo)
-
-		if isinstance(vinfo, str):
-			vinfo = ida_struct.get_struc_id(vinfo)
-
-		if not isinstance(vinfo, int):
-			raise BaseException("Unexpected vinfo type " + type(vinfo) + ' ' + str(vinfo))
-
-		if vinfo == idaapi.BADADDR:
-			return False
-		
-		if ida_struct.is_union(vinfo):
+		strucid = Vtable.get_existing_strucid(vinfo)
+		if strucid == idaapi.BADADDR:
 			return False
 
-		if ida_struct.get_struc_size(vinfo) % util_aux.get_ptr_size() != 0:
+		if ida_struct.is_union(strucid):
+			return False
+
+		if ida_struct.get_struc_size(strucid) % util_aux.get_ptr_size() != 0:
 			return False
 
 		# vtable has one data xref max
 		# TODO or less? mb struct is vtable, but hasn't data object
-		xrefs = [x.frm for x in idautils.XrefsTo(vinfo)]
+		xrefs = [x.frm for x in idautils.XrefsTo(strucid)]
 		if len(xrefs) > 1:
 			return False
 

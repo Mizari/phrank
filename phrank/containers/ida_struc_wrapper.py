@@ -42,6 +42,10 @@ class IdaStrucWrapper(object):
 		elif isinstance(struc_locator, str):
 			return idc.get_struc_id(struc_locator)
 
+		elif isinstance(struc_locator, idaapi.tinfo_t):
+			struc_locator = str(struc_locator)
+			struc_locator = ida_struct.get_struc_id(struc_locator)
+
 		else:
 			raise TypeError()
 
