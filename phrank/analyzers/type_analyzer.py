@@ -1,3 +1,5 @@
+import idc
+
 from phrank.ast_analysis import ASTAnalysis
 from phrank.containers.ida_struc_wrapper import IdaStrucWrapper
 from phrank.util_func import FuncWrapper
@@ -28,6 +30,17 @@ class TypeAnalyzer:
 		self.new_gvars = []    # changed types of global variables
 		self.new_fields = []   # changed types of struct fields
 		self.new_retvals = []  # changed types of function return values
+
+	def get_gvar_strucid(self, gvar_ea) -> IdaStrucWrapper:
+		gtype = self.gvar2type.get(gvar_ea)
+		if gtype is not None:
+			return gtype
+
+		gtype = idc.get_type(gvar_ea)
+		if gtype is None:
+			return None
+
+		return IdaStrucWrapper.get_existing_strucid(gtype)
 
 	def get_func_wrapper(self, func_ea: int) -> FuncWrapper:
 		fw = self.cached_func_wrappers.get(func_ea)

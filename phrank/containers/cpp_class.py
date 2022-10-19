@@ -136,7 +136,7 @@ class CDtor(object):
 			if int_write_val is None:
 				continue
 
-			vtbl = factory.get_vtable(int_write_val)
+			vtbl = factory.get_gvar_vtable(int_write_val)
 			if vtbl is None:
 				continue
 
