@@ -12,20 +12,21 @@ class StructAnalyzer(TypeAnalyzer):
 			return
 
 		var_type = self.get_var_type(var_id)
+		if force_new_type or var_type is None:
+			new_struct = Structure()
+			new_struct.resize(var_size)
+			new_struct_tif = new_struct.get_tinfo()
+			new_struct_tif.create_ptr(new_struct_tif)
+			self.set_var_type(var_id, new_struct_tif)
+			return
+
 		if var_type is None:
 			return
 
 		if var_type.is_ptr():
 			var_type = var_type.get_pointed_object()
 
-		if var_type.is_struct() and not force_new_type:
+		if var_type.is_struct():
 			current_struct = Structure(name=str(var_type))
 			if current_struct.get_size() < var_size:
 				current_struct.resize(var_size)
-		else:
-			new_struct = Structure()
-			new_struct.resize(var_size)
-			new_struct_tif = new_struct.get_tinfo()
-			new_struct_tif.create_ptr(new_struct_tif)
-
-			self.set_var_type(var_id, new_struct_tif)
