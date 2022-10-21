@@ -1,6 +1,3 @@
-import phrank.util_aux as util_aux
-import phrank.util_func as util_func
-
 from phrank.analyzers.struct_analyzer import StructAnalyzer
 from phrank.analyzers.vtable_analyzer import VtableAnalyzer
 from phrank.analyzers.cpp_class_analyzer import CppClassAnalyzer
@@ -50,14 +47,3 @@ def create_vtable(addr):
 	vtbl_analyzer = VtableAnalyzer()
 	vtbl_analyzer.analyze_gvar(addr)
 	vtbl_analyzer.apply_analysis()
-
-def decompile_all():
-	"""
-	Decompiles all functions in the database recursively.
-	"""
-	fwrappers = [util_func.FuncWrapper(addr=fea) for fea in util_aux.iterate_all_functions()]
-	fwrappers = filter(None, fwrappers)
-	fwrappers = filter(lambda x: not x.should_skip_decompiling(), fwrappers)
-	fwrappers = list(fwrappers)
-	for fw in fwrappers:
-		fw.decompile(decompile_recursively=True)

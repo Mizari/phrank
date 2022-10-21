@@ -1,14 +1,12 @@
 import idc
 
-from phrank.ast_analysis import ASTAnalysis
 from phrank.containers.ida_struc_wrapper import IdaStrucWrapper
-from phrank.util_func import FuncWrapper
+from phrank.function_facade import FunctionFacade
 
 
-class TypeAnalyzer:
-	def __init__(self) -> None:
-		self.cached_ast_analysis = {}
-		self.cached_func_wrappers = {}
+class TypeAnalyzer(FunctionFacade):
+	def __init__(self, func_factory=None) -> None:
+		super().__init__(func_factory=func_factory)
 
 		# analysis context
 		# type analysis
@@ -41,24 +39,6 @@ class TypeAnalyzer:
 			return None
 
 		return IdaStrucWrapper.get_existing_strucid(gtype)
-
-	def get_func_wrapper(self, func_ea: int) -> FuncWrapper:
-		fw = self.cached_func_wrappers.get(func_ea)
-		if fw is None:
-			fw = FuncWrapper(addr=func_ea)
-			self.cached_func_wrappers[func_ea] = fw
-		return fw
-
-	def get_ast_analysis(self, func_ea: int) -> ASTAnalysis:
-		aa = self.cached_ast_analysis.get(func_ea)
-		if aa is not None:
-			return aa
-
-		fw = self.get_func_wrapper(func_ea)
-		cfunc = fw.get_cfunc()
-		aa = ASTAnalysis(cfunc)
-		self.cached_ast_analysis[func_ea] = aa
-		return aa
 
 	def clear_analysis(self):
 		# delete temporaly created new types

@@ -1,5 +1,3 @@
-import phrank.util_ast as p_hrays
-
 from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.containers.structure import Structure
 
@@ -9,19 +7,19 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def analyze_variable(self, cfunc, var_id, force_new_type=False):
 		fuv = self.get_ast_analysis(cfunc.entry_ea)
-		func = self.get_func_wrapper(cfunc.entry_ea)
-		func.set_cfunc(cfunc)
 		var_size = fuv.get_var_use_size(var_id)
-		var = func.get_var(var_id)
 		if var_size == 0:
 			return
 
-		current_type = var.tif
-		if current_type.is_ptr():
-			current_type = current_type.get_pointed_object()
+		var_type = self.get_var_type(var_id)
+		if var_type is None:
+			return
 
-		if current_type.is_struct() and not force_new_type:
-			current_struct = Structure(name=str(current_type))
+		if var_type.is_ptr():
+			var_type = var_type.get_pointed_object()
+
+		if var_type.is_struct() and not force_new_type:
+			current_struct = Structure(name=str(var_type))
 			if current_struct.get_size() < var_size:
 				current_struct.resize(var_size)
 		else:
@@ -30,4 +28,4 @@ class StructAnalyzer(TypeAnalyzer):
 			new_struct_tif = new_struct.get_tinfo()
 			new_struct_tif.create_ptr(new_struct_tif)
 
-			func.set_var_type(var_id, new_struct_tif)
+			self.set_var_type(var_id, new_struct_tif)
