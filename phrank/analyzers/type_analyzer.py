@@ -2,6 +2,7 @@ import idc
 
 from phrank.containers.ida_struc_wrapper import IdaStrucWrapper
 from phrank.function_facade import FunctionFacade
+import phrank.util_aux as util_aux
 
 
 class TypeAnalyzer(FunctionFacade):
@@ -16,10 +17,10 @@ class TypeAnalyzer(FunctionFacade):
 
 		# analysis context
 		# analyzed types without actually changing types
-		self.lvar2type = {}
-		self.gvar2type = {}
-		self.field2type = {}
-		self.retval2type = {}
+		self.lvar2tinfo = {}
+		self.gvar2tinfo = {}
+		self.field2tinfo = {}
+		self.retval2tinfo = {}
 
 		# analysis results
 		self.new_types : list[IdaStrucWrapper] = []    # created types
@@ -29,8 +30,8 @@ class TypeAnalyzer(FunctionFacade):
 		self.new_fields = []   # changed types of struct fields
 		self.new_retvals = []  # changed types of function return values
 
-	def get_gvar_strucid(self, gvar_ea) -> IdaStrucWrapper:
-		gtype = self.gvar2type.get(gvar_ea)
+	def get_gvar_tinfo(self, gvar_ea) -> IdaStrucWrapper:
+		gtype = self.gvar2tinfo.get(gvar_ea)
 		if gtype is not None:
 			return gtype
 
@@ -38,7 +39,7 @@ class TypeAnalyzer(FunctionFacade):
 		if gtype is None:
 			return None
 
-		return IdaStrucWrapper.get_existing_strucid(gtype)
+		return util_aux.str2tif(gtype)
 
 	def clear_analysis(self):
 		# delete temporaly created new types

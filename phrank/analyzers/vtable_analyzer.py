@@ -1,5 +1,4 @@
 import idaapi
-
 import phrank.util_aux as util_aux
 
 from phrank.analyzers.type_analyzer import TypeAnalyzer
@@ -7,9 +6,16 @@ from phrank.containers.vtable import Vtable
 
 class VtableAnalyzer(TypeAnalyzer):
 	def get_gvar_vtable(self, gvar_ea):
-		vtbl_strucid = self.get_gvar_strucid(gvar_ea)
-		if vtbl_strucid != idaapi.BADADDR and Vtable.is_vtable(vtbl_strucid):
-			return Vtable(gvar_ea, vtbl_strucid)
+		gvar_tinfo = self.get_gvar_tinfo(gvar_ea)
+		if gvar_tinfo is None:
+			return None
+
+		gvar_strucid = Vtable.get_existing_strucid(gvar_tinfo)
+		if gvar_strucid == idaapi.BADADDR:
+			return None
+
+		if Vtable.is_vtable(gvar_strucid):
+			return Vtable(gvar_ea, gvar_strucid)
 		return None
 
 	def analyze_gvar(self, gvar_ea):
@@ -24,7 +30,7 @@ class VtableAnalyzer(TypeAnalyzer):
 		vtbl_name = "vtable_" + hex(gvar_ea)[2:]
 		vtbl_name = util_aux.get_next_available_strucname(vtbl_name)
 		vtbl = Vtable(name=vtbl_name, vtbl_funcs=vfcs)
-		self.gvar2type[gvar_ea] = vtbl
+		self.gvar2tinfo[gvar_ea] = vtbl
 		self.new_types.append(vtbl)
 		return vtbl
 
