@@ -32,7 +32,7 @@ def analyze_variable(cfunc, var):
 	Analyzes a memory pointer in a variable.
 	"""
 	struct_analyzer = StructAnalyzer()
-	struct_analyzer.analyze_variable(cfunc, var)
+	struct_analyzer.analyze_lvar(cfunc.entry_ea, var)
 	struct_analyzer.apply_analysis()
 
 def create_vtables():
