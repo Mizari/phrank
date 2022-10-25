@@ -47,6 +47,10 @@ class FunctionFacade:
 	def get_ast_analysis(self, func_ea: int) -> ASTAnalysis:
 		return self.func_factory.get_ast_analysis(func_ea)
 
+	def get_var_use_size(self, func_ea:int, lvar_id:int):
+		fuv = self.get_ast_analysis(func_ea)
+		return fuv.get_var_use_size(lvar_id)
+
 	def get_cfunc(self, func_ea):
 		return self.func_factory.get_cfunc(func_ea)
 

@@ -11,8 +11,7 @@ class StructAnalyzer(TypeAnalyzer):
 		if cfunc is None:
 			return
 
-		fuv = self.get_ast_analysis(func_ea)
-		var_size = fuv.get_var_use_size(lvar_id)
+		var_size = self.get_var_use_size(func_ea, lvar_id)
 		if var_size == 0:
 			return
 
