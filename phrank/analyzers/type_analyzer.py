@@ -66,5 +66,8 @@ class TypeAnalyzer(FunctionFacade):
 	def analyze_cexpr(self, cfunc, cexpr):
 		raise NotImplementedError
 
+	def analyze_structure(self, struct):
+		raise NotImplementedError
+
 	def analyze_field(self, struct, offset):
 		raise NotImplementedError
