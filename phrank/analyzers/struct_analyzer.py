@@ -1,9 +1,10 @@
 from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.containers.structure import Structure
 
+
 class StructAnalyzer(TypeAnalyzer):
-	def __init__(self):
-		super().__init__()
+	def __init__(self, func_factory=None) -> None:
+		super().__init__(func_factory=func_factory)
 
 	def analyze_variable(self, cfunc, var_id, force_new_type=False):
 		fuv = self.get_ast_analysis(cfunc.entry_ea)
