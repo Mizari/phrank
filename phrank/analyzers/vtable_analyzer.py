@@ -30,7 +30,7 @@ class VtableAnalyzer(TypeAnalyzer):
 		vtbl_name = "vtable_" + hex(gvar_ea)[2:]
 		vtbl_name = util_aux.get_next_available_strucname(vtbl_name)
 		vtbl = Vtable(name=vtbl_name, vtbl_funcs=vfcs)
-		self.gvar2tinfo[gvar_ea] = vtbl
+		self.gvar2tinfo[gvar_ea] = vtbl.get_tinfo()
 		self.new_types.append(vtbl)
 		return vtbl
 

@@ -25,10 +25,6 @@ class TypeAnalyzer(FunctionManager):
 		# analysis results
 		self.new_types : list[IdaStrucWrapper] = []    # created types
 		self.new_xrefs = []    # created xrefs
-		self.new_lvars = []    # changed types of local variables
-		self.new_gvars = []    # changed types of global variables
-		self.new_fields = []   # changed types of struct fields
-		self.new_retvals = []  # changed types of function return values
 
 	def get_gvar_tinfo(self, gvar_ea) -> IdaStrucWrapper:
 		gtype = self.gvar2tinfo.get(gvar_ea)
@@ -47,9 +43,27 @@ class TypeAnalyzer(FunctionManager):
 			t.delete()
 		self.new_types.clear()
 
+		self.new_xrefs.clear()
+		self.lvar2tinfo.clear()
+		self.gvar2tinfo.clear()
+		self.field2tinfo.clear()
+		self.retval2tinfo.clear()
+
 	def apply_analysis(self):
 		# new types are already created, simply skip them
 		self.new_types.clear()
+
+		for (func_ea, lvar_id), new_type_tif in self.lvar2tinfo.items():
+			self.set_var_type(func_ea, lvar_id, new_type_tif)
+
+		for obj_ea, new_type_tif in self.gvar2tinfo.items():
+			idc.SetType(obj_ea, str(new_type_tif) + ';')
+
+		self.new_xrefs.clear()
+		self.lvar2tinfo.clear()
+		self.gvar2tinfo.clear()
+		self.field2tinfo.clear()
+		self.retval2tinfo.clear()
 
 	def analyze_everything(self):
 		raise NotImplementedError

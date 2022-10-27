@@ -13,6 +13,9 @@ class StructAnalyzer(TypeAnalyzer):
 		if cfunc is None:
 			return
 
+		if self.lvar2tinfo.get((func_ea, lvar_id)) is not None:
+			return
+
 		var_size = self.get_var_use_size(func_ea, lvar_id)
 		if var_size == 0:
 			return
@@ -33,7 +36,8 @@ class StructAnalyzer(TypeAnalyzer):
 			elif var_type.is_void() or var_type.is_integral():
 				new_struct = Structure()
 				new_struct.resize(var_size)
+				self.new_types.append(new_struct)
+
 				new_struct_tif = new_struct.get_tinfo()
 				new_struct_tif.create_ptr(new_struct_tif)
-				self.set_var_type(func_ea, lvar_id, new_struct_tif)
-				return
+				self.lvar2tinfo[(func_ea, lvar_id)] = new_struct_tif
