@@ -3,7 +3,6 @@ import idaapi
 import phrank.phrank_settings as phrank_settings
 import phrank.util_aux as util_aux
 
-from phrank.zxc import FuncWrapper
 from phrank.ast_analysis import ASTAnalysis
 
 def should_skip_decompiling(func_ea):
