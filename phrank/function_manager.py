@@ -73,7 +73,7 @@ class FunctionManager:
 			return None
 
 		var = cfunc.lvars[var_id]
-		return var.type
+		return var.type()
 
 	def set_var_type(self, func_ea: int, var_id, var_type):
 		cfunc = self.get_cfunc(func_ea)

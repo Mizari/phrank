@@ -184,9 +184,11 @@ class FuncCall:
 			if var_ref.idx != var_id:
 				continue
 
+			"""
 			fav: ASTAnalysis = ASTAnalysis.create(addr=self._func_ea)
 			var_use = fav.get_var_use_size(arg_id)
 			max_var_use = max(max_var_use, var_use + offset)
+			"""
 		return max_var_use
 
 class ASTAnalysis(idaapi.ctree_visitor_t):

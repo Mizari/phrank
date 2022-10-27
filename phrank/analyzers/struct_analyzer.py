@@ -1,3 +1,5 @@
+import idaapi
+
 from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.containers.structure import Structure
 
@@ -15,22 +17,23 @@ class StructAnalyzer(TypeAnalyzer):
 		if var_size == 0:
 			return
 
-		var_type = self.get_var_type(lvar_id)
+		var_type = self.get_var_type(func_ea, lvar_id)
 		if var_type is None:
-			new_struct = Structure()
-			new_struct.resize(var_size)
-			new_struct_tif = new_struct.get_tinfo()
-			new_struct_tif.create_ptr(new_struct_tif)
-			self.set_var_type(lvar_id, new_struct_tif)
-			return
-
-		if var_type is None:
+			print("WARNING: unexpected variable type in", idaapi.get_name(func_ea), lvar_id)
 			return
 
 		if var_type.is_ptr():
 			var_type = var_type.get_pointed_object()
 
-		if var_type.is_struct():
-			current_struct = Structure(name=str(var_type))
-			if current_struct.get_size() < var_size:
-				current_struct.resize(var_size)
+			if var_type.is_struct():
+				current_struct = Structure(name=str(var_type))
+				if current_struct.get_size() < var_size:
+					current_struct.resize(var_size)
+
+			elif var_type.is_void() or var_type.is_integral():
+				new_struct = Structure()
+				new_struct.resize(var_size)
+				new_struct_tif = new_struct.get_tinfo()
+				new_struct_tif.create_ptr(new_struct_tif)
+				self.set_var_type(func_ea, lvar_id, new_struct_tif)
+				return
