@@ -2,6 +2,7 @@ import idaapi
 
 from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.containers.structure import Structure
+from phrank.util_aux import get_func_calls_to
 
 
 class StructAnalyzer(TypeAnalyzer):
@@ -41,3 +42,10 @@ class StructAnalyzer(TypeAnalyzer):
 				new_struct_tif = new_struct.get_tinfo()
 				new_struct_tif.create_ptr(new_struct_tif)
 				self.lvar2tinfo[(func_ea, lvar_id)] = new_struct_tif
+
+	def analyze_retval(self, func_ea):
+		rv = self.retval2tinfo.get(func_ea)
+		if rv is not None:
+			return rv
+
+		return None

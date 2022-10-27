@@ -74,6 +74,9 @@ class TypeAnalyzer(FunctionManager):
 	def analyze_lvar(self, func_ea, lvar_id):
 		raise NotImplementedError
 
+	def analyze_retval(self, func_ea):
+		raise NotImplementedError
+
 	def analyze_gvar(self, gvar_ea):
 		raise NotImplementedError
 
