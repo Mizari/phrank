@@ -38,7 +38,7 @@ def is_movrax_ret(func_ea: int):
 	return True
 
 
-class FunctionFacade:
+class FunctionManager:
 	def __init__(self, func_factory=None):
 		if func_factory is None:
 			func_factory = FunctionFactory()

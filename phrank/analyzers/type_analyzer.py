@@ -1,11 +1,11 @@
 import idc
 
 from phrank.containers.ida_struc_wrapper import IdaStrucWrapper
-from phrank.function_facade import FunctionFacade
+from phrank.function_manager import FunctionManager
 import phrank.util_aux as util_aux
 
 
-class TypeAnalyzer(FunctionFacade):
+class TypeAnalyzer(FunctionManager):
 	def __init__(self, func_factory=None) -> None:
 		super().__init__(func_factory=func_factory)
 
