@@ -26,7 +26,7 @@ class StructAnalyzer(TypeAnalyzer):
 			var_type = var_type.get_pointed_object()
 
 			if var_type.is_struct():
-				current_struct = Structure(name=str(var_type))
+				current_struct = Structure(struc_locator=str(var_type))
 				if current_struct.get_size() < var_size:
 					current_struct.resize(var_size)
 
