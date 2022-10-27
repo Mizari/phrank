@@ -6,14 +6,7 @@ from phrank.util_aux import get_func_calls_to
 
 
 class StructAnalyzer(TypeAnalyzer):
-	def __init__(self, func_factory=None) -> None:
-		super().__init__(func_factory=func_factory)
-
 	def analyze_lvar(self, func_ea, lvar_id):
-		cfunc = self.get_cfunc(func_ea)
-		if cfunc is None:
-			return
-
 		if self.lvar2tinfo.get((func_ea, lvar_id)) is not None:
 			return
 
@@ -47,5 +40,3 @@ class StructAnalyzer(TypeAnalyzer):
 		rv = self.retval2tinfo.get(func_ea)
 		if rv is not None:
 			return rv
-
-		return None
