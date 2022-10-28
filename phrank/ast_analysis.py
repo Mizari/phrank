@@ -201,7 +201,7 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 	def __init__(self, cfunc: idaapi.cfunc_t|None = None):
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
 
-		self._returns = []
+		self._returns : list[ReturnWrapper] = []
 		self._varptr_writes : list[VarPtrWrite] = []
 		self._var_writes: list[VarWrite] = []
 		self._var_substitutes = {} # var_id_i -> (var_id_j, offset). for situations like "Vi = Vj + offset"
@@ -237,6 +237,18 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 	def iterate_returns(self):
 		for r in self._returns:
 			yield r
+
+	def get_returned_lvars(self) -> set[int]:
+		returned_lvars = set()
+		for r in self._returns:
+			ri = r.insn.creturn.expr
+			if ri.op == idaapi.cot_cast: ri = ri.x
+			if ri.op != idaapi.cot_var: continue
+			returned_lvars.add(ri.v.idx)
+		return returned_lvars
+
+	def returns_lvar(self, lvar_id: int) -> bool:
+		return self.get_returned_lvars() == {lvar_id}
 
 	def var_writes(self, val=None):
 		for w in self._var_writes:
