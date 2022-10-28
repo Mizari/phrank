@@ -2,7 +2,6 @@ import idaapi
 
 from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.containers.structure import Structure
-from phrank.util_aux import get_func_calls_to
 
 
 class StructAnalyzer(TypeAnalyzer):
@@ -40,3 +39,15 @@ class StructAnalyzer(TypeAnalyzer):
 		rv = self.retval2tinfo.get(func_ea)
 		if rv is not None:
 			return rv
+
+		aa = self.get_ast_analysis(func_ea)
+		lvs = aa.get_returned_lvars()
+		if len(lvs) == 1:
+			retval_lvar_id = lvs.pop()
+			self.analyze_lvar(retval_lvar_id)
+
+	def analyze_function(self, func_ea):
+		for i in self.get_lvars_counter(func_ea):
+			self.analyze_lvar(func_ea, i)
+
+		self.analyze_retval(func_ea)
