@@ -61,8 +61,7 @@ class VarWrite(Write):
 	def get_varid(self):
 		return self._varref.idx
 
-	def check(self, **kwargs):
-		val = kwargs.get("val", None)
+	def check(self, val=None):
 		if val is not None and not self.check_val(val):
 			return False
 		return True
@@ -239,9 +238,9 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 		for r in self._returns:
 			yield r
 
-	def var_writes(self, **kwargs):
+	def var_writes(self, val=None):
 		for w in self._var_writes:
-			if w.check(**kwargs):
+			if w.check(val=val):
 				yield w
 
 	def get_calls(self):
