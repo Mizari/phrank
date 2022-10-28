@@ -348,18 +348,16 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 				yield var_offset + arg_offset, func_ea
 
 	def get_var_use_size(self, var_id=0):
-		max_access_sz = 0
+		var_use_sz = 0
 		for w in self._var_accesses:
-			max_access_sz = max(max_access_sz, w.get_var_use(var_id))
+			var_use_sz = max(var_use_sz, w.get_var_use(var_id))
 
-		max_write_sz = 0
 		for w in self._varptr_writes:
-			max_write_sz = max(max_write_sz, w.get_var_use(var_id))
+			var_use_sz = max(var_use_sz, w.get_var_use(var_id))
 
-		max_func_sz = 0
 		for func_call in self._calls:
-			max_func_sz = max(max_func_sz, func_call.get_var_use_size(var_id))
-		return max(0, max_write_sz, max_func_sz, max_access_sz) # zero in case only negative offsets are found
+			var_use_sz = max(var_use_sz, func_call.get_var_use_size(var_id))
+		return var_use_sz
 
 	def handle_return(self, insn):
 		self._returns.append(ReturnWrapper(insn))
