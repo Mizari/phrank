@@ -191,16 +191,24 @@ class FuncCall:
 			"""
 		return max_var_use
 
+
+class ReturnWrapper:
+	def __init__(self, insn) -> None:
+		self.insn = insn
+
+
 class ASTAnalysis(idaapi.ctree_visitor_t):
 	def __init__(self, cfunc: idaapi.cfunc_t):
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
+		self._cfunc = cfunc
+		self._is_visited = False
+
+		self._returns = []
 		self._varptr_writes : list[VarPtrWrite] = []
 		self._var_writes: list[VarWrite] = []
 		self._var_substitutes = {} # var_id_i -> (var_id_j, offset). for situations like "Vi = Vj + offset"
 		self._var_accesses : list[VarAccess] = []
 		self._calls : list[FuncCall] = []
-		self._cfunc = cfunc
-		self._is_visited = False
 
 	def clear(self):
 		self._var_writes.clear()
@@ -208,6 +216,7 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 		self._calls.clear()
 		self._var_accesses.clear()
 		self._var_substitutes.clear()
+		self._returns.clear()
 
 	def print_uses(self):
 		if self._is_visited is False:
@@ -229,6 +238,11 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 			if w.check(offset, val):
 				yield w
 
+	def iterate_returns(self):
+		if not self._is_visited: self.visit()
+		for r in self._returns:
+			yield r
+
 	def var_writes(self, **kwargs):
 		if not self._is_visited: self.visit()
 		for w in self._var_writes:
@@ -245,7 +259,7 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 		if self._cfunc is None:
 			return
 
-		self.apply_to_exprs(self._cfunc.body, None)
+		self.apply_to(self._cfunc.body, None)
 		for w in self.var_writes():
 			var_offset = get_var_offset(w.get_val())
 			if var_offset is None:
@@ -275,6 +289,16 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 		if var_id != varid_to:
 			return None
 		return var_offset
+
+	def visit_insn(self, insn):
+		should_prune = False
+		if insn.op == idaapi.cit_return:
+			should_prune = self.handle_return(insn)
+
+		if should_prune:
+			self.prune_now()
+
+		return 0
 
 	def visit_expr(self, expr):
 		if expr.op == idaapi.cot_asg:
@@ -340,6 +364,10 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 		for func_call in self._calls:
 			max_func_sz = max(max_func_sz, func_call.get_var_use_size(var_id))
 		return max(0, max_write_sz, max_func_sz, max_access_sz) # zero in case only negative offsets are found
+
+	def handle_return(self, insn):
+		self._returns.append(ReturnWrapper(insn))
+		return False
 
 	def handle_call(self, expr):
 		fc = FuncCall(call_expr=expr)
