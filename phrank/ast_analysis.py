@@ -1,12 +1,13 @@
+from __future__ import annotations
+
 import idaapi
 
 from phrank.util_ast import *
 import phrank.util_aux as util_aux
-from typing import Optional
 
 class Write:
 	def __init__(self, val):
-		self._val : Optional[idaapi.cexpr_t] = val
+		self._val : idaapi.cexpr_t|None = val
 
 	def get_val(self):
 		return self._val
@@ -70,7 +71,7 @@ class VarPtrWrite(Write):
 	def __init__(self, varref, val, offset):
 		super().__init__(val)
 		self._varref = varref
-		self._offset : Optional[int] = offset
+		self._offset : int|None = offset
 
 	def get_varref(self):
 		return self._varref
@@ -101,7 +102,7 @@ class FuncCall:
 	def __init__(self, call_expr):
 		self._call_expr : idaapi.cexpr_t = call_expr
 		self._func_ea : int = idaapi.BADADDR
-		self._func_name : Optional[str] = None
+		self._func_name : str|None = None
 
 		if call_expr.x.op == idaapi.cot_obj:
 			self._func_ea = call_expr.x.obj_ea
@@ -198,10 +199,8 @@ class ReturnWrapper:
 
 
 class ASTAnalysis(idaapi.ctree_visitor_t):
-	def __init__(self, cfunc: idaapi.cfunc_t):
+	def __init__(self, cfunc: idaapi.cfunc_t|None = None):
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
-		self._cfunc = cfunc
-		self._is_visited = False
 
 		self._returns = []
 		self._varptr_writes : list[VarPtrWrite] = []
@@ -209,6 +208,9 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 		self._var_substitutes = {} # var_id_i -> (var_id_j, offset). for situations like "Vi = Vj + offset"
 		self._var_accesses : list[VarAccess] = []
 		self._calls : list[FuncCall] = []
+
+		if cfunc is not None:
+			self.visit(cfunc)
 
 	def clear(self):
 		self._var_writes.clear()
@@ -219,9 +221,6 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 		self._returns.clear()
 
 	def print_uses(self):
-		if self._is_visited is False:
-			self.visit()
-
 		for w in self._varptr_writes:
 			if w.get_int() is not None:
 				print("write", hex(w.get_offset()), hex(w.get_int()))
@@ -232,34 +231,25 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 			print("call", c.get_name(), hex(c.get_offset(0)), c.get_nargs(), c.get_var_use_size(0), [a.opname for a in c.get_args()])
 
 	def varptr_writes(self, offset=None, val=None):
-		if not self._is_visited: self.visit()
-
 		for w in self._varptr_writes:
 			if w.check(offset, val):
 				yield w
 
 	def iterate_returns(self):
-		if not self._is_visited: self.visit()
 		for r in self._returns:
 			yield r
 
 	def var_writes(self, **kwargs):
-		if not self._is_visited: self.visit()
 		for w in self._var_writes:
 			if w.check(**kwargs):
 				yield w
 
 	def get_calls(self):
-		if not self._is_visited: self.visit()
 		return list(self._calls)
 
-	def visit(self):
-		self.clear()
-		self._is_visited = True
-		if self._cfunc is None:
-			return
+	def visit(self, cfunc: idaapi.cfunc_t):
+		self.apply_to(cfunc.body, None)
 
-		self.apply_to(self._cfunc.body, None)
 		for w in self.var_writes():
 			var_offset = get_var_offset(w.get_val())
 			if var_offset is None:
@@ -276,11 +266,9 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 			self._var_substitutes[vid] = (varref.idx, offset)
 
 	def get_var_substitute(self, varid):
-		if not self._is_visited: self.visit()
 		return self._var_substitutes.get(varid, None)
 
 	def get_var_substitute_to(self, varid_from, varid_to):
-		if not self._is_visited: self.visit()
 		var_subst = self._var_substitutes.get(varid_from, None)
 		if var_subst is None:
 			return None
@@ -349,9 +337,6 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 				yield var_offset + arg_offset, func_ea
 
 	def get_var_use_size(self, var_id=0):
-		if not self._is_visited:
-			self.visit()
-
 		max_access_sz = 0
 		for w in self._var_accesses:
 			max_access_sz = max(max_access_sz, w.get_var_use(var_id))
