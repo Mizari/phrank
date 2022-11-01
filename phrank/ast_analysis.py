@@ -34,8 +34,8 @@ class Write:
 		return self.get_val() == val
 
 class VarAccess:
-	def __init__(self, varref, offset):
-		self.varref = varref
+	def __init__(self, varid, offset):
+		self.varid = varid
 		self.offset = offset
 
 	def get_varref(self):
@@ -51,15 +51,15 @@ class VarAccess:
 			return self.get_offset()
 
 class VarWrite(Write):
-	def __init__(self, varref, val):
+	def __init__(self, varid, val):
 		super().__init__(val)
-		self._varref = varref
+		self._varid = varid
 
 	def get_varref(self):
-		return self._varref
+		return self._varid
 
 	def get_varid(self):
-		return self._varref.idx
+		return self._varid.idx
 
 	def check(self, val=None):
 		if val is not None and not self.check_val(val):
@@ -67,16 +67,13 @@ class VarWrite(Write):
 		return True
 
 class VarPtrWrite(Write):
-	def __init__(self, varref, val, offset):
+	def __init__(self, varid, val, offset):
 		super().__init__(val)
-		self._varref = varref
+		self._varid = varid
 		self._offset : int|None = offset
 
-	def get_varref(self):
-		return self._varref
-
 	def get_varid(self):
-		return self._varref.idx
+		return self._varid
 
 	def get_offset(self):
 		return self._offset
@@ -85,7 +82,7 @@ class VarPtrWrite(Write):
 		return get_int(self._val)
 	
 	def get_var_use(self, var_id):
-		if self.get_varref().idx != var_id:
+		if self.get_varid() != var_id:
 			return 0
 		return self.get_offset() + self.get_write_size()
 
@@ -127,12 +124,11 @@ class FuncCall:
 
 	def get_var_offset(self):
 		for arg in self._call_expr.a:
-			var_offset = get_var_offset(arg)
-			if var_offset is None:
+			varid, offset = get_var_offset(arg)
+			if varid == -1:
 				continue
 
-			var_ref, offset = var_offset
-			return var_ref, offset
+			return varid, offset
 		return None
 
 	def get_var_use_size(self, var_id):
@@ -141,26 +137,24 @@ class FuncCall:
 			return 0
 
 		arg0 = self._call_expr.a[0]
-		var_offset = get_var_offset(arg0)
-		if var_offset is not None:
-			var_ref, offset = var_offset
-			if var_ref.idx == var_id:
-				func_use_value = 0
-				if self._func_name in ARRAY_FUNCS:
-					arg2 = self._call_expr.a[2]
-					if arg2.op == idaapi.cot_num:
-						func_use_value = arg2.n._value
-				elif self._func_name in WARRAY_FUNCS:
-					arg2 = self._call_expr.a[2]
-					if arg2.op == idaapi.cot_num:
-						func_use_value = arg2.n._value * 2
-				elif self._func_name in PRINTF_FUNCS:
-					arg2 = self._call_expr.a[1]
-					if arg2.op == idaapi.cot_num:
-						func_use_value = arg2.n._value
+		varid, offset = get_var_offset(arg0)
+		if varid == var_id:
+			func_use_value = 0
+			if self._func_name in ARRAY_FUNCS:
+				arg2 = self._call_expr.a[2]
+				if arg2.op == idaapi.cot_num:
+					func_use_value = arg2.n._value
+			elif self._func_name in WARRAY_FUNCS:
+				arg2 = self._call_expr.a[2]
+				if arg2.op == idaapi.cot_num:
+					func_use_value = arg2.n._value * 2
+			elif self._func_name in PRINTF_FUNCS:
+				arg2 = self._call_expr.a[1]
+				if arg2.op == idaapi.cot_num:
+					func_use_value = arg2.n._value
 
-				if func_use_value != 0:
-					return offset + func_use_value
+			if func_use_value != 0:
+				return offset + func_use_value
 
 		# sanity check
 		if self._func_ea == idaapi.BADADDR:
@@ -176,12 +170,11 @@ class FuncCall:
 		max_var_use = 0
 		for arg_id in range(nargs):
 			arg = self._call_expr.a[arg_id]
-			var_offset = get_var_offset(arg)
-			if var_offset is None:
+			varid, offset = get_var_offset(arg)
+			if varid == -1:
 				continue
 
-			var_ref, offset = var_offset
-			if var_ref.idx != var_id:
+			if varid != var_id:
 				continue
 
 			"""
@@ -262,19 +255,18 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 		self.apply_to(cfunc.body, None)
 
 		for w in self.var_writes():
-			var_offset = get_var_offset(w.get_val())
-			if var_offset is None:
+			varid, offset = get_var_offset(w.get_val())
+			if varid == -1:
 				continue
-			varref, offset = var_offset
 
 			vid = w.get_varid()
-			if varref.idx == vid:
+			if varid == vid:
 				continue
 
 			curr = self._var_substitutes.get(vid, None)
 			if curr is not None:
 				print("[*] WARNING", "var", vid, "is already substituted with", curr[0], "overwriting")
-			self._var_substitutes[vid] = (varref.idx, offset)
+			self._var_substitutes[vid] = (varid, offset)
 
 	def get_var_substitute(self, varid):
 		return self._var_substitutes.get(varid, None)
@@ -326,21 +318,20 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 				continue
 
 			write_offset = w.get_offset() + var_offset
-			yield VarPtrWrite(w.get_varref(), w.get_val(), write_offset)
+			yield VarPtrWrite(w.get_varid(), w.get_val(), write_offset)
 
 	def get_var_uses_in_calls(self, var_id):
 		for func_call in self.get_calls():
-			arg_offset = func_call.get_var_offset()
-			if arg_offset is None:
+			argid, arg_offset = func_call.get_var_offset()
+			if argid == -1:
 				continue
-			arg_varref, arg_offset = arg_offset
 
 			func_ea = None
-			if arg_varref.idx == var_id:
+			if argid == var_id:
 				var_offset = 0
 				func_ea = func_call.get_ea()
 			else:
-				var_offset = self.get_var_substitute_to(arg_varref.idx, var_id)
+				var_offset = self.get_var_substitute_to(argid, var_id)
 				if var_offset is not None:
 					func_ea = func_call.get_ea()
 
@@ -371,16 +362,15 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 		return True
 
 	def handle_assignment(self, expr):
-		var_offset = get_varptr_write_offset(expr.x)
-		if var_offset is not None:
-			varref, offset = var_offset
-			w = VarPtrWrite(varref, expr.y, offset)
+		varid, offset = get_varptr_write_offset(expr.x)
+		if varid != -1:
+			w = VarPtrWrite(varid, expr.y, offset)
 			self._varptr_writes.append(w)
 
 		else:
-			varref = get_var_write(expr.x)
-			if varref is not None:
-				w = VarWrite(varref, expr.y)
+			varid = get_var_write(expr.x)
+			if varid != -1:
+				w = VarWrite(varid, expr.y)
 				self._var_writes.append(w)
 
 			else:
@@ -391,10 +381,9 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 		return True
 
 	def handle_expr(self, expr):
-		var_access = get_var_access(expr)
-		if var_access is not None:
-			varref, offset = var_access
-			w = VarAccess(varref, offset)
+		varid, offset = get_var_access(expr)
+		if varid != -1:
+			w = VarAccess(varid, offset)
 			self._var_accesses.append(w)
 			return True
 

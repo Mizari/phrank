@@ -22,62 +22,66 @@ def strip_casts(func):
 
 def get_var_write(expr):
 	if expr.op == idaapi.cot_var:
-		return expr.v
+		return expr.v.idx
 
 	if expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
 		func = expr.x.helper
 		if func in HELPER_FUNCS:
 			arg0 = expr.a[0]
 			if arg0.op == idaapi.cot_var:
-				return arg0.v
+				return arg0.v.idx
 
 	if expr.op == idaapi.cot_ptr and expr.x.op == idaapi.cot_cast:
 		if expr.x.x.op == idaapi.cot_ref and expr.x.x.x.op == idaapi.cot_var:
-			return expr.x.x.x.v
+			return expr.x.x.x.v.idx
 
-	return None
+	return -1
 
 @strip_casts
 def get_var_access(expr):
 	if expr.op == idaapi.cot_memptr and expr.x.op == idaapi.cot_var:
-		return expr.x.v, expr.m + expr.x.type.get_size()
+		return expr.x.v.idx, expr.m + expr.x.type.get_size()
 
 	if expr.op == idaapi.cot_idx:
 		if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
-			return None
+			return -1, None
 
-		return expr.x.v, (expr.y.n._value + 1) * expr.x.type.get_size()
+		return expr.x.v.idx, (expr.y.n._value + 1) * expr.x.type.get_size()
 
 	if expr.op == idaapi.cot_ptr:
 		return get_var_offset(expr.x)
 
-	return None
+	return -1, None
 
+# not found is (-1, None) since there are no such local variables
+# with negative id, and there CAN be negative offset
 def get_varptr_write_offset(expr):
 	if expr.op == idaapi.cot_idx:
 		if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
 			return None
 
-		return expr.x.v, expr.y.n._value * expr.x.type.get_size()
+		return expr.x.v.idx, expr.y.n._value * expr.x.type.get_size()
 
 	if expr.op == idaapi.cot_ptr:
 		return get_var_offset(expr.x)
 
 	if expr.op == idaapi.cot_memptr and expr.x.op == idaapi.cot_var:
-		return expr.x.v, expr.m
+		return expr.x.v.idx, expr.m
 
-	return None
+	return -1, None
 
 # trying to get various forms of "var + X", where X is int
+# not found is (-1, None) since there are no such local variables
+# with negative id, and there CAN be negative offset
 @strip_casts
 def get_var_offset(expr):
 	if expr.op == idaapi.cot_var:
-		return expr.v, 0
+		return expr.v.idx, 0
 
 	# form ((CASTTYPE*)var) + N
 	elif expr.op in [idaapi.cot_add, idaapi.cot_sub]:
 		if expr.y.op != idaapi.cot_num:
-			return None
+			return -1, None
 		offset = expr.y.n._value
 		if expr.op == idaapi.cot_sub:
 			offset = - offset
@@ -90,7 +94,7 @@ def get_var_offset(expr):
 			var = op_x.x.v
 
 		else:
-			return None
+			return -1, None
 
 		if op_x.type.is_ptr():
 			sz = op_x.type.get_pointed_object().get_size()
@@ -98,10 +102,10 @@ def get_var_offset(expr):
 				raise BaseException("Failed to get object's size")
 			offset = offset * sz
 
-		return var, offset
+		return var.idx, offset
 
 	else:
-		return None
+		return -1, None
 
 @strip_casts
 def get_int(expr):
