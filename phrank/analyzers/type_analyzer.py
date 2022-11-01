@@ -7,7 +7,7 @@ import phrank.util_aux as util_aux
 
 class TypeAnalyzer(FunctionManager):
 	def __init__(self, func_factory=None) -> None:
-		super().__init__(func_factory=func_factory)
+		super().__init__(cfunc_factory=func_factory)
 
 		# analysis context
 		# type analysis

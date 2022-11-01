@@ -5,19 +5,14 @@ import idaapi
 from phrank.util_ast import *
 
 
-class ASTAnalysis(idaapi.ctree_visitor_t):
-	def __init__(self, cfunc: idaapi.cfunc_t|None = None):
-		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
-
+class ASTAnalysis():
+	def __init__(self):
 		self._returns : list[ReturnWrapper] = []
 		self._varptr_writes : list[VarPtrWrite] = []
 		self._var_writes: list[VarWrite] = []
 		self._var_substitutes = {} # var_id_i -> (var_id_j, offset). for situations like "Vi = Vj + offset"
 		self._var_accesses : list[VarAccess] = []
 		self._calls : list[FuncCall] = []
-
-		if cfunc is not None:
-			self.visit(cfunc)
 
 	def clear(self):
 		self._var_writes.clear()
@@ -66,23 +61,6 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 	def get_calls(self):
 		return list(self._calls)
 
-	def visit(self, cfunc: idaapi.cfunc_t):
-		self.apply_to(cfunc.body, None)
-
-		for w in self.var_writes():
-			varid, offset = get_var_offset(w.val)
-			if varid == -1:
-				continue
-
-			vid = w.varid
-			if varid == vid:
-				continue
-
-			curr = self._var_substitutes.get(vid, None)
-			if curr is not None:
-				print("[*] WARNING", "var", vid, "is already substituted with", curr[0], "overwriting")
-			self._var_substitutes[vid] = (varid, offset)
-
 	def get_var_substitute(self, varid):
 		return self._var_substitutes.get(varid, None)
 
@@ -95,29 +73,6 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 		if var_id != varid_to:
 			return None
 		return var_offset
-
-	def visit_insn(self, insn):
-		should_prune = False
-		if insn.op == idaapi.cit_return:
-			should_prune = self.handle_return(insn)
-
-		if should_prune:
-			self.prune_now()
-
-		return 0
-
-	def visit_expr(self, expr):
-		if expr.op == idaapi.cot_asg:
-			should_prune = self.handle_assignment(expr)
-		elif expr.op == idaapi.cot_call:
-			should_prune = self.handle_call(expr)
-		else:
-			should_prune = self.handle_expr(expr)
-
-		if should_prune:
-			self.prune_now()
-
-		return 0
 
 	def get_writes_into_var(self, var_id, offset=None, val=None):
 		for w in self.varptr_writes(offset, val):
@@ -164,42 +119,3 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 		for func_call in self._calls:
 			var_use_sz = max(var_use_sz, func_call.get_var_use_size(var_id))
 		return var_use_sz
-
-	def handle_return(self, insn):
-		self._returns.append(ReturnWrapper(insn))
-		return False
-
-	def handle_call(self, expr):
-		fc = FuncCall(call_expr=expr)
-		self._calls.append(fc)
-		for arg in expr.a:
-			self.apply_to_exprs(arg, None)
-		return True
-
-	def handle_assignment(self, expr):
-		varid, offset = get_varptr_write_offset(expr.x)
-		if varid != -1:
-			w = VarPtrWrite(varid, expr.y, offset)
-			self._varptr_writes.append(w)
-
-		else:
-			varid = get_var_write(expr.x)
-			if varid != -1:
-				w = VarWrite(varid, expr.y)
-				self._var_writes.append(w)
-
-			else:
-				self.apply_to_exprs(expr.x, None)
-
-		self.apply_to_exprs(expr.y, None)
-
-		return True
-
-	def handle_expr(self, expr):
-		varid, offset = get_var_access(expr)
-		if varid != -1:
-			w = VarAccess(varid, offset)
-			self._var_accesses.append(w)
-			return True
-
-		return False

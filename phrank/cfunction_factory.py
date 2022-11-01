@@ -3,8 +3,6 @@ import idaapi
 import phrank.phrank_settings as phrank_settings
 import phrank.util_aux as util_aux
 
-from phrank.ast_analysis import ASTAnalysis
-
 def should_skip_decompiling(func_ea):
 	fname = idaapi.get_name(func_ea)
 	if fname is None:
@@ -24,22 +22,12 @@ def should_skip_decompiling(func_ea):
 
 	return False
 
-class FunctionFactory:
+class CFunctionFactory:
 	def __init__(self, decompile_recursively = phrank_settings.DECOMPILE_RECURSIVELY):
 		self.cached_ast_analysis = {}
 		self.cached_func_wrappers = {}
 		self.cached_cfuncs = {}
 		self.decompile_recursively = decompile_recursively
-
-	def get_ast_analysis(self, func_ea: int) -> ASTAnalysis:
-		aa = self.cached_ast_analysis.get(func_ea)
-		if aa is not None:
-			return aa
-
-		cfunc = self.get_cfunc(func_ea)
-		aa = ASTAnalysis(cfunc)
-		self.cached_ast_analysis[func_ea] = aa
-		return aa
 
 	def get_cfunc(self, func_ea: int):
 		cfunc = self.cached_cfuncs.get(func_ea)

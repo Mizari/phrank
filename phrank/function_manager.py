@@ -6,8 +6,8 @@ import re
 
 import phrank.util_aux as util_aux
 
-from phrank.ast_analysis import ASTAnalysis
-from phrank.function_factory import FunctionFactory
+from phrank.ast_analyzer import ASTAnalyzer, ASTAnalysis
+from phrank.cfunction_factory import CFunctionFactory
 
 def get_funcname(func_ea: int):
 	return idaapi.get_name(func_ea)
@@ -39,13 +39,17 @@ def is_movrax_ret(func_ea: int):
 
 
 class FunctionManager:
-	def __init__(self, func_factory=None):
-		if func_factory is None:
-			func_factory = FunctionFactory()
-		self.func_factory = func_factory
+	def __init__(self, cfunc_factory=None):
+		if cfunc_factory is None:
+			cfunc_factory = CFunctionFactory()
+		self.func_factory = cfunc_factory
+		self.ast_analyzer = ASTAnalyzer()
 
 	def get_ast_analysis(self, func_ea: int) -> ASTAnalysis:
-		return self.func_factory.get_ast_analysis(func_ea)
+		cfunc = self.get_cfunc(func_ea)
+		if cfunc is None:
+			return ASTAnalysis()
+		return self.ast_analyzer.analyze_cfunc(cfunc)
 
 	def get_var_use_size(self, func_ea:int, lvar_id:int):
 		fuv = self.get_ast_analysis(func_ea)
