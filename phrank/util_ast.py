@@ -13,6 +13,13 @@ PRINTF_FUNCS.update(['_' + s for s in PRINTF_FUNCS])
 HELPER_FUNCS = {"LOWORD", "HIWORD", "LOBYTE"}
 
 
+def strip_casts(func):
+	def wrapper(expr):
+		while expr.op == idaapi.cot_cast:
+			expr = expr.x
+		return func(expr)
+	return wrapper
+
 def get_var_write(expr):
 	if expr.op == idaapi.cot_var:
 		return expr.v
@@ -30,10 +37,8 @@ def get_var_write(expr):
 
 	return None
 
+@strip_casts
 def get_var_access(expr):
-	if expr.op == idaapi.cot_cast:
-		return get_var_access(expr.x)
-
 	if expr.op == idaapi.cot_memptr and expr.x.op == idaapi.cot_var:
 		return expr.x.v, expr.m + expr.x.type.get_size()
 
@@ -64,11 +69,9 @@ def get_varptr_write_offset(expr):
 	return None
 
 # trying to get various forms of "var + X", where X is int
+@strip_casts
 def get_var_offset(expr):
-	if expr.op == idaapi.cot_cast:
-		return get_var_offset(expr.x)
-
-	elif expr.op == idaapi.cot_var:
+	if expr.op == idaapi.cot_var:
 		return expr.v, 0
 
 	# form ((CASTTYPE*)var) + N
@@ -100,10 +103,8 @@ def get_var_offset(expr):
 	else:
 		return None
 
+@strip_casts
 def get_int(expr):
-	if expr.op == idaapi.cot_cast:
-		return get_int(expr.x)
-
 	if expr.op == idaapi.cot_ref and expr.x.op == idaapi.cot_obj:
 		return expr.x.obj_ea
 
