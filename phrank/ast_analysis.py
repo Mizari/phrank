@@ -135,7 +135,7 @@ class FuncCall:
 			return var_ref, offset
 		return None
 
-	def get_var_use_size(self, var_id=0):
+	def get_var_use_size(self, var_id):
 		nargs = self.get_nargs()
 		if nargs == 0:
 			return 0
@@ -347,7 +347,7 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 			if func_ea is not None:
 				yield var_offset + arg_offset, func_ea
 
-	def get_var_use_size(self, var_id=0):
+	def get_var_use_size(self, var_id):
 		var_use_sz = 0
 		for w in self._var_accesses:
 			var_use_sz = max(var_use_sz, w.get_var_use(var_id))

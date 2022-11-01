@@ -304,7 +304,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 
 	def analyze_class_sizes(self):
 		for cpp_class in self._created_classes:
-			sizes = [self.get_ast_analysis(cdtor.get_ea()).get_var_use_size() for cdtor in cpp_class._cdtors]
+			sizes = [self.get_ast_analysis(cdtor.get_ea()).get_var_use_size(0) for cdtor in cpp_class._cdtors]
 			new_class_sz = max(sizes)
 			cpp_class.resize(new_class_sz)
 
