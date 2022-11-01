@@ -261,26 +261,7 @@ class FuncCall:
 		# cant look into imported funcs, assume that args are somehow used there
 		if util_aux.is_func_import(self._func_ea):
 			return 1
-
-		if idaapi.get_func(self._func_ea) is None:
-			return 0
-
-		max_var_use = 0
-		for arg_id in range(nargs):
-			arg = self._call_expr.a[arg_id]
-			varid, offset = get_var_offset(arg)
-			if varid == -1:
-				continue
-
-			if varid != var_id:
-				continue
-
-			"""
-			fav: ASTAnalysis = ASTAnalysis.create(addr=self._func_ea)
-			var_use = fav.get_var_use_size(arg_id)
-			max_var_use = max(max_var_use, var_use + offset)
-			"""
-		return max_var_use
+		return 0
 
 
 class ReturnWrapper:

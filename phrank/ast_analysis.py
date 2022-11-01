@@ -115,7 +115,4 @@ class ASTAnalysis():
 
 		for w in self._varptr_writes:
 			var_use_sz = max(var_use_sz, w.get_var_use(var_id))
-
-		for func_call in self._calls:
-			var_use_sz = max(var_use_sz, func_call.get_var_use_size(var_id))
 		return var_use_sz
