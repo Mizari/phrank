@@ -230,7 +230,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 			print("[*] WARNING", "no writes to thisptr found in cdtor at", idaapi.get_name(cdtor.get_ea()))
 			return
 
-		min_offset = min([w.get_offset() for w in writes])
+		min_offset = min([w.offset for w in writes])
 		if min_offset < 0 and cdtor._is_ctor:
 			raise BaseException("Negative offset found in constructor " + idaapi.get_name(cdtor.get_ea()))
 

@@ -7,13 +7,10 @@ import phrank.util_aux as util_aux
 
 class Write:
 	def __init__(self, val):
-		self._val : idaapi.cexpr_t|None = val
-
-	def get_val(self):
-		return self._val
+		self.val : idaapi.cexpr_t|None = val
 
 	def is_int(self, val=None):
-		intval = get_int(self._val)
+		intval = get_int(self.val)
 		if intval is None:
 			return False
 
@@ -23,43 +20,31 @@ class Write:
 		return val == intval
 
 	def get_write_size(self):
-		sz = self._val.type.get_size()
+		sz = self.val.type.get_size()
 		if sz == idaapi.BADSIZE:
-			raise BaseException("Failed to get write size " + self._val.opname)
+			raise BaseException("Failed to get write size " + self.val.opname)
 		return sz
 
 	def check_val(self, val):
 		if isinstance(val, int):
 			return self.is_int(val)
-		return self.get_val() == val
+		return self.val == val
 
 class VarAccess:
 	def __init__(self, varid, offset):
 		self.varid = varid
 		self.offset = offset
 
-	def get_varref(self):
-		return self.varref
-
-	def get_offset(self):
-		return self.offset
-	
 	def get_var_use(self, var_id):
-		if self.get_varref().idx != var_id:
+		if self.varid != var_id:
 			return 0
 		else:
-			return self.get_offset()
+			return self.offset
 
 class VarWrite(Write):
 	def __init__(self, varid, val):
 		super().__init__(val)
-		self._varid = varid
-
-	def get_varref(self):
-		return self._varid
-
-	def get_varid(self):
-		return self._varid.idx
+		self.varid = varid
 
 	def check(self, val=None):
 		if val is not None and not self.check_val(val):
@@ -69,25 +54,19 @@ class VarWrite(Write):
 class VarPtrWrite(Write):
 	def __init__(self, varid, val, offset):
 		super().__init__(val)
-		self._varid = varid
-		self._offset : int|None = offset
-
-	def get_varid(self):
-		return self._varid
-
-	def get_offset(self):
-		return self._offset
+		self.varid = varid
+		self.offset : int|None = offset
 
 	def get_int(self):
-		return get_int(self._val)
+		return get_int(self.val)
 	
 	def get_var_use(self, var_id):
-		if self.get_varid() != var_id:
+		if self.varid != var_id:
 			return 0
-		return self.get_offset() + self.get_write_size()
+		return self.offset + self.get_write_size()
 
 	def check(self, offset=None, val=None):
-		if offset is not None and self.get_offset() != offset:
+		if offset is not None and self.offset != offset:
 			return False
 
 		if val is not None and not self.check_val(val):
@@ -215,9 +194,9 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 	def print_uses(self):
 		for w in self._varptr_writes:
 			if w.get_int() is not None:
-				print("write", hex(w.get_offset()), hex(w.get_int()))
+				print("write", hex(w.offset), hex(w.get_int()))
 			else:
-				print("write", hex(w.get_offset()), w.get_val().opname)
+				print("write", hex(w.offset), w.val.opname)
 
 		for c in self._calls:
 			print("call", c.get_name(), hex(c.get_offset(0)), c.get_nargs(), c.get_var_use_size(0), [a.opname for a in c.get_args()])
@@ -255,11 +234,11 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 		self.apply_to(cfunc.body, None)
 
 		for w in self.var_writes():
-			varid, offset = get_var_offset(w.get_val())
+			varid, offset = get_var_offset(w.val)
 			if varid == -1:
 				continue
 
-			vid = w.get_varid()
+			vid = w.varid
 			if varid == vid:
 				continue
 
@@ -307,18 +286,18 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 	def get_writes_into_var(self, var_id, offset=None, val=None):
 		for w in self.varptr_writes(offset, val):
 			var_offset = None
-			if w.get_varid() == var_id:
+			if w.varid == var_id:
 				var_offset = 0
 			else:
-				var_subst = self.get_var_substitute(w.get_varid())
+				var_subst = self.get_var_substitute(w.varid)
 				if var_subst is not None and var_subst[0] == var_id:
 					var_offset = var_subst[1]
 
 			if var_offset is None:
 				continue
 
-			write_offset = w.get_offset() + var_offset
-			yield VarPtrWrite(w.get_varid(), w.get_val(), write_offset)
+			write_offset = w.offset + var_offset
+			yield VarPtrWrite(w.varid, w.val, write_offset)
 
 	def get_var_uses_in_calls(self, var_id):
 		for func_call in self.get_calls():
