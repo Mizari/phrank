@@ -189,9 +189,9 @@ class ASTAnalysis(idaapi.ctree_visitor_t):
 				self._var_writes.append(w)
 
 			else:
-				self.apply_to(expr.x, None)
+				self.apply_to_exprs(expr.x, None)
 
-		self.apply_to(expr.y, None)
+		self.apply_to_exprs(expr.y, None)
 
 		return True
 
