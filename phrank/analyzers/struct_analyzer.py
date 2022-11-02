@@ -87,8 +87,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 			if var_type.is_struct():
 				current_struct = Structure(struc_locator=str(var_type))
-				if current_struct.get_size() < var_size:
-					current_struct.resize(var_size)
+				current_struct.maximize_size(var_size)
 				self.lvar2tinfo[(func_ea, lvar_id)] = current_struct.get_ptr_tinfo()
 				return current_struct.get_ptr_tinfo()
 

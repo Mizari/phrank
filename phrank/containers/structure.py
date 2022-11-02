@@ -14,6 +14,10 @@ class Structure(IdaStrucWrapper):
 		for member_offset in self.member_offsets():
 			yield idc.get_member_name(self.strucid, member_offset), hex(member_offset)
 
+	def maximize_size(self, min_size):
+		if self.get_size() < min_size:
+			self.resize(min_size)
+
 	def resize(self, new_size: int):
 		current_size = self.get_size()
 		if current_size == new_size: return
