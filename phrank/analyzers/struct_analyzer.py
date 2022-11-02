@@ -27,11 +27,11 @@ class StructAnalyzer(TypeAnalyzer):
 				if varid != lvar_id:
 					continue
 
+				self.analyze_lvar(call_ea, arg_id)
 				var_use = self.get_var_use_size(call_ea, arg_id)
 				max_var_use = max(max_var_use, var_use + offset)
 
 		return max_var_use
-
 
 	def analyze_lvar(self, func_ea, lvar_id):
 		if self.lvar2tinfo.get((func_ea, lvar_id)) is not None:
@@ -62,6 +62,18 @@ class StructAnalyzer(TypeAnalyzer):
 				new_struct_tif = new_struct.get_tinfo()
 				new_struct_tif.create_ptr(new_struct_tif)
 				self.lvar2tinfo[(func_ea, lvar_id)] = new_struct_tif
+
+		elif var_type.is_void() or var_type.is_integral():
+			new_struct = Structure()
+			new_struct.resize(var_size)
+			self.new_types.append(new_struct)
+
+			new_struct_tif = new_struct.get_tinfo()
+			new_struct_tif.create_ptr(new_struct_tif)
+			self.lvar2tinfo[(func_ea, lvar_id)] = new_struct_tif
+
+		else:
+			print("WARNING:", "failed to create struct from tinfo", str(var_type), "in", idaapi.get_name(func_ea))
 
 	def analyze_retval(self, func_ea):
 		rv = self.retval2tinfo.get(func_ea)
