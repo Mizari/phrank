@@ -60,27 +60,26 @@ class StructAnalyzer(TypeAnalyzer):
 				self.analyze_lvar(call_ea, arg_id)
 
 				if offset == 0:
-					lvar_tinfo = self.get_analyzed_lvar_type(call_ea, arg_id)
-					if lvar_tinfo is None: continue
-					offset0_lvar_passes.append(lvar_tinfo)
+					new_lvar_tinfo = self.get_analyzed_lvar_type(call_ea, arg_id)
+					if new_lvar_tinfo is None: continue
+					offset0_lvar_passes.append(new_lvar_tinfo)
 
 		if len(offset0_lvar_passes) > 1:
 			print("WARNING:", "multiple different types found for one local variable, not implemented")
 			print("will just use random one")
 
-		if len(offset0_lvar_passes) > 0:
-			lvar_tinfo = offset0_lvar_passes[0]
-			self.lvar2tinfo[(func_ea, lvar_id)] = lvar_tinfo
-			return lvar_tinfo
-
 		var_size = self.get_var_use_size(func_ea, lvar_id)
 		if var_size == 0:
 			return None
 
-		var_type = self.get_var_type(func_ea, lvar_id)
-		if var_type is None:
-			print("WARNING: unexpected variable type in", idaapi.get_name(func_ea), lvar_id)
-			return None
+		if len(offset0_lvar_passes) > 0:
+			var_type = offset0_lvar_passes[0]
+
+		else:
+			var_type = self.get_var_type(func_ea, lvar_id)
+			if var_type is None:
+				print("WARNING: unexpected variable type in", idaapi.get_name(func_ea), lvar_id)
+				return None
 
 		lvar_struct = None
 		new_lvar_tinfo = None
