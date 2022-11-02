@@ -1,11 +1,17 @@
 import idaapi
 
+import phrank.util_aux as util_aux
+
 from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.containers.structure import Structure
 from phrank.util_ast import get_var_offset
 
 
 class StructAnalyzer(TypeAnalyzer):
+	def __init__(self, func_factory=None) -> None:
+		super().__init__(func_factory)
+		self.analyzed_functions = set()
+
 	def get_var_use_size(self, func_ea:int, lvar_id:int) -> int:
 		func_aa = self.get_ast_analysis(func_ea)
 		max_var_use = func_aa.get_var_use_size(lvar_id)
@@ -120,6 +126,13 @@ class StructAnalyzer(TypeAnalyzer):
 			self.analyze_lvar(retval_lvar_id)
 
 	def analyze_function(self, func_ea):
+		if func_ea in self.analyzed_functions:
+			return
+		self.analyzed_functions.add(func_ea)
+
+		for call_from_ea in util_aux.get_func_calls_from(func_ea):
+			self.analyze_function(call_from_ea)
+
 		for i in self.get_lvars_counter(func_ea):
 			self.analyze_lvar(func_ea, i)
 
