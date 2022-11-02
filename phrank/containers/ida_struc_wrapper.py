@@ -62,6 +62,11 @@ class IdaStrucWrapper(object):
 		assert tif.get_named_type(idaapi.get_idati(), self.get_name())
 		return tif
 
+	def get_ptr_tinfo(self):
+		ptr_tinfo = self.get_tinfo()
+		ptr_tinfo.create_ptr(ptr_tinfo)
+		return ptr_tinfo
+
 	def delete(self):
 		if self.strucid == idaapi.BADADDR:
 			return
