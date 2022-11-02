@@ -27,7 +27,6 @@ class StructAnalyzer(TypeAnalyzer):
 				if varid != lvar_id:
 					continue
 
-				self.analyze_lvar(call_ea, arg_id)
 				var_use = self.get_var_use_size(call_ea, arg_id)
 				max_var_use = max(max_var_use, var_use + offset)
 
@@ -45,17 +44,28 @@ class StructAnalyzer(TypeAnalyzer):
 			return current_lvar_tinfo
 
 		func_aa = self.get_ast_analysis(func_ea)
+		offset0_lvar_passes = []
 		for func_call in func_aa.get_calls():
 			call_ea = func_call.get_ea()
 			if call_ea is None: continue
 			for arg_id, arg in enumerate(func_call.get_args()):
 				varid, offset = get_var_offset(arg)
 				if varid != lvar_id: continue
+				self.analyze_lvar(call_ea, arg_id)
+
 				if offset == 0:
 					lvar_tinfo = self.get_analyzed_lvar_type(call_ea, arg_id)
 					if lvar_tinfo is None: continue
-					self.lvar2tinfo[(func_ea, lvar_id)] = lvar_tinfo
-					return lvar_tinfo
+					offset0_lvar_passes.append(lvar_tinfo)
+
+		if len(offset0_lvar_passes) > 1:
+			print("WARNING:", "multiple different types found for one local variable, not implemented")
+			print("will just use random one")
+
+		if len(offset0_lvar_passes) > 0:
+			lvar_tinfo = offset0_lvar_passes[0]
+			self.lvar2tinfo[(func_ea, lvar_id)] = lvar_tinfo
+			return lvar_tinfo
 
 		var_size = self.get_var_use_size(func_ea, lvar_id)
 		if var_size == 0:
