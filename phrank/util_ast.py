@@ -61,7 +61,7 @@ def get_var_access(expr):
 def get_varptr_write_offset(expr):
 	if expr.op == idaapi.cot_idx:
 		if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
-			return None
+			return -1, None
 
 		return expr.x.v.idx, expr.y.n._value * expr.x.type.get_size()
 
