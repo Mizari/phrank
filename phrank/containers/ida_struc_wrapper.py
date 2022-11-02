@@ -40,7 +40,12 @@ class IdaStrucWrapper(object):
 			return struc_locator
 
 		elif isinstance(struc_locator, str):
-			return idc.get_struc_id(struc_locator)
+			rv = idc.get_struc_id(struc_locator)
+			if rv == idaapi.BADADDR:
+				if struc_locator.startswith("struct "):
+					struc_locator = struc_locator[7:]
+				rv = idaapi.import_type(idaapi.get_idati(), -1, struc_locator)
+			return rv
 
 		elif isinstance(struc_locator, idaapi.tinfo_t):
 			struc_locator = str(struc_locator)
