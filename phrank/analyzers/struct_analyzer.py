@@ -82,36 +82,32 @@ class StructAnalyzer(TypeAnalyzer):
 			print("WARNING: unexpected variable type in", idaapi.get_name(func_ea), lvar_id)
 			return None
 
+		lvar_struct = None
+		new_lvar_tinfo = None
 		if var_type.is_ptr():
 			var_type = var_type.get_pointed_object()
-
 			if var_type.is_struct():
-				current_struct = Structure(struc_locator=str(var_type))
-				current_struct.maximize_size(var_size)
-				self.lvar2tinfo[(func_ea, lvar_id)] = current_struct.get_ptr_tinfo()
-				return current_struct.get_ptr_tinfo()
+				lvar_struct = Structure(struc_locator=str(var_type))
+				new_lvar_tinfo = lvar_struct.get_ptr_tinfo()
 
 			elif var_type.is_void() or var_type.is_integral():
-				new_struct = Structure()
-				new_struct.resize(var_size)
-				self.new_types.append(new_struct)
-
-				new_lvar_tinfo = new_struct.get_ptr_tinfo()
-				self.lvar2tinfo[(func_ea, lvar_id)] = new_lvar_tinfo
-				return new_lvar_tinfo
+				lvar_struct = Structure()
+				self.new_types.append(lvar_struct)
+				new_lvar_tinfo = lvar_struct.get_ptr_tinfo()
 
 		elif var_type.is_void() or var_type.is_integral():
-			new_struct = Structure()
-			new_struct.resize(var_size)
-			self.new_types.append(new_struct)
-
-			new_lvar_tinfo = new_struct.get_tinfo()
-			self.lvar2tinfo[(func_ea, lvar_id)] = new_lvar_tinfo
-			return new_lvar_tinfo
+			lvar_struct = Structure()
+			self.new_types.append(lvar_struct)
+			new_lvar_tinfo = lvar_struct.get_tinfo()
 
 		else:
 			print("WARNING:", "failed to create struct from tinfo", str(var_type), "in", idaapi.get_name(func_ea))
-			return None
+
+		if lvar_struct is not None:
+			lvar_struct.maximize_size(var_size)
+		if new_lvar_tinfo is not None:
+			self.lvar2tinfo[(func_ea, lvar_id)] = new_lvar_tinfo
+		return new_lvar_tinfo
 
 	def analyze_retval(self, func_ea):
 		rv = self.retval2tinfo.get(func_ea)
