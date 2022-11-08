@@ -44,11 +44,7 @@ class StructAnalyzer(TypeAnalyzer):
 			return lvar_tinfo
 		return self.analyze_lvar(func_ea, lvar_id)
 
-	def analyze_lvar(self, func_ea, lvar_id):
-		current_lvar_tinfo = self.lvar2tinfo.get((func_ea, lvar_id))
-		if current_lvar_tinfo is not None:
-			return current_lvar_tinfo
-
+	def calculate_lvar_type(self, func_ea, lvar_id):
 		func_aa = self.get_ast_analysis(func_ea)
 		offset0_lvar_passes = []
 		for func_call in func_aa.get_calls():
@@ -69,16 +65,13 @@ class StructAnalyzer(TypeAnalyzer):
 			print("will just use random one")
 
 		if len(offset0_lvar_passes) > 0:
-			var_type = offset0_lvar_passes[0]
+			return offset0_lvar_passes[0]
 
-		else:
-			var_type = self.get_var_type(func_ea, lvar_id)
-			if var_type is None:
-				print("WARNING: unexpected variable type in", idaapi.get_name(func_ea), lvar_id)
-				return None
+		var_type = self.get_var_type(func_ea, lvar_id)
+		if var_type is None:
+			print("WARNING: unexpected variable type in", idaapi.get_name(func_ea), lvar_id)
+			return None
 
-		lvar_struct = None
-		new_lvar_tinfo = None
 		if var_type.is_ptr():
 			var_type = var_type.get_pointed_object()
 			if var_type.is_struct():
@@ -88,21 +81,26 @@ class StructAnalyzer(TypeAnalyzer):
 			elif var_type.is_void() or var_type.is_integral():
 				lvar_struct = Structure()
 				self.new_types.append(lvar_struct)
-				new_lvar_tinfo = lvar_struct.get_ptr_tinfo()
+				return lvar_struct.get_ptr_tinfo()
 
 		elif var_type.is_void() or var_type.is_integral():
 			lvar_struct = Structure()
 			self.new_types.append(lvar_struct)
-			new_lvar_tinfo = lvar_struct.get_tinfo()
+			return lvar_struct.get_tinfo()
 
 		else:
 			print("WARNING:", "failed to create struct from tinfo", str(var_type), "in", idaapi.get_name(func_ea))
+			return None
 
-		if lvar_struct is not None:
-			var_size = self.get_var_use_size(func_ea, lvar_id)
-			lvar_struct.maximize_size(var_size)
+	def analyze_lvar(self, func_ea, lvar_id):
+		current_lvar_tinfo = self.lvar2tinfo.get((func_ea, lvar_id))
+		if current_lvar_tinfo is not None:
+			return current_lvar_tinfo
+
+		new_lvar_tinfo = self.calculate_lvar_type(func_ea, lvar_id)
 		if new_lvar_tinfo is not None:
 			self.lvar2tinfo[(func_ea, lvar_id)] = new_lvar_tinfo
+
 		return new_lvar_tinfo
 
 	def analyze_retval(self, func_ea):
