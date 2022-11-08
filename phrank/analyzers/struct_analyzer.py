@@ -82,11 +82,11 @@ class StructAnalyzer(TypeAnalyzer):
 			return None
 
 		if var_type.is_ptr():
-			var_type = var_type.get_pointed_object()
-			if var_type.is_struct():
-				return util_aux.tif2strucid(var_type)
+			pointed = var_type.get_pointed_object()
+			if pointed.is_struct():
+				return var_type
 
-			elif var_type.is_void() or var_type.is_integral():
+			elif pointed.is_void() or pointed.is_integral():
 				lvar_struct = Structure()
 				self.new_types.append(lvar_struct)
 				return lvar_struct.get_ptr_tinfo()
