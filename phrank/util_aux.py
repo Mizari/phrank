@@ -6,6 +6,23 @@ ptr_size = None
 get_data = None
 
 
+def str2strucid(s):
+	if s.startswith("struct "):
+		s = s[7:]
+
+	rv = idaapi.get_struc_id(s)
+	if rv == idaapi.BADADDR:
+		rv = idaapi.import_type(idaapi.get_idati(), -1, s)
+	return rv
+
+
+def tif2strucid(tif):
+	if tif.is_struct():
+		return str2strucid(str(tif))
+
+	raise NotImplementedError
+
+
 def str2tif(type_str):
 	if type_str[-1] != ';': type_str = type_str + ';'
 
