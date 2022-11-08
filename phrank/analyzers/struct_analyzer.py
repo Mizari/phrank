@@ -44,6 +44,15 @@ class StructAnalyzer(TypeAnalyzer):
 			return lvar_tinfo
 		return self.analyze_lvar(func_ea, lvar_id)
 
+	def calculate_lvar_type_usage(self, func_ea, lvar_id, new_lvar_tinfo):
+		lvar_strucid = util_aux.tif2strucid(new_lvar_tinfo)
+		if lvar_strucid == idaapi.BADADDR:
+			return
+
+		lvar_struct = Structure(struc_locator=lvar_strucid)
+		var_size = self.get_var_use_size(func_ea, lvar_id)
+		lvar_struct.maximize_size(var_size)
+
 	def calculate_lvar_type(self, func_ea, lvar_id):
 		func_aa = self.get_ast_analysis(func_ea)
 		offset0_lvar_passes = []
@@ -98,8 +107,11 @@ class StructAnalyzer(TypeAnalyzer):
 			return current_lvar_tinfo
 
 		new_lvar_tinfo = self.calculate_lvar_type(func_ea, lvar_id)
-		if new_lvar_tinfo is not None:
-			self.lvar2tinfo[(func_ea, lvar_id)] = new_lvar_tinfo
+		if new_lvar_tinfo is None:
+			return
+
+		self.lvar2tinfo[(func_ea, lvar_id)] = new_lvar_tinfo
+		self.calculate_lvar_type_usage(func_ea, lvar_id, new_lvar_tinfo)
 
 		return new_lvar_tinfo
 
