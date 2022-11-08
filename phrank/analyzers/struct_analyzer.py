@@ -68,10 +68,6 @@ class StructAnalyzer(TypeAnalyzer):
 			print("WARNING:", "multiple different types found for one local variable, not implemented")
 			print("will just use random one")
 
-		var_size = self.get_var_use_size(func_ea, lvar_id)
-		if var_size == 0:
-			return None
-
 		if len(offset0_lvar_passes) > 0:
 			var_type = offset0_lvar_passes[0]
 
@@ -86,8 +82,8 @@ class StructAnalyzer(TypeAnalyzer):
 		if var_type.is_ptr():
 			var_type = var_type.get_pointed_object()
 			if var_type.is_struct():
-				lvar_struct = Structure(struc_locator=str(var_type))
-				new_lvar_tinfo = lvar_struct.get_ptr_tinfo()
+				new_lvar_tinfo = util_aux.tif2strucid(var_type)
+				new_lvar_tinfo.create_ptr(new_lvar_tinfo)
 
 			elif var_type.is_void() or var_type.is_integral():
 				lvar_struct = Structure()
@@ -103,6 +99,7 @@ class StructAnalyzer(TypeAnalyzer):
 			print("WARNING:", "failed to create struct from tinfo", str(var_type), "in", idaapi.get_name(func_ea))
 
 		if lvar_struct is not None:
+			var_size = self.get_var_use_size(func_ea, lvar_id)
 			lvar_struct.maximize_size(var_size)
 		if new_lvar_tinfo is not None:
 			self.lvar2tinfo[(func_ea, lvar_id)] = new_lvar_tinfo
