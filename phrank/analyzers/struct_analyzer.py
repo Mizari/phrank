@@ -53,6 +53,14 @@ class StructAnalyzer(TypeAnalyzer):
 		var_size = self.get_var_use_size(func_ea, lvar_id)
 		lvar_struct.maximize_size(var_size)
 
+		func_aa = self.get_ast_analysis(func_ea)
+		for var_write in func_aa.get_writes_into_var(lvar_id):
+			write_offset = var_write.offset
+			write_type = var_write.val.type
+			if lvar_struct.get_member_tinfo(write_offset) is None:
+				lvar_struct.add_member(write_offset, "name" + hex(write_offset))
+			lvar_struct.set_member_type(write_offset, write_type)
+
 	def calculate_lvar_type(self, func_ea, lvar_id):
 		func_aa = self.get_ast_analysis(func_ea)
 		offset0_lvar_passes = []
