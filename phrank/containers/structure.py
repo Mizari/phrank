@@ -31,7 +31,7 @@ class Structure(IdaStrucWrapper):
 	# TODO ida_struct.expand_struc
 	def expand(self, extra_size: int):
 		current_size = self.get_size()
-		membername = 'field_' + hex(current_size)[2:]
+		membername = 'field_' + hex(extra_size + current_size)[2:]
 		idc.add_struc_member(self.strucid, membername, current_size, util_aux.size2dataflags(1), -1, 1)
 		idc.expand_struc(self.strucid, current_size, extra_size - 1, False)
 
