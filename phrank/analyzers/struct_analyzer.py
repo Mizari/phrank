@@ -61,13 +61,10 @@ class StructAnalyzer(TypeAnalyzer):
 			if call_ea is None: continue
 			for arg_id, arg in enumerate(func_call.get_args()):
 				varid, offset = get_var_offset(arg)
-				if varid != lvar_id: continue
-				self.analyze_lvar(call_ea, arg_id)
-
-				if offset == 0:
-					new_lvar_tinfo = self.get_analyzed_lvar_type(call_ea, arg_id)
-					if new_lvar_tinfo is None: continue
-					offset0_lvar_passes.append(new_lvar_tinfo)
+				if varid != lvar_id or offset != 0: continue
+				new_lvar_tinfo = self.analyze_lvar(call_ea, arg_id)
+				if new_lvar_tinfo is None: continue
+				offset0_lvar_passes.append(new_lvar_tinfo)
 
 		if len(offset0_lvar_passes) > 1:
 			print("WARNING:", "multiple different types found for one local variable, not implemented")
@@ -107,7 +104,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 		new_lvar_tinfo = self.calculate_lvar_type(func_ea, lvar_id)
 		if new_lvar_tinfo is None:
-			return
+			return None
 
 		self.lvar2tinfo[(func_ea, lvar_id)] = new_lvar_tinfo
 		self.calculate_lvar_type_usage(func_ea, lvar_id, new_lvar_tinfo)
