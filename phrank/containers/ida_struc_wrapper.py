@@ -134,28 +134,18 @@ class IdaStrucWrapper(object):
 		if not self.is_offset_ok(offset, 1): raise BaseException("Offset too big " + hex(offset) + " in " + str(self.get_size()))
 		idc.del_struc_member(self.strucid, offset)
 
-	def set_member_type(self, member_offset, member_type):
+	def set_member_type(self, member_offset: int, member_type: idaapi.tinfo_t):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
 
-		if isinstance(member_type, str):
-			tif = util_aux.str2tif(member_type)
-			if tif is None:
-				raise BaseException("Failed to get type from string")
-			return self.set_member_type(member_offset, tif)
-
-		elif isinstance(member_type, idaapi.tinfo_t):
-			#if member_type.get_size() != self.get_member_size(member_offset):
-			#	self.unset_members(member_offset + self.get_member_size(member_offset), member_type.get_size() - self.get_member_size(member_offset))
-			sptr = ida_struct.get_struc(self.strucid)
-			mptr = ida_struct.get_member(sptr, member_offset)
-			rv = ida_struct.set_member_tinfo(sptr, mptr, member_offset, member_type, ida_struct.SET_MEMTI_COMPATIBLE | ida_struct.SET_MEMTI_MAY_DESTROY)
-			if rv == 0:
-				print("[*] ERROR:", self.get_name(), hex(member_offset), str(member_type))
-				raise BaseException("Failed to change member type")
-			return rv
-
-		else:
-			raise BaseException("Invalid type(member type) %s %s" % (str(type(member_type)), str(member_type)))
+		#if member_type.get_size() != self.get_member_size(member_offset):
+		#	self.unset_members(member_offset + self.get_member_size(member_offset), member_type.get_size() - self.get_member_size(member_offset))
+		sptr = ida_struct.get_struc(self.strucid)
+		mptr = ida_struct.get_member(sptr, member_offset)
+		rv = ida_struct.set_member_tinfo(sptr, mptr, member_offset, member_type, ida_struct.SET_MEMTI_COMPATIBLE | ida_struct.SET_MEMTI_MAY_DESTROY)
+		if rv == 0:
+			print("[*] ERROR:", self.get_name(), hex(member_offset), str(member_type))
+			raise BaseException("Failed to change member type")
+		return rv
 
 	def add_member(self, member_offset, name):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
