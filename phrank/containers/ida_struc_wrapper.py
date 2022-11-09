@@ -149,8 +149,7 @@ class IdaStrucWrapper(object):
 
 	def add_member(self, member_offset, name):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
-		# ret = ida_struct.add_struc_member(self.strucid, name, 0, idaapi.FF_DATA | idaapi.FF_DWORD, -1, putil.get_ptr_size())
-		ret = idc.add_struc_member(self.strucid, name, member_offset, idaapi.FF_DATA | idaapi.FF_DWORD, -1, util_aux.get_ptr_size())
+		ret = idc.add_struc_member(self.strucid, name, member_offset, idaapi.FF_DATA | idaapi.FF_BYTE, -1, 1)
 		handle_addstrucmember_ret(ret)
 
 	def append_member(self, name, size):
