@@ -113,9 +113,11 @@ class StructAnalyzer(TypeAnalyzer):
 		new_lvar_tinfo = self.calculate_lvar_type(func_ea, lvar_id)
 		if new_lvar_tinfo is None:
 			return None
-
 		self.lvar2tinfo[(func_ea, lvar_id)] = new_lvar_tinfo
-		self.calculate_lvar_type_usage(func_ea, lvar_id, new_lvar_tinfo)
+
+		# calculate only complex types modifications
+		if util_aux.tif2strucid(new_lvar_tinfo) != idaapi.BADADDR:
+			self.calculate_lvar_type_usage(func_ea, lvar_id, new_lvar_tinfo)
 
 		return new_lvar_tinfo
 
