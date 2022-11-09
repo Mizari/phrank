@@ -66,6 +66,13 @@ class Structure(IdaStrucWrapper):
 		handle_addstrucmember_ret(ret)
 		idc.SetType(ida_struct.get_member_id(self.strucid, offset), struc.get_name() + "*")
 
+	def member_exists(self, offset):
+		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
+
+		sptr = ida_struct.get_struc(self.strucid)
+		mptr = ida_struct.get_member(sptr, offset)
+		return mptr is not None
+
 	def get_member_tinfo(self, member_offset):
 		# TODO add ability to get member by offset or by name
 		# get_member_by_fullname(fullname) -> member_t Get a member by its fully qualified name, "struct.field".
