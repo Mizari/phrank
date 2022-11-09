@@ -147,8 +147,9 @@ class IdaStrucWrapper(object):
 			raise BaseException("Failed to change member type")
 		return rv
 
-	def add_member(self, member_offset, name):
+	def add_member(self, member_offset, name=None):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
+		if name is None: name = "field_" + hex(member_offset)[2:]
 		ret = idc.add_struc_member(self.strucid, name, member_offset, idaapi.FF_DATA | idaapi.FF_BYTE, -1, 1)
 		handle_addstrucmember_ret(ret)
 

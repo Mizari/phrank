@@ -58,7 +58,7 @@ class StructAnalyzer(TypeAnalyzer):
 			write_offset = var_write.offset
 			write_type = var_write.val.type
 			if lvar_struct.get_member_tinfo(write_offset) is None:
-				lvar_struct.add_member(write_offset, "name" + hex(write_offset))
+				lvar_struct.add_member(write_offset)
 			lvar_struct.set_member_type(write_offset, write_type)
 
 		for func_call in func_aa.get_calls():
@@ -72,7 +72,7 @@ class StructAnalyzer(TypeAnalyzer):
 				if arg_tinfo is None: continue
 
 				if not lvar_struct.member_exists(offset):
-					lvar_struct.add_member(offset, "name" + hex(offset))
+					lvar_struct.add_member(offset)
 				lvar_struct.set_member_type(offset, arg_tinfo)
 
 	def calculate_lvar_type(self, func_ea, lvar_id):
