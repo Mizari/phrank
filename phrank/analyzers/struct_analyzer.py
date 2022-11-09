@@ -61,6 +61,20 @@ class StructAnalyzer(TypeAnalyzer):
 				lvar_struct.add_member(write_offset, "name" + hex(write_offset))
 			lvar_struct.set_member_type(write_offset, write_type)
 
+		for func_call in func_aa.get_calls():
+			call_ea = func_call.get_ea()
+			for arg_id, arg in enumerate(func_call.get_args()):
+				varid, offset = get_var_offset(arg)
+				if varid != lvar_id or offset == 0: continue
+
+				if call_ea is None: continue
+				arg_tinfo = self.analyze_lvar(call_ea, arg_id)
+				if arg_tinfo is None: continue
+
+				if not lvar_struct.member_exists(offset):
+					lvar_struct.add_member(offset, "name" + hex(offset))
+				lvar_struct.set_member_type(offset, arg_tinfo)
+
 	def calculate_lvar_type(self, func_ea, lvar_id):
 		func_aa = self.get_ast_analysis(func_ea)
 		offset0_lvar_passes = []
