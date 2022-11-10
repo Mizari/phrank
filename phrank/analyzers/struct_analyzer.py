@@ -110,6 +110,10 @@ class StructAnalyzer(TypeAnalyzer):
 
 		if var_type.is_ptr():
 			pointed = var_type.get_pointed_object()
+
+			if not pointed.is_correct():
+				return None
+
 			if pointed.is_struct():
 				return var_type
 
@@ -119,6 +123,10 @@ class StructAnalyzer(TypeAnalyzer):
 				lvar_struct = Structure()
 				self.new_types.append(lvar_struct)
 				return lvar_struct.get_ptr_tinfo()
+
+			else:
+				print("WARNING:", "unknown pointer tinfo", str(var_type), "in", idaapi.get_name(func_ea))
+				return None
 
 		elif var_type.is_void() or var_type.is_integral():
 			if len([w for w in func_aa.get_writes_into_var(lvar_id)]) == 0:
