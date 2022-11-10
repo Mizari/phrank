@@ -11,8 +11,12 @@ def str2strucid(s):
 		s = s[7:]
 
 	rv = idaapi.get_struc_id(s)
-	if rv == idaapi.BADADDR:
-		rv = idaapi.import_type(idaapi.get_idati(), -1, s)
+	if rv != idaapi.BADADDR:
+		return rv
+
+	rv = idaapi.import_type(idaapi.get_idati(), -1, s)
+	if rv == idaapi.BADNODE:
+		return idaapi.BADADDR
 	return rv
 
 
