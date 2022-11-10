@@ -118,7 +118,7 @@ class StructAnalyzer(TypeAnalyzer):
 				return var_type
 
 			elif pointed.is_void() or pointed.is_integral():
-				if len([w for w in func_aa.get_writes_into_var(lvar_id)]) == 0:
+				if func_aa.count_writes_into_var(lvar_id) == 0:
 					return None
 				lvar_struct = Structure()
 				self.new_types.append(lvar_struct)
@@ -129,7 +129,7 @@ class StructAnalyzer(TypeAnalyzer):
 				return None
 
 		elif var_type.is_void() or var_type.is_integral():
-			if len([w for w in func_aa.get_writes_into_var(lvar_id)]) == 0:
+			if func_aa.count_writes_into_var(lvar_id) == 0:
 				return None
 			lvar_struct = Structure()
 			self.new_types.append(lvar_struct)
