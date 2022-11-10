@@ -75,7 +75,7 @@ class StructAnalyzer(TypeAnalyzer):
 					lvar_struct.add_member(offset)
 				lvar_struct.set_member_type(offset, arg_tinfo)
 
-	def calculate_lvar_type(self, func_ea, lvar_id):
+	def calculate_passed_lvar_type(self, func_ea, lvar_id):
 		func_aa = self.get_ast_analysis(func_ea)
 		offset0_lvar_passes = []
 		for func_call in func_aa.get_calls():
@@ -89,11 +89,20 @@ class StructAnalyzer(TypeAnalyzer):
 				offset0_lvar_passes.append(new_lvar_tinfo)
 
 		if len(offset0_lvar_passes) > 1:
-			print("WARNING:", "multiple different types found for one local variable, not implemented")
-			print("will just use random one")
+			print("WARNING:", "multiple different types found for one local variable")
+			print("WARNING:", "not implemented, will just use random one")
 
 		if len(offset0_lvar_passes) > 0:
 			return offset0_lvar_passes[0]
+		else:
+			return None
+
+	def calculate_lvar_type(self, func_ea, lvar_id):
+		passed_lvar_type = self.calculate_passed_lvar_type(func_ea, lvar_id)
+		if passed_lvar_type is not None:
+			return passed_lvar_type
+
+		func_aa = self.get_ast_analysis(func_ea)
 
 		var_type = self.get_var_type(func_ea, lvar_id)
 		if var_type is None:
