@@ -97,11 +97,7 @@ class StructAnalyzer(TypeAnalyzer):
 		else:
 			return None
 
-	def calculate_lvar_type(self, func_ea, lvar_id):
-		passed_lvar_type = self.calculate_passed_lvar_type(func_ea, lvar_id)
-		if passed_lvar_type is not None:
-			return passed_lvar_type
-
+	def calculate_current_lvar_type(self, func_ea, lvar_id):
 		func_aa = self.get_ast_analysis(func_ea)
 
 		var_type = self.get_var_type(func_ea, lvar_id)
@@ -131,6 +127,17 @@ class StructAnalyzer(TypeAnalyzer):
 		else:
 			print("WARNING:", "failed to create struct from tinfo", str(var_type), "in", idaapi.get_name(func_ea))
 			return None
+
+	def calculate_lvar_type(self, func_ea, lvar_id):
+		passed_lvar_type = self.calculate_passed_lvar_type(func_ea, lvar_id)
+		if passed_lvar_type is not None:
+			return passed_lvar_type
+
+		current_lvar_type = self.calculate_current_lvar_type(func_ea, lvar_id)
+		if current_lvar_type is not None:
+			return current_lvar_type
+
+		return None
 
 	def analyze_lvar(self, func_ea, lvar_id):
 		current_lvar_tinfo = self.lvar2tinfo.get((func_ea, lvar_id))
