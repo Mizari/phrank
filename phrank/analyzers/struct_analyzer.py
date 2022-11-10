@@ -56,7 +56,7 @@ class StructAnalyzer(TypeAnalyzer):
 		func_aa = self.get_ast_analysis(func_ea)
 		for var_write in func_aa.get_writes_into_var(lvar_id):
 			write_offset = var_write.offset
-			write_type = var_write.val.type
+			write_type = self.analyze_cexpr(func_ea, var_write.val)
 			if lvar_struct.get_member_tinfo(write_offset) is None:
 				lvar_struct.add_member(write_offset)
 			lvar_struct.set_member_type(write_offset, write_type)
