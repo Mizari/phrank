@@ -164,7 +164,9 @@ class StructAnalyzer(TypeAnalyzer):
 		lvs = aa.get_returned_lvars()
 		if len(lvs) == 1:
 			retval_lvar_id = lvs.pop()
-			self.analyze_lvar(retval_lvar_id)
+			return self.analyze_lvar(func_ea, retval_lvar_id)
+
+		return None
 
 	def analyze_function(self, func_ea):
 		if func_ea in self.analyzed_functions:
