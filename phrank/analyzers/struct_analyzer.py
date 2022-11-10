@@ -112,7 +112,12 @@ class StructAnalyzer(TypeAnalyzer):
 			pointed = var_type.get_pointed_object()
 
 			if not pointed.is_correct():
-				return None
+				if func_aa.count_writes_into_var(lvar_id) == 0:
+					return None
+				else:
+					lvar_struct = Structure()
+					self.new_types.append(lvar_struct)
+					return lvar_struct.get_ptr_tinfo()
 
 			if pointed.is_struct():
 				return var_type
