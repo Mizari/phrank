@@ -128,10 +128,47 @@ class StructAnalyzer(TypeAnalyzer):
 			print("WARNING:", "failed to create struct from tinfo", str(var_type), "in", idaapi.get_name(func_ea))
 			return None
 
+	def analyze_cexpr(self, func_ea, cexpr):
+		if cexpr.op == idaapi.cot_call:
+			call_ea = cexpr.x.obj_ea
+			return self.analyze_retval(call_ea)
+
+		if cexpr.op in {idaapi.cot_num}:
+			return cexpr.type
+
+		print("WARNING:", "unknown cexpr value", cexpr.opname)
+		return None
+
+	def calculate_assigned_lvar_type(self, func_ea, lvar_id):
+		func_aa = self.get_ast_analysis(func_ea)
+		assigns = []
+		for wr in func_aa.var_writes():
+			if wr.varid != lvar_id: continue
+			atype = self.analyze_cexpr(func_ea, wr.val)
+			if atype is not None:
+				assigns.append(atype)
+
+		if len(assigns) == 0:
+			return None
+		elif len(assigns) == 1:
+			return assigns[0]
+
+		# prefer types over non-types
+		strucid_assigns = [a for a in assigns if util_aux.tif2strucid(a) != idaapi.BADADDR]
+		if len(strucid_assigns) == 1:
+			return strucid_assigns[0]
+
+		print("WARNING:", "unknown assigned value in", idaapi.get_name(func_ea), "for", lvar_id)
+		return None
+
 	def calculate_lvar_type(self, func_ea, lvar_id):
 		passed_lvar_type = self.calculate_passed_lvar_type(func_ea, lvar_id)
 		if passed_lvar_type is not None:
 			return passed_lvar_type
+
+		assigned_lvar_type = self.calculate_assigned_lvar_type(func_ea, lvar_id)
+		if assigned_lvar_type is not None:
+			return assigned_lvar_type
 
 		current_lvar_type = self.calculate_current_lvar_type(func_ea, lvar_id)
 		if current_lvar_type is not None:

@@ -80,7 +80,7 @@ class TypeAnalyzer(FunctionManager):
 	def analyze_gvar(self, gvar_ea):
 		raise NotImplementedError
 
-	def analyze_cexpr(self, cfunc, cexpr):
+	def analyze_cexpr(self, func_ea, cexpr):
 		raise NotImplementedError
 
 	def analyze_structure(self, struct):
