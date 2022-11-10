@@ -44,6 +44,17 @@ def str2tif(type_str):
 		return None
 	return tinfo
 
+def get_int_tinfo(size=1):
+	char_tinfo = idaapi.tinfo_t()
+	if size == 2:
+		idaapi.parse_decl(char_tinfo, idaapi.get_idati(), "unsigned short;", 0)
+	elif size == 4:
+		idaapi.parse_decl(char_tinfo, idaapi.get_idati(), "unsigned int;", 0)
+	else:
+		idaapi.parse_decl(char_tinfo, idaapi.get_idati(), "unsigned char;", 0)
+	assert char_tinfo.is_correct()
+	return char_tinfo
+
 def get_voidptr_tinfo():
 	voidptr_tinfo = idaapi.tinfo_t()
 	idaapi.parse_decl(voidptr_tinfo, idaapi.get_idati(), "void*;", 0)

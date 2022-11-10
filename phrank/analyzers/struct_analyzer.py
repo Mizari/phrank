@@ -57,8 +57,9 @@ class StructAnalyzer(TypeAnalyzer):
 		for var_write in func_aa.get_writes_into_var(lvar_id):
 			write_offset = var_write.offset
 			write_type = self.analyze_cexpr(func_ea, var_write.val)
+			# write exists, just type is unknown. will use simple int instead
 			if write_type is None:
-				continue
+				write_type = util_aux.get_int_tinfo(var_write.val.type.get_size())
 			if lvar_struct.get_member_tinfo(write_offset) is None:
 				lvar_struct.add_member(write_offset)
 			lvar_struct.set_member_type(write_offset, write_type)
