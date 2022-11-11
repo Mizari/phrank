@@ -19,7 +19,7 @@ class VtableAnalyzer(TypeAnalyzer):
 		return None
 
 	def analyze_gvar(self, gvar_ea):
-		vtbl = self.get_gvar_vtable(gvar_ea)
+		vtbl = self.gvar2tinfo.get(gvar_ea)
 		if vtbl is not None:
 			return vtbl
 
@@ -29,10 +29,11 @@ class VtableAnalyzer(TypeAnalyzer):
 
 		vtbl_name = "vtable_" + hex(gvar_ea)[2:]
 		vtbl_name = util_aux.get_next_available_strucname(vtbl_name)
-		vtbl = Vtable(name=vtbl_name, vtbl_funcs=vfcs)
-		self.gvar2tinfo[gvar_ea] = vtbl.get_tinfo()
-		self.new_types.append(vtbl)
-		return vtbl
+		vtbl = Vtable(struc_locator=vtbl_name, vtbl_funcs=vfcs)
+		self.new_types.append(vtbl.strucid)
+		tif = vtbl.get_tinfo()
+		self.gvar2tinfo[gvar_ea] = tif
+		return tif
 
 	def analyze_everything(self):
 		for segstart, segend in util_aux.iterate_segments():

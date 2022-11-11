@@ -1,4 +1,5 @@
 import idc
+import idaapi
 
 from phrank.containers.ida_struc_wrapper import IdaStrucWrapper
 from phrank.function_manager import FunctionManager
@@ -23,10 +24,10 @@ class TypeAnalyzer(FunctionManager):
 		self.retval2tinfo = {}
 
 		# analysis results
-		self.new_types : list[IdaStrucWrapper] = []    # created types
+		self.new_types : list[int] = []    # created types
 		self.new_xrefs = []    # created xrefs
 
-	def get_gvar_tinfo(self, gvar_ea) -> IdaStrucWrapper:
+	def get_gvar_tinfo(self, gvar_ea) -> idaapi.tinfo_t:
 		gtype = self.gvar2tinfo.get(gvar_ea)
 		if gtype is not None:
 			return gtype
@@ -40,7 +41,7 @@ class TypeAnalyzer(FunctionManager):
 	def clear_analysis(self):
 		# delete temporaly created new types
 		for t in self.new_types:
-			t.delete()
+			idc.del_struc(t)
 		self.new_types.clear()
 
 		self.new_xrefs.clear()
