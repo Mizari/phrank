@@ -152,8 +152,11 @@ class StructAnalyzer(TypeAnalyzer):
 		if cexpr.op in {idaapi.cot_num}:
 			return cexpr.type
 
-		if cexpr.op == idaapi.cot_obj and util_aux.get_func_start(cexpr.obj_ea) == cexpr.obj_ea:
-			return cexpr.type
+		if cexpr.op == idaapi.cot_obj and not util_aux.is_func_start(cexpr.obj_ea):
+			return self.analyze_gvar(cexpr.obj_ea)
+
+		if cexpr.op == idaapi.cot_ref and cexpr.x.op == idaapi.cot_obj and not util_aux.is_func_start(cexpr.x.obj_ea):
+			return self.analyze_gvar(cexpr.x.obj_ea)
 
 		print("WARNING:", "unknown cexpr value", cexpr.opname)
 		return None

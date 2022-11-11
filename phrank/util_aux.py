@@ -123,6 +123,10 @@ def got_path(fea, funcs):
 	calls_from_to.update(get_func_calls_from(fea))
 	return len(_funcs & calls_from_to) != 0
 
+def is_func_start(addr):
+	if addr == idaapi.BADADDR: return False
+	return addr == get_func_start(addr)
+
 def get_func_start(addr):
 	func = idaapi.get_func(addr)
 	if func is None:
