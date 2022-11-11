@@ -3,6 +3,7 @@ import idaapi
 import phrank.util_aux as util_aux
 
 from phrank.analyzers.type_analyzer import TypeAnalyzer
+from phrank.analyzers.vtable_analyzer import VtableAnalyzer
 from phrank.containers.structure import Structure
 from phrank.util_ast import get_var_offset
 
@@ -11,6 +12,7 @@ class StructAnalyzer(TypeAnalyzer):
 	def __init__(self, func_factory=None) -> None:
 		super().__init__(func_factory)
 		self.analyzed_functions = set()
+		self.vtable_analyzer = VtableAnalyzer(func_factory)
 
 	def get_var_use_size(self, func_ea:int, lvar_id:int) -> int:
 		func_aa = self.get_ast_analysis(func_ea)
@@ -143,6 +145,13 @@ class StructAnalyzer(TypeAnalyzer):
 		else:
 			print("WARNING:", "failed to create struct from tinfo", str(var_type), "in", idaapi.get_name(func_ea))
 			return None
+
+	def analyze_gvar(self, gvar_ea):
+		vtbl = self.vtable_analyzer.analyze_gvar(gvar_ea)
+		if vtbl is not None:
+			return vtbl
+
+		return None
 
 	def analyze_cexpr(self, func_ea, cexpr):
 		if cexpr.op == idaapi.cot_call:
