@@ -51,7 +51,7 @@ class Vtable(Structure):
 		if not vtbl_tif.is_struct():
 			return None
 
-		strucid = Vtable.get_existing_strucid(vtbl_tif)
+		strucid = util_aux.tif2strucid(vtbl_tif)
 		if strucid == idaapi.BADADDR:
 			return False
 

@@ -51,17 +51,7 @@ class VtableAnalyzer(TypeAnalyzer):
 		return vtbl
 
 	def get_gvar_vtable(self, gvar_ea):
-		gvar_tinfo = self.get_gvar_tinfo(gvar_ea)
-		if gvar_tinfo is None:
-			return None
-
-		gvar_strucid = Vtable.get_existing_strucid(gvar_tinfo)
-		if gvar_strucid == idaapi.BADADDR:
-			return None
-
-		if Vtable.is_vtable(gvar_strucid):
-			return Vtable(gvar_ea, gvar_strucid)
-		return None
+		return Vtable.get_vtable_at_address(gvar_ea)
 
 	def analyze_gvar(self, gvar_ea):
 		vtbl = self.gvar2tinfo.get(gvar_ea)
