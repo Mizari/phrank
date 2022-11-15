@@ -30,6 +30,7 @@ class VtableAnalyzer(TypeAnalyzer):
 			if func_ptr_tif is None:
 				print("Failed to get function tinfo", hex(func_addr), func_name, "using void* instead")
 				func_ptr_tif = util_aux.get_voidptr_tinfo()
+			vtbl.add_member(member_offset)
 			vtbl.set_member_type(member_offset, func_ptr_tif)
 			vtbl.set_member_comment(member_offset, hex(func_addr))
 
