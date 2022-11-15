@@ -106,23 +106,24 @@ class IdaStrucWrapper(object):
 		return rv
 
 	def get_next_available_name(self, member_name, delimiter="___"):
-		o = idc.get_member_offset(member_name)
+		o = idc.get_member_offset(self.strucid, member_name)
 		if o == -1 or o == idaapi.BADADDR:
 			return member_name
 		
 		parts = member_name.split(delimiter)
 		if len(parts) == 1:
 			counter = 0
+			base_name = member_name
 		else:
 			counter = int(parts[-1])
+			base_name = "".join(parts[:-1])
 
-		base_name = "".join(parts[:-1])
 		member_name = base_name + delimiter + str(counter)
-		o = idc.get_member_offset(member_name)
-		while o == idaapi.BADADDR or o == -1:
+		o = idc.get_member_offset(self.strucid, member_name)
+		while o != idaapi.BADADDR and o != -1:
 			counter += 1
 			member_name = base_name + delimiter + str(counter)
-			o = idc.get_member_offset(member_name)
+			o = idc.get_member_offset(self.strucid, member_name)
 		return member_name
 
 	def set_member_name(self, member_offset, member_name):
@@ -181,4 +182,4 @@ class IdaStrucWrapper(object):
 		offset = self.get_size() - size
 		self.set_member_type(offset, member_type)
 		if member_comment is not None:
-			self.set_member_comment(member_comment)
+			self.set_member_comment(offset, member_comment)
