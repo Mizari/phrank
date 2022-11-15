@@ -15,17 +15,11 @@ class VtableAnalyzer(TypeAnalyzer):
 		vtbl = Vtable(struc_locator=vtbl_name)
 
 		field_names = set()
-		for i, func_addr in enumerate(vfcs):
+		for func_addr in vfcs:
 			func_name = idaapi.get_name(func_addr)
 			if func_name is None:
+				func_name = "field_" + hex(vtbl.get_size())[2:]
 				print("Failed to get function name", hex(func_addr))
-
-			func_ptr_tif = self.get_ptr_tinfo(func_addr)
-			if func_ptr_tif is None:
-				func_ptr_tif = util_aux.get_voidptr_tinfo()
-
-			if func_name is None:
-				continue
 
 			if func_name in field_names:
 				parts = func_name.split(Vtable.REUSE_DELIM)
@@ -36,6 +30,10 @@ class VtableAnalyzer(TypeAnalyzer):
 				while func_name + Vtable.REUSE_DELIM + str(x) in field_names:
 					x += 1
 				func_name = func_name + Vtable.REUSE_DELIM + str(x)
+
+			func_ptr_tif = self.get_ptr_tinfo(func_addr)
+			if func_ptr_tif is None:
+				func_ptr_tif = util_aux.get_voidptr_tinfo()
 
 			vtbl.append_member(func_name, func_ptr_tif, hex(func_addr))
 			field_names.add(func_name)
