@@ -58,6 +58,5 @@ class VtablesUnion(Union):
 			if str(mtif) == vname + " *":
 				return
 
-		self.append_member(vname, util_aux.get_ptr_size())
 		tif = vtbl.get_ptr_tinfo()
-		self.set_member_type(idc.get_member_qty(self.strucid) - 1, tif)
+		self.append_member(vname, tif)

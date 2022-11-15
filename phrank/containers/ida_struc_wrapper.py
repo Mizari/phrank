@@ -153,7 +153,12 @@ class IdaStrucWrapper(object):
 		ret = idc.add_struc_member(self.strucid, name, member_offset, idaapi.FF_DATA | idaapi.FF_BYTE, -1, 1)
 		handle_addstrucmember_ret(ret)
 
-	def append_member(self, name, size):
+	def append_member(self, name, member_type, member_comment=None):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
+		size = member_type.get_size()
 		ret = idc.add_struc_member(self.strucid, name, -1, util_aux.size2dataflags(size), -1, size)
 		handle_addstrucmember_ret(ret)
+		offset = self.get_size() - size
+		self.set_member_type(offset, member_type)
+		if member_comment is not None:
+			self.set_member_comment(member_comment)
