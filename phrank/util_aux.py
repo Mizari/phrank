@@ -178,7 +178,7 @@ def read_ptr(addr):
 	return get_data(addr)
 
 def size2dataflags(sz):
-	df = {8: idaapi.FF_QWORD, 4: idaapi.FF_DWORD, 2: idaapi.FF_WORD, 1: idaapi.FF_BYTE}[sz]
+	df = {8: idaapi.FF_QWORD, 4: idaapi.FF_DWORD, 2: idaapi.FF_WORD, 1: idaapi.FF_BYTE}.get(sz, 0)
 	return df | idaapi.FF_DATA
 
 def iterate_segments():
