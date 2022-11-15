@@ -157,15 +157,3 @@ class IdaStrucWrapper(object):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
 		ret = idc.add_struc_member(self.strucid, name, -1, util_aux.size2dataflags(size), -1, size)
 		handle_addstrucmember_ret(ret)
-
-	def append_struc(self, name, struc):
-		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
-		ret = idc.add_struc_member(self.strucid, name, -1, util_aux.size2dataflags(1), -1, 1)
-		handle_addstrucmember_ret(ret)
-		idc.SetType(idc.get_member_id(self.strucid, self.get_size()), struc.get_name())
-
-	def append_strucptr(self, name, struc):
-		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
-		ret = idc.add_struc_member(self.strucid, name, -1, util_aux.size2dataflags(1), -1, 1)
-		handle_addstrucmember_ret(ret)
-		idc.SetType(idc.get_member_id(self.strucid, self.get_size()), struc.get_name() + "*")
