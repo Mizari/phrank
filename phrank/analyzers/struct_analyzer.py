@@ -165,7 +165,7 @@ class StructAnalyzer(TypeAnalyzer):
 			return self.analyze_gvar(cexpr.obj_ea)
 
 		if cexpr.op == idaapi.cot_ref and cexpr.x.op == idaapi.cot_obj and not util_aux.is_func_start(cexpr.x.obj_ea):
-			gvar_type = self.analyze_gvar(cexpr.obj_ea)
+			gvar_type = self.analyze_gvar(cexpr.x.obj_ea)
 			if gvar_type is None:
 				return None
 
