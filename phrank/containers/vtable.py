@@ -8,21 +8,9 @@ from phrank.containers.structure import Structure
 
 class Vtable(Structure):
 	REUSE_DELIM = "___V"
-	def __init__(self, addr=None, struc_locator=None, vtbl_funcs=None):
-		self._v_ea : int = idaapi.BADADDR
-
-		# create vtable from existing one by name/strucid
-		if addr is None:
-			super().__init__(struc_locator=struc_locator)
-			if not Vtable.is_vtable(self.strucid):
-				raise BaseException("Structure is not vtable")
-
-			xrefs = [x.frm for x in idautils.XrefsTo(self.strucid)]
-			if len(xrefs) != 0:
-				self._v_ea = xrefs[0]
-			return
-
-		return self.__init_new(addr=addr, struc_locator=struc_locator, vtbl_funcs=vtbl_funcs)
+	def __init__(self, struc_locator=None):
+		super().__init__(struc_locator=struc_locator)
+		assert Vtable.is_vtable(self.strucid), "Structure is not vtable"
 
 	@classmethod
 	def get_vtable_at_address(cls, addr: int):
@@ -44,51 +32,6 @@ class Vtable(Structure):
 
 		return cls(struc_locator=vtbl_strucid)
 
-	def __init_new(self, addr=None, vtbl_funcs=None, struc_locator=None):
-		# create new strucid
-		# TODO better name generation for new vtable structure
-		# TODO if setting type at vtable address, then set name too
-		# TODO can vtable have <2 xrefs to addr? at least 1 ctor and 1 dtor should access vtable, no?
-		super().__init__(struc_locator=struc_locator)
-		self._v_ea = addr
-
-		if vtbl_funcs is None:
-			vtbl_funcs = Vtable.get_vtable_functions_at_addr(self._v_ea)
-		v_sz = len(vtbl_funcs)
-		ptr_size = util_aux.get_ptr_size()
-		self.resize(v_sz * ptr_size)
-
-		field_names = set()
-		for i, func_addr in enumerate(vtbl_funcs):
-			member_offset = i * ptr_size
-
-			func_name = idaapi.get_name(func_addr)
-			if func_name is None:
-				print("Failed to get function name", hex(func_addr))
-
-			func_ptr_tif = get_func_ptr_tinfo(func_addr)
-			if func_ptr_tif is None:
-				print("Failed to get function tinfo", hex(func_addr), func_name, "using void* instead")
-				func_ptr_tif = util_aux.get_voidptr_tinfo()
-			self.set_member_type(member_offset, func_ptr_tif)
-			self.set_member_comment(member_offset, hex(func_addr))
-
-			if func_name is None:
-				continue
-
-			if func_name in field_names:
-				parts = func_name.split(Vtable.REUSE_DELIM)
-				if len(parts) == 1:
-					x = 0
-				else:
-					x = int(parts[1])
-				while func_name + Vtable.REUSE_DELIM + str(x) in field_names:
-					x += 1
-				func_name = func_name + Vtable.REUSE_DELIM + str(x)
-
-			self.set_member_name(member_offset, func_name)
-			field_names.add(func_name)
-
 	def update_func_types(self):
 		for member_offset in self.member_offsets():
 			member_name = self.get_member_name(member_offset)
@@ -102,13 +45,6 @@ class Vtable(Structure):
 		member_name = super().get_member_name(moffset)
 		member_name = member_name.split(Vtable.REUSE_DELIM)[0]
 		return member_name
-
-	def get_ea(self):
-		return self._v_ea
-
-	def set_data(self):
-		# TODO set name too
-		idc.SetType(self._v_ea, self.get_name())
 
 	@staticmethod
 	def is_vtable(vtbl_tif: idaapi.tinfo_t):
