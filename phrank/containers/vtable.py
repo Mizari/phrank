@@ -10,7 +10,7 @@ class Vtable(Structure):
 	REUSE_DELIM = "___V"
 	def __init__(self, struc_locator=None):
 		super().__init__(struc_locator=struc_locator)
-		assert Vtable.is_vtable(self.strucid), "Structure is not vtable"
+		assert Vtable.is_strucid_vtable(self.strucid), "Structure is not vtable"
 
 	@classmethod
 	def get_vtable_at_address(cls, addr: int):
@@ -55,6 +55,10 @@ class Vtable(Structure):
 		if strucid == idaapi.BADADDR:
 			return False
 
+		return Vtable.is_strucid_vtable(strucid)
+
+	@staticmethod
+	def is_strucid_vtable(strucid: int):
 		if ida_struct.is_union(strucid):
 			return False
 
