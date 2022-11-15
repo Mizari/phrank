@@ -34,6 +34,14 @@ def tif2strucid(tif):
 	raise NotImplementedError
 
 
+def addr2tif(addr):
+	addr_type = idc.get_type(addr)
+	if addr_type is None:
+		return None
+
+	return str2tif(addr_type)
+
+
 def str2tif(type_str):
 	if type_str[-1] != ';': type_str = type_str + ';'
 

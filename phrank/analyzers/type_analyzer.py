@@ -32,11 +32,7 @@ class TypeAnalyzer(FunctionManager):
 		if gtype is not None:
 			return gtype
 
-		gtype = idc.get_type(gvar_ea)
-		if gtype is None:
-			return None
-
-		return util_aux.str2tif(gtype)
+		return util_aux.addr2tif(gvar_ea)
 
 	def clear_analysis(self):
 		# delete temporaly created new types
