@@ -45,7 +45,7 @@ class CFunctionFactory:
 			str(cfunc)
 			self.cached_cfuncs[func_ea] = cfunc
 		except idaapi.DecompilationFailure:
-			print("failed to decompile", hex(self.get_start()), self.get_name())
+			print("failed to decompile", hex(func_ea), idaapi.get_name(func_ea))
 			self.cached_cfuncs[func_ea] = idaapi.BADADDR
 		return cfunc
 
