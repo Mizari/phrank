@@ -162,7 +162,16 @@ class StructAnalyzer(TypeAnalyzer):
 			return cexpr.type
 
 		if cexpr.op == idaapi.cot_obj and not util_aux.is_func_start(cexpr.obj_ea):
-			return self.analyze_gvar(cexpr.obj_ea)
+			gvar_type = self.analyze_gvar(cexpr.obj_ea)
+			if gvar_type is None:
+				return None
+
+			actual_type = util_aux.addr2tif(cexpr.obj_ea)
+			if actual_type is None:
+				print("actial none", hex(cexpr.obj_ea))
+			if actual_type is None or actual_type.is_array():
+				gvar_type.create_ptr(gvar_type)
+			return gvar_type
 
 		if cexpr.op == idaapi.cot_ref and cexpr.x.op == idaapi.cot_obj and not util_aux.is_func_start(cexpr.x.obj_ea):
 			gvar_type = self.analyze_gvar(cexpr.x.obj_ea)
