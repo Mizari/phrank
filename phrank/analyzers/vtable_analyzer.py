@@ -23,6 +23,13 @@ class VtableAnalyzer(TypeAnalyzer):
 		if vtbl is not None:
 			return vtbl
 
+		# trying to initialize from type at address
+		vtbl = Vtable.get_vtable_at_address(gvar_ea)
+		if vtbl is not None:
+			tif = vtbl.get_tinfo()
+			self.gvar2tinfo[gvar_ea] = tif
+			return tif
+
 		vfcs = Vtable.get_vtable_functions_at_addr(gvar_ea)
 		if len(vfcs) == 0:
 			return None

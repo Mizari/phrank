@@ -22,15 +22,27 @@ class Vtable(Structure):
 				self._v_ea = xrefs[0]
 			return
 
-		# trying to initialize from type at address
-		t = idc.get_type(addr)
-		if Vtable.is_vtable(t):
-			super().__init__(struc_locator=struc_locator)
-			self._v_ea = addr
-			# TODO check that this structure actually represents vtable at addr
-			return
-
 		return self.__init_new(addr=addr, struc_locator=struc_locator, vtbl_funcs=vtbl_funcs)
+
+	@classmethod
+	def get_vtable_at_address(cls, addr: int):
+		addr_type = idc.get_type(addr)
+		if addr_type is None:
+			return None
+
+		addr_tif = util_aux.str2tif(addr_type)
+		if addr_tif is None:
+			return None
+
+		if not Vtable.is_vtable(addr_tif):
+			return None
+
+		vtbl_strucid = util_aux.tif2strucid(addr_tif)
+		if vtbl_strucid == idaapi.BADADDR:
+			print("WARNING:", "failed to get strucid from vtbl tinfo")
+			return None
+
+		return cls(struc_locator=vtbl_strucid)
 
 	def __init_new(self, addr=None, vtbl_funcs=None, struc_locator=None):
 		# create new strucid
@@ -99,8 +111,11 @@ class Vtable(Structure):
 		idc.SetType(self._v_ea, self.get_name())
 
 	@staticmethod
-	def is_vtable(vinfo):
-		strucid = Vtable.get_existing_strucid(vinfo)
+	def is_vtable(vtbl_tif: idaapi.tinfo_t):
+		if not vtbl_tif.is_struct():
+			return None
+
+		strucid = Vtable.get_existing_strucid(vtbl_tif)
 		if strucid == idaapi.BADADDR:
 			return False
 
