@@ -22,7 +22,6 @@ class VtableAnalyzer(TypeAnalyzer):
 
 			func_ptr_tif = self.get_ptr_tinfo(func_addr)
 			if func_ptr_tif is None:
-				print("Failed to get function tinfo", hex(func_addr), func_name, "using void* instead")
 				func_ptr_tif = util_aux.get_voidptr_tinfo()
 
 			if func_name is None:
