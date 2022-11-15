@@ -169,7 +169,7 @@ class StructAnalyzer(TypeAnalyzer):
 			if gvar_type is None:
 				return None
 
-			gvar_type = gvar_type.create_ptr(gvar_type)
+			gvar_type.create_ptr(gvar_type)
 			return gvar_type
 
 		print("WARNING:", "unknown cexpr value", cexpr.opname)
