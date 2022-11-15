@@ -105,6 +105,26 @@ class IdaStrucWrapper(object):
 			print("Failed to set member comment")
 		return rv
 
+	def get_next_available_name(self, member_name, delimiter="___"):
+		o = idc.get_member_offset(member_name)
+		if o == -1 or o == idaapi.BADADDR:
+			return member_name
+		
+		parts = member_name.split(delimiter)
+		if len(parts) == 1:
+			counter = 0
+		else:
+			counter = int(parts[-1])
+
+		base_name = "".join(parts[:-1])
+		member_name = base_name + delimiter + str(counter)
+		o = idc.get_member_offset(member_name)
+		while o == idaapi.BADADDR or o == -1:
+			counter += 1
+			member_name = base_name + delimiter + str(counter)
+			o = idc.get_member_offset(member_name)
+		return member_name
+
 	def set_member_name(self, member_offset, member_name):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
 		rv = idc.set_member_name(self.strucid, member_offset, member_name)
