@@ -46,7 +46,7 @@ class VtablesUnion(Union):
 		else:
 			raise BaseException("Unexpected vtable info type " + str(vtbl_info))
 
-	def add_vtable(self, vtbl):
+	def add_vtable(self, vtbl: Vtable):
 		# TODO check vtbl is vtable
 		vname = vtbl.get_name()
 		for member_offset in range(idc.get_member_qty(self.strucid)):
@@ -59,9 +59,5 @@ class VtablesUnion(Union):
 				return
 
 		self.append_member(vname, util_aux.get_ptr_size())
-		tif = idaapi.tinfo_t()
-		if not tif.get_named_type(idaapi.get_idati(), vname):
-			raise BaseException("Failed to get tinfo from vtable struct")
-		if not tif.create_ptr(tif):
-			raise BaseException("Failed to get tinfo for vtable struct ptr")
+		tif = vtbl.get_ptr_tinfo()
 		self.set_member_type(idc.get_member_qty(self.strucid) - 1, tif)
