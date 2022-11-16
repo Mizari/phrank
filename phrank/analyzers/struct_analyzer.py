@@ -1,11 +1,10 @@
 import idaapi
 
-import phrank.util_aux as util_aux
+import phrank.utils as utils
 
 from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.analyzers.vtable_analyzer import VtableAnalyzer
 from phrank.containers.structure import Structure
-from phrank.util_ast import get_var_offset
 
 
 class StructAnalyzer(TypeAnalyzer):
@@ -28,7 +27,7 @@ class StructAnalyzer(TypeAnalyzer):
 			if call_ea is None: continue 
 
 			for arg_id, arg in enumerate(func_call.get_args()):
-				varid, offset = get_var_offset(arg)
+				varid, offset = utils.get_var_offset(arg)
 				if varid == -1:
 					continue
 
@@ -47,7 +46,7 @@ class StructAnalyzer(TypeAnalyzer):
 		return self.analyze_lvar(func_ea, lvar_id)
 
 	def calculate_lvar_type_usage(self, func_ea, lvar_id, new_lvar_tinfo):
-		lvar_strucid = util_aux.tif2strucid(new_lvar_tinfo)
+		lvar_strucid = utils.tif2strucid(new_lvar_tinfo)
 		if lvar_strucid == idaapi.BADADDR:
 			return
 
@@ -61,7 +60,7 @@ class StructAnalyzer(TypeAnalyzer):
 			write_type = self.analyze_cexpr(func_ea, var_write.val)
 			# write exists, just type is unknown. will use simple int instead
 			if write_type is None:
-				write_type = util_aux.get_int_tinfo(var_write.val.type.get_size())
+				write_type = utils.get_int_tinfo(var_write.val.type.get_size())
 			if lvar_struct.get_member_tinfo(write_offset) is None:
 				lvar_struct.add_member(write_offset)
 			lvar_struct.set_member_type(write_offset, write_type)
@@ -69,7 +68,7 @@ class StructAnalyzer(TypeAnalyzer):
 		for func_call in func_aa.get_calls():
 			call_ea = func_call.get_ea()
 			for arg_id, arg in enumerate(func_call.get_args()):
-				varid, offset = get_var_offset(arg)
+				varid, offset = utils.get_var_offset(arg)
 				if varid != lvar_id or offset == 0: continue
 
 				if call_ea is None: continue
@@ -87,7 +86,7 @@ class StructAnalyzer(TypeAnalyzer):
 			call_ea = func_call.get_ea()
 			if call_ea is None: continue
 			for arg_id, arg in enumerate(func_call.get_args()):
-				varid, offset = get_var_offset(arg)
+				varid, offset = utils.get_var_offset(arg)
 				if varid != lvar_id or offset != 0: continue
 				new_lvar_tinfo = self.analyze_lvar(call_ea, arg_id)
 				if new_lvar_tinfo is None: continue
@@ -161,17 +160,17 @@ class StructAnalyzer(TypeAnalyzer):
 		if cexpr.op in {idaapi.cot_num}:
 			return cexpr.type
 
-		if cexpr.op == idaapi.cot_obj and not util_aux.is_func_start(cexpr.obj_ea):
+		if cexpr.op == idaapi.cot_obj and not utils.is_func_start(cexpr.obj_ea):
 			gvar_type = self.analyze_gvar(cexpr.obj_ea)
 			if gvar_type is None:
 				return None
 
-			actual_type = util_aux.addr2tif(cexpr.obj_ea)
+			actual_type = utils.addr2tif(cexpr.obj_ea)
 			if actual_type is None or actual_type.is_array():
 				gvar_type.create_ptr(gvar_type)
 			return gvar_type
 
-		if cexpr.op == idaapi.cot_ref and cexpr.x.op == idaapi.cot_obj and not util_aux.is_func_start(cexpr.x.obj_ea):
+		if cexpr.op == idaapi.cot_ref and cexpr.x.op == idaapi.cot_obj and not utils.is_func_start(cexpr.x.obj_ea):
 			gvar_type = self.analyze_gvar(cexpr.x.obj_ea)
 			if gvar_type is None:
 				return None
@@ -197,7 +196,7 @@ class StructAnalyzer(TypeAnalyzer):
 			return assigns[0]
 
 		# prefer types over non-types
-		strucid_assigns = [a for a in assigns if util_aux.tif2strucid(a) != idaapi.BADADDR]
+		strucid_assigns = [a for a in assigns if utils.tif2strucid(a) != idaapi.BADADDR]
 		if len(strucid_assigns) == 1:
 			return strucid_assigns[0]
 
@@ -230,7 +229,7 @@ class StructAnalyzer(TypeAnalyzer):
 		self.lvar2tinfo[(func_ea, lvar_id)] = new_lvar_tinfo
 
 		# calculate only complex types modifications
-		if util_aux.tif2strucid(new_lvar_tinfo) != idaapi.BADADDR:
+		if utils.tif2strucid(new_lvar_tinfo) != idaapi.BADADDR:
 			self.calculate_lvar_type_usage(func_ea, lvar_id, new_lvar_tinfo)
 
 		return new_lvar_tinfo
@@ -253,7 +252,7 @@ class StructAnalyzer(TypeAnalyzer):
 			return
 		self.analyzed_functions.add(func_ea)
 
-		for call_from_ea in util_aux.get_func_calls_from(func_ea):
+		for call_from_ea in utils.get_func_calls_from(func_ea):
 			self.analyze_function(call_from_ea)
 
 		for i in self.get_lvars_counter(func_ea):
