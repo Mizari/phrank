@@ -4,6 +4,13 @@ import phrank_api
 import phrank.util_ast as p_hrays
 
 
+def get_lvar_id(cfunc, lvar_arg):
+	for lvar_id, lvar in enumerate(cfunc.lvars):
+		if lvar_arg.name == lvar.name:
+			return lvar_id
+	return -1
+
+
 class HRActionHandler(idaapi.action_handler_t):
 	def __init__(self, action_name, hotkey, label):
 		idaapi.action_handler_t.__init__(self)
@@ -24,16 +31,27 @@ class HRActionHandler(idaapi.action_handler_t):
 		cfunc = hx_view.cfunc
 		citem = hx_view.item
 
-		if citem.citype != idaapi.VDI_EXPR:
-			return 0
+		should_refresh = 0
+		if citem.citype == idaapi.VDI_EXPR:
+			citem = citem.it.to_specific_type
+			should_refresh = self.handle_expr(cfunc, citem)
+		elif citem.citype == idaapi.VDI_LVAR:
+			lvar_id = get_lvar_id(cfunc, citem.l)
+			should_refresh = self.handle_lvar(cfunc, lvar_id)
+		elif citem.citype == idaapi.VDI_FUNC:
+			should_refresh = self.handle_function(cfunc)
 
-		citem = citem.it.to_specific_type
-		rv = self.handler(cfunc, citem)
-		if rv == 1:
+		if should_refresh == 1:
 			hx_view.refresh_view(1)
-		return rv
+		return should_refresh
 
-	def handler(self, cfunc, citem):
+	def handle_expr(self, cfunc, citem):
+		raise NotImplementedError()
+
+	def handle_lvar(self, cfunc, lvar_id):
+		raise NotImplementedError()
+
+	def handle_function(self, cfunc):
 		raise NotImplementedError()
 
 	def update(self, ctx):
@@ -50,7 +68,7 @@ class HRActionHandler(idaapi.action_handler_t):
 
 
 class VtableMaker(HRActionHandler):
-	def handler(self, cfunc, citem):
+	def handl_expr(self, cfunc, citem):
 		intval = p_hrays.get_int(citem)
 		if intval is None:
 			print("Failed to get int value")
@@ -66,13 +84,13 @@ class VtableMaker(HRActionHandler):
 
 
 class StructMaker(HRActionHandler):
-	def handler(self, cfunc, citem):
-		if citem.op != idaapi.cot_var:
-			print("no variable found under cursor")
-			return 0
+	def handle_expr(self, cfunc, citem):
+		if citem.op == idaapi.cot_var:
+			phrank_api.analyze_variable(cfunc, citem.v.idx)
+			return 1
 
-		phrank_api.analyze_variable(cfunc, citem.v.idx)
-		return 1
+		print("unknown citem under cursor", citem.opname)
+		return 0
 
 
 # will create vtable structure from the address calculated from int cexpr value
