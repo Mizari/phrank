@@ -74,18 +74,22 @@ class VtableMaker(HRActionHandler):
 			print("Failed to get int value")
 			return 0
 
-		vtbl = phrank_api.create_vtable(intval)
+		vtbl_analyzer = phrank_api.VtableAnalyzer()
+		vtbl = vtbl_analyzer.analyze_gvar(intval)
+		vtbl_analyzer.apply_analysis()
 		if vtbl is None:
 			print("failed to create vtable at", hex(intval))
 			return 0
 		else:
-			print("successfully created vtable", vtbl.get_name(), "at", hex(intval))
+			print("successfully created vtable", vtbl, "at", hex(intval))
 			return 1
 
 
 class StructMaker(HRActionHandler):
 	def handle_function(self, cfunc):
-		phrank_api.analyze_function(cfunc)
+		struct_analyzer = phrank_api.StructAnalyzer()
+		struct_analyzer.analyze_function(cfunc.entry_ea)
+		struct_analyzer.apply_analysis()
 		return 1
 
 	def handle_lvar(self, cfunc, lvar_id):
