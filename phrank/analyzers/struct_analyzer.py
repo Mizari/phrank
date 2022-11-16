@@ -167,8 +167,6 @@ class StructAnalyzer(TypeAnalyzer):
 				return None
 
 			actual_type = util_aux.addr2tif(cexpr.obj_ea)
-			if actual_type is None:
-				print("actial none", hex(cexpr.obj_ea))
 			if actual_type is None or actual_type.is_array():
 				gvar_type.create_ptr(gvar_type)
 			return gvar_type
