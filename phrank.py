@@ -89,13 +89,23 @@ class StructMaker(HRActionHandler):
 		return 1
 
 	def handle_lvar(self, cfunc, lvar_id):
-		phrank_api.analyze_variable(cfunc, lvar_id)
+		struct_analyzer = phrank_api.StructAnalyzer()
+		struct_analyzer.analyze_lvar(cfunc.entry_ea, lvar_id)
+		struct_analyzer.apply_analysis()
 		return 1
 
 	def handle_expr(self, cfunc, citem):
-		if citem.op == idaapi.cot_var:
-			phrank_api.analyze_variable(cfunc, citem.v.idx)
+		if citem.op == idaapi.cot_cast:
+			citem = citem.x
+
+		if citem.op == idaapi.cot_obj:
+			struct_analyzer = phrank_api.StructAnalyzer()
+			struct_analyzer.analyze_gvar(citem.obj_ea)
+			struct_analyzer.apply_analysis()
 			return 1
+
+		if citem.op == idaapi.cot_var:
+			return self.handle_lvar(cfunc, citem.v.idx)
 
 		print("unknown citem under cursor", citem.opname)
 		return 0
