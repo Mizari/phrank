@@ -3,7 +3,7 @@ import idc
 import idautils
 import re
 
-import phrank.util_aux as util_aux
+import phrank.utils as utils
 
 from phrank.ast_analyzer import ASTAnalyzer, ASTAnalysis
 from phrank.cfunction_factory import CFunctionFactory
@@ -111,7 +111,7 @@ class FunctionManager:
 
 	def set_arg_type(self, func_ea: int, arg_id, arg_type):
 		if isinstance(arg_type, str):
-			arg_type = util_aux.str2tif(arg_type)
+			arg_type = utils.str2tif(arg_type)
 
 		func_details = self.get_func_details(func_ea)
 		if func_details is None:
@@ -142,7 +142,7 @@ class FunctionManager:
 			return tif
 
 		if is_movrax_ret(func_ea):
-			tif = util_aux.get_voidfunc_tinfo()
+			tif = utils.get_voidfunc_tinfo()
 			if tif.is_correct():
 				return tif
 

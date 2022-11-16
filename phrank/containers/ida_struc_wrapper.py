@@ -2,7 +2,7 @@ import idaapi
 import idc
 import ida_struct
 
-import phrank.util_aux as util_aux
+import phrank.utils as utils
 
 
 def handle_addstrucmember_ret(ret):
@@ -40,10 +40,10 @@ class IdaStrucWrapper(object):
 			return struc_locator
 
 		elif isinstance(struc_locator, str):
-			return util_aux.str2strucid(struc_locator)
+			return utils.str2strucid(struc_locator)
 
 		elif isinstance(struc_locator, idaapi.tinfo_t):
-			return util_aux.tif2strucid(struc_locator)
+			return utils.tif2strucid(struc_locator)
 
 		else:
 			raise TypeError()
@@ -177,7 +177,7 @@ class IdaStrucWrapper(object):
 	def append_member(self, name, member_type, member_comment=None):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
 		size = member_type.get_size()
-		ret = idc.add_struc_member(self.strucid, name, -1, util_aux.size2dataflags(size), -1, size)
+		ret = idc.add_struc_member(self.strucid, name, -1, utils.size2dataflags(size), -1, size)
 		handle_addstrucmember_ret(ret)
 		offset = self.get_size() - size
 		self.set_member_type(offset, member_type)

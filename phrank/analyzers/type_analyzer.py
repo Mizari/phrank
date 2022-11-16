@@ -3,7 +3,7 @@ import idaapi
 
 from phrank.containers.ida_struc_wrapper import IdaStrucWrapper
 from phrank.function_manager import FunctionManager
-import phrank.util_aux as util_aux
+import phrank.utils as utils
 
 
 class TypeAnalyzer(FunctionManager):
@@ -32,7 +32,7 @@ class TypeAnalyzer(FunctionManager):
 		if gtype is not None:
 			return gtype
 
-		return util_aux.addr2tif(gvar_ea)
+		return utils.addr2tif(gvar_ea)
 
 	def clear_analysis(self):
 		# delete temporaly created new types

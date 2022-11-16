@@ -1,7 +1,7 @@
 import idaapi
 
 import phrank.phrank_settings as phrank_settings
-import phrank.util_aux as util_aux
+import phrank.utils as utils
 
 def should_skip_decompiling(func_ea):
 	fname = idaapi.get_name(func_ea)
@@ -37,7 +37,7 @@ class CFunctionFactory:
 			return cfunc
 
 		if self.decompile_recursively:
-			for subcall in util_aux.get_func_calls_from(func_ea):
+			for subcall in utils.get_func_calls_from(func_ea):
 				self.get_cfunc(subcall)
 
 		try:
@@ -55,6 +55,6 @@ class CFunctionFactory:
 	def decompile_all(self):
 		saved_decomp = self.decompile_recursively
 		self.decompile_recursively = True
-		for func_ea in util_aux.iterate_all_functions():
+		for func_ea in utils.iterate_all_functions():
 			self.get_cfunc(func_ea)
 		self.decompile_recursively = saved_decomp

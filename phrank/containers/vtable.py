@@ -3,7 +3,7 @@ import idautils
 import idc
 import ida_struct
 
-import phrank.util_aux as util_aux
+import phrank.utils as utils
 from phrank.containers.structure import Structure
 
 class Vtable(Structure):
@@ -18,14 +18,14 @@ class Vtable(Structure):
 		if addr_type is None:
 			return None
 
-		addr_tif = util_aux.str2tif(addr_type)
+		addr_tif = utils.str2tif(addr_type)
 		if addr_tif is None:
 			return None
 
 		if not Vtable.is_vtable(addr_tif):
 			return None
 
-		vtbl_strucid = util_aux.tif2strucid(addr_tif)
+		vtbl_strucid = utils.tif2strucid(addr_tif)
 		if vtbl_strucid == idaapi.BADADDR:
 			print("WARNING:", "failed to get strucid from vtbl tinfo")
 			return None
@@ -51,7 +51,7 @@ class Vtable(Structure):
 		if not vtbl_tif.is_struct():
 			return None
 
-		strucid = util_aux.tif2strucid(vtbl_tif)
+		strucid = utils.tif2strucid(vtbl_tif)
 		if strucid == idaapi.BADADDR:
 			return False
 
@@ -62,7 +62,7 @@ class Vtable(Structure):
 		if ida_struct.is_union(strucid):
 			return False
 
-		if ida_struct.get_struc_size(strucid) % util_aux.get_ptr_size() != 0:
+		if ida_struct.get_struc_size(strucid) % utils.get_ptr_size() != 0:
 			return False
 
 		# vtable has one data xref max
@@ -90,15 +90,15 @@ class Vtable(Structure):
 		if len([x for x in idautils.XrefsTo(addr)]) == 0:
 			return []
 
-		ptr_size = util_aux.get_ptr_size()
-		ptrs = [util_aux.read_ptr(addr)]
+		ptr_size = utils.get_ptr_size()
+		ptrs = [utils.read_ptr(addr)]
 		addr += ptr_size
 		while True:
 			# on next xref next vtable starts, vtables are used as pointers only
 			if len([x for x in idautils.XrefsTo(addr)]) != 0:
 				break
 
-			ptr = util_aux.read_ptr(addr)
+			ptr = utils.read_ptr(addr)
 			if not idaapi.is_loaded(ptr):
 				break
 
@@ -108,7 +108,7 @@ class Vtable(Structure):
 		if len(ptrs) < minsize:
 			return []
 
-		addrs, not_addrs = util_aux.split_list(ptrs, lambda x: util_aux.get_func_start(x) == x)
+		addrs, not_addrs = utils.split_list(ptrs, lambda x: utils.get_func_start(x) == x)
 		if len(addrs) == len(ptrs):
 			return ptrs
 

@@ -1,5 +1,5 @@
 import idaapi
-import phrank.util_aux as util_aux
+import phrank.utils as utils
 
 from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.containers.vtable import Vtable
@@ -11,7 +11,7 @@ class VtableAnalyzer(TypeAnalyzer):
 			return None
 
 		vtbl_name = "vtable_" + hex(addr)[2:]
-		vtbl_name = util_aux.get_next_available_strucname(vtbl_name)
+		vtbl_name = utils.get_next_available_strucname(vtbl_name)
 		vtbl = Vtable(struc_locator=vtbl_name)
 
 		for func_addr in vfcs:
@@ -24,7 +24,7 @@ class VtableAnalyzer(TypeAnalyzer):
 
 			func_ptr_tif = self.get_ptr_tinfo(func_addr)
 			if func_ptr_tif is None:
-				func_ptr_tif = util_aux.get_voidptr_tinfo()
+				func_ptr_tif = utils.get_voidptr_tinfo()
 
 			vtbl.append_member(member_name, func_ptr_tif, hex(func_addr))
 		return vtbl
@@ -54,11 +54,11 @@ class VtableAnalyzer(TypeAnalyzer):
 		return tif
 
 	def analyze_everything(self):
-		for segstart, segend in util_aux.iterate_segments():
+		for segstart, segend in utils.iterate_segments():
 			self.analyze_segment(segstart, segend)
 
 	def analyze_segment(self, segstart, segend):
-		ptr_size = util_aux.get_ptr_size()
+		ptr_size = utils.get_ptr_size()
 		while segstart < segend:
 			vtbl = self.analyze_gvar(segstart)
 			if vtbl is None:

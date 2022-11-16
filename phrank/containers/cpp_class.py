@@ -1,7 +1,6 @@
 import idaapi
 
-import phrank.util_aux as util_aux
-import phrank.util_ast as p_hrays
+import phrank.utils as utils
 
 from phrank.containers.structure import Structure
 from phrank.containers.vtables_union import VtablesUnion
@@ -90,7 +89,7 @@ class CppClass(Structure):
 			member_vtbl = Structure(name=member_vtbl)
 
 			vtbl_union_name = "vtables_union_0"
-			vtbl_union_name = util_aux.get_next_available_strucname(vtbl_union_name)
+			vtbl_union_name = utils.get_next_available_strucname(vtbl_union_name)
 			vu = VtablesUnion(name=vtbl_union_name)
 			# need to add vtbl to union first, otherwise ida cant set member type, because its size is 0
 			vu.add_vtable(vtbl)
@@ -131,7 +130,7 @@ class CDtor(object):
 
 		factory = VtableAnalyzer()
 		self._vtbl_writes = {}
-		for write in p_hrays.ASTAnalysis(addr=fea).get_writes_into_var(0):
+		for write in utils.ASTAnalysis(addr=fea).get_writes_into_var(0):
 			int_write_val = write.get_int()
 			if int_write_val is None:
 				continue

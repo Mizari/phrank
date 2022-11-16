@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import idaapi
 
-from phrank.util_ast import *
+from phrank.utils import VarWrite, ReturnWrapper, VarPtrWrite, VarAccess, FuncCall
 
 
 class ASTAnalysis():

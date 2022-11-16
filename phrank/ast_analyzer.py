@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import idaapi
 
-from phrank.util_ast import *
+from phrank.utils import get_var_offset, get_var_access, ReturnWrapper, \
+VarAccess, VarPtrWrite, VarWrite, get_var_write, FuncCall, get_varptr_write_offset
 from phrank.ast_analysis import ASTAnalysis
 
 

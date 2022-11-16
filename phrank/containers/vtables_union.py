@@ -5,7 +5,6 @@ import ida_struct
 from phrank.containers.union import Union
 from phrank.containers.vtable import Vtable
 
-import phrank.util_aux as util_aux
 
 class VtablesUnion(Union):
 	@staticmethod
