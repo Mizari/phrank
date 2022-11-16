@@ -35,6 +35,14 @@ def analyze_variable(cfunc, var):
 	struct_analyzer.analyze_lvar(cfunc.entry_ea, var)
 	struct_analyzer.apply_analysis()
 
+def analyze_function(cfunc):
+	"""
+	Analyzes a memory pointer in a variable.
+	"""
+	struct_analyzer = StructAnalyzer()
+	struct_analyzer.analyze_function(cfunc.entry_ea)
+	struct_analyzer.apply_analysis()
+
 def create_vtables():
 	vtbl_analyzer = VtableAnalyzer()
 	vtbl_analyzer.analyze_everything()

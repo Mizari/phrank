@@ -84,6 +84,14 @@ class VtableMaker(HRActionHandler):
 
 
 class StructMaker(HRActionHandler):
+	def handle_function(self, cfunc):
+		phrank_api.analyze_function(cfunc)
+		return 1
+
+	def handle_lvar(self, cfunc, lvar_id):
+		phrank_api.analyze_variable(cfunc, lvar_id)
+		return 1
+
 	def handle_expr(self, cfunc, citem):
 		if citem.op == idaapi.cot_var:
 			phrank_api.analyze_variable(cfunc, citem.v.idx)
