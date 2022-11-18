@@ -71,12 +71,16 @@ class StructAnalyzer(TypeAnalyzer):
 				varid, offset = utils.get_var_offset(arg)
 				if varid != lvar_id or offset == 0: continue
 
+				# if helper function, then skip
 				if call_ea is None: continue
+
+				# type offset is used, member should exist
+				if not lvar_struct.member_exists(offset):
+					lvar_struct.add_member(offset)
+
 				arg_tinfo = self.analyze_lvar(call_ea, arg_id)
 				if arg_tinfo is None: continue
 
-				if not lvar_struct.member_exists(offset):
-					lvar_struct.add_member(offset)
 				lvar_struct.set_member_type(offset, arg_tinfo)
 
 	def calculate_passed_lvar_type(self, func_ea, lvar_id):
