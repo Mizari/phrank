@@ -39,7 +39,7 @@ class HRActionHandler(idaapi.action_handler_t):
 			lvar_id = get_lvar_id(cfunc, citem.l)
 			should_refresh = self.handle_lvar(cfunc, lvar_id)
 		elif citem.citype == idaapi.VDI_FUNC:
-			should_refresh = self.handle_function(cfunc)
+			should_refresh = self.handle_function(cfunc.entry_ea)
 
 		if should_refresh == 1:
 			hx_view.refresh_view(1)
@@ -86,9 +86,9 @@ class VtableMaker(HRActionHandler):
 
 
 class StructMaker(HRActionHandler):
-	def handle_function(self, cfunc):
+	def handle_function(self, func_ea):
 		struct_analyzer = phrank_api.StructAnalyzer()
-		struct_analyzer.analyze_function(cfunc.entry_ea)
+		struct_analyzer.analyze_function(func_ea)
 		struct_analyzer.apply_analysis()
 		return 1
 
@@ -103,10 +103,16 @@ class StructMaker(HRActionHandler):
 			citem = citem.x
 
 		if citem.op == idaapi.cot_obj:
+			if phrank_api.is_func_start(citem.obj_ea):
+				return self.handle_function(citem.obj_ea)
+
 			struct_analyzer = phrank_api.StructAnalyzer()
 			struct_analyzer.analyze_gvar(citem.obj_ea)
 			struct_analyzer.apply_analysis()
 			return 1
+
+		if citem.op == idaapi.cot_call and citem.x.op == idaapi.cot_obj:
+			return self.handle_function(citem.x.obj_ea)
 
 		if citem.op == idaapi.cot_var:
 			return self.handle_lvar(cfunc, citem.v.idx)
