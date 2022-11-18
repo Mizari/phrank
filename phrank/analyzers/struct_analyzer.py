@@ -255,7 +255,7 @@ class StructAnalyzer(TypeAnalyzer):
 		for call_from_ea in utils.get_func_calls_from(func_ea):
 			self.analyze_function(call_from_ea)
 
-		for i in self.get_lvars_counter(func_ea):
+		for i in range(self.get_lvars_counter(func_ea)):
 			self.analyze_lvar(func_ea, i)
 
 		self.analyze_retval(func_ea)
