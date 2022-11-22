@@ -81,6 +81,8 @@ class StructAnalyzer(TypeAnalyzer):
 				arg_tinfo = self.analyze_lvar(call_ea, arg_id)
 				if arg_tinfo is None: continue
 
+				if arg_tinfo.is_ptr() and offset != 0:
+					arg_tinfo = arg_tinfo.get_pointed_object()
 				lvar_struct.set_member_type(offset, arg_tinfo)
 
 	def calculate_passed_lvar_type(self, func_ea, lvar_id):
