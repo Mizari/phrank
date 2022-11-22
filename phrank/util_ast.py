@@ -16,10 +16,15 @@ PRINTF_FUNCS.update(['_' + s for s in PRINTF_FUNCS])
 HELPER_FUNCS = {"LOWORD", "HIWORD", "LOBYTE"}
 
 
-def strip_casts(func):
+
+def strip_casts(expr):
+	while expr.op == idaapi.cot_cast:
+		expr = expr.x
+	return expr
+
+def _strip_casts(func):
 	def wrapper(expr):
-		while expr.op == idaapi.cot_cast:
-			expr = expr.x
+		expr = strip_casts(expr)
 		return func(expr)
 	return wrapper
 
@@ -40,7 +45,7 @@ def get_var_write(expr):
 
 	return -1
 
-@strip_casts
+@_strip_casts
 def get_var_access(expr):
 	if expr.op == idaapi.cot_memptr and expr.x.op == idaapi.cot_var:
 		return expr.x.v.idx, expr.m + expr.x.type.get_size()
@@ -76,7 +81,7 @@ def get_varptr_write_offset(expr):
 # trying to get various forms of "var + X", where X is int
 # not found is (-1, None) since there are no such local variables
 # with negative id, and there CAN be negative offset
-@strip_casts
+@_strip_casts
 def get_var_offset(expr):
 	if expr.op == idaapi.cot_var:
 		return expr.v.idx, 0
@@ -110,7 +115,7 @@ def get_var_offset(expr):
 	else:
 		return -1, None
 
-@strip_casts
+@_strip_casts
 def get_int(expr):
 	if expr.op == idaapi.cot_ref and expr.x.op == idaapi.cot_obj:
 		return expr.x.obj_ea
