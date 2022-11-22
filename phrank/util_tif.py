@@ -22,7 +22,7 @@ def tif2strucid(tif):
 	if tif.is_struct():
 		return str2strucid(str(tif))
 
-	if tif.is_int() or tif.is_void():
+	if not tif.is_correct() or tif.is_int() or tif.is_void():
 		return idaapi.BADADDR
 
 	print("ERROR:", "unknown tinfo2strucid", tif)
