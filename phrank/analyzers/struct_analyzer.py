@@ -61,7 +61,7 @@ class StructAnalyzer(TypeAnalyzer):
 			# write exists, just type is unknown. will use simple int instead
 			if write_type is None:
 				write_type = utils.get_int_tinfo(var_write.val.type.get_size())
-			if lvar_struct.get_member_tinfo(write_offset) is None:
+			if not lvar_struct.member_exists(write_offset):
 				lvar_struct.add_member(write_offset)
 			lvar_struct.set_member_type(write_offset, write_type)
 
