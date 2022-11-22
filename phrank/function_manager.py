@@ -43,12 +43,20 @@ class FunctionManager:
 			cfunc_factory = CFunctionFactory()
 		self.func_factory = cfunc_factory
 		self.ast_analyzer = ASTAnalyzer()
+		self.ast_analysis_cache = {}
 
 	def get_ast_analysis(self, func_ea: int) -> ASTAnalysis:
+		cached = self.ast_analysis_cache.get(func_ea)
+		if cached is not None:
+			return cached
+
 		cfunc = self.get_cfunc(func_ea)
 		if cfunc is None:
-			return ASTAnalysis()
-		return self.ast_analyzer.analyze_cfunc(cfunc)
+			analysis = ASTAnalysis()
+		else:
+			analysis = self.ast_analyzer.analyze_cfunc(cfunc)
+		self.ast_analysis_cache[func_ea] = analysis
+		return analysis
 
 	def get_cfunc(self, func_ea):
 		return self.func_factory.get_cfunc(func_ea)
