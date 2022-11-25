@@ -100,32 +100,38 @@ class StructAnalyzer(TypeAnalyzer):
 				write_type.create_ptr(write_type)
 				return write_type
 
-			# multiple writes is complex type
+			# multiple writes or write to not 0 is a complex type
 			# TODO check if all writes are to the same offset
 			# TODO check if all writes are actually array writes at various offsets
 			else:
 				return None
 
-		func_aa = self.get_ast_analysis(func_ea)
-		offset0_lvar_passes = []
-		for func_call in func_aa.get_calls():
-			call_ea = func_call.get_ea()
-			if call_ea is None: continue
-			for arg_id, arg in enumerate(func_call.get_args()):
-				varid, offset = utils.get_var_offset(arg)
-				if varid != lvar_id or offset != 0: continue
-				new_lvar_tinfo = self.analyze_lvar(call_ea, arg_id)
-				if new_lvar_tinfo is None: continue
-				offset0_lvar_passes.append(new_lvar_tinfo)
+		if len(writes) == 0:
+			if len(casts) == 1:
+				# simple variable passing does not create new type
+				if casts[0][0] == 0:
+					return casts[0][1]
 
-		if len(offset0_lvar_passes) > 1:
-			print("WARNING:", "multiple different types found for one local variable")
-			print("WARNING:", "not implemented, will just use random one")
+				# single cast at non-zero offset is a complex type
+				else:
+					return None
 
-		if len(offset0_lvar_passes) > 0:
-			return offset0_lvar_passes[0]
-		else:
-			return None
+			# only passes of lvar to other functions, without creating new type here
+			# writes that do not go out of the bounds of passed types is OK
+			else:
+				# if casts are of different types, then type is complex
+				first_cast_type = casts[0][1]
+				for _, cast_type in casts[1:]:
+					if cast_type != first_cast_type:
+						return None
+
+				# TODO check if multiple cast at single offset
+				# TODO if offsets are not continous, then type is complex
+				# otherwise return array of cast types
+				return None
+
+		# TODO writes+casts
+		return None
 
 	def calculate_new_lvar_type(self, func_ea, lvar_id, struc_tinfo):
 		func_aa = self.get_ast_analysis(func_ea)
