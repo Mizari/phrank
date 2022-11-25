@@ -89,16 +89,22 @@ class StructAnalyzer(TypeAnalyzer):
 				lvar_struct.add_member(offset)
 			lvar_struct.set_member_type(offset, arg_tinfo)
 
-	def calculate_lvar_type_by_uses(self, func_ea, lvar_id):
+	def analyze_existing_lvar_type_by_uses(self, func_ea, lvar_id):
 		writes = [w for w in self.get_lvar_writes(func_ea, lvar_id)]
 		casts = [c for c in self.get_lvar_call_arg_casts(func_ea, lvar_id)]
 
-		# single write at offset 0 does not create new type
-		if len(writes) == 1 and len(casts) == 0 and writes[0][0] == 0:
-			write_offset, write_type = writes[0]
-			print("single write at offset 0 in", idaapi.get_name(func_ea), write_type)
-			write_type.create_ptr(write_type)
-			return write_type
+		if len(casts) == 0:
+			# single write at offset 0 does not create new type
+			if len(writes) == 1 and writes[0][0] == 0:
+				_, write_type = writes[0]
+				write_type.create_ptr(write_type)
+				return write_type
+
+			# multiple writes is complex type
+			# TODO check if all writes are to the same offset
+			# TODO check if all writes are actually array writes at various offsets
+			else:
+				return None
 
 		func_aa = self.get_ast_analysis(func_ea)
 		offset0_lvar_passes = []
@@ -197,7 +203,7 @@ class StructAnalyzer(TypeAnalyzer):
 		print("WARNING:", "unknown cexpr value", cexpr.opname)
 		return None
 
-	def calculate_assigned_lvar_type(self, func_ea, lvar_id):
+	def analyze_existing_lvar_type_by_assigns(self, func_ea, lvar_id):
 		func_aa = self.get_ast_analysis(func_ea)
 		assigns = []
 		for wr in func_aa.var_writes():
@@ -225,9 +231,9 @@ class StructAnalyzer(TypeAnalyzer):
 			# TODO check correctness of writes, read, casts
 			return lvar_tinfo
 
-		lvar_tinfo = self.calculate_assigned_lvar_type(func_ea, lvar_id)
+		lvar_tinfo = self.analyze_existing_lvar_type_by_assigns(func_ea, lvar_id)
 		if lvar_tinfo is None:
-			lvar_tinfo = self.calculate_lvar_type_by_uses(func_ea, lvar_id)
+			lvar_tinfo = self.analyze_existing_lvar_type_by_uses(func_ea, lvar_id)
 
 		if lvar_tinfo is not None:
 			# TODO check correctness of writes, read, casts
