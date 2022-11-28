@@ -1,6 +1,13 @@
 import idaapi
 import idc
 
+VOIDPTR_TIF = idaapi.tinfo_t()
+idaapi.parse_decl(VOIDPTR_TIF, idaapi.get_idati(), "void*;", 0)
+assert VOIDPTR_TIF.is_correct()
+
+VOID_FUNC_TIF = idaapi.tinfo_t()
+idaapi.parse_decl(VOID_FUNC_TIF, idaapi.get_idati(), "__int64 (*)();", 0)
+assert VOID_FUNC_TIF.is_correct()
 
 def str2strucid(s):
 	if s.startswith("struct "):
@@ -57,19 +64,6 @@ def get_int_tinfo(size=1):
 		idaapi.parse_decl(char_tinfo, idaapi.get_idati(), "unsigned char;", 0)
 	assert char_tinfo.is_correct()
 	return char_tinfo
-
-def get_voidptr_tinfo():
-	voidptr_tinfo = idaapi.tinfo_t()
-	idaapi.parse_decl(voidptr_tinfo, idaapi.get_idati(), "void*;", 0)
-	assert voidptr_tinfo.is_correct()
-	return voidptr_tinfo
-
-def get_voidfunc_tinfo():
-	void_func = idaapi.tinfo_t()
-	idaapi.parse_decl(void_func, idaapi.get_idati(), "__int64 (*)();", 0)
-	assert void_func.is_correct()
-	return void_func
-
 
 # inner *__shifted(outer, offset)
 def make_shifted_ptr(outer, inner, offset):

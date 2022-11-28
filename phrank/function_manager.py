@@ -150,9 +150,7 @@ class FunctionManager:
 			return tif
 
 		if is_movrax_ret(func_ea):
-			tif = utils.get_voidfunc_tinfo()
-			if tif.is_correct():
-				return tif
+			return utils.VOID_FUNC_TIF.copy()
 
 		print("Failed to get tinfo for", hex(func_ea), get_funcname(func_ea))
 		return None

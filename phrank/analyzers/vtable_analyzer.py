@@ -24,7 +24,7 @@ class VtableAnalyzer(TypeAnalyzer):
 
 			func_ptr_tif = self.get_ptr_tinfo(func_addr)
 			if func_ptr_tif is None:
-				func_ptr_tif = utils.get_voidptr_tinfo()
+				func_ptr_tif = utils.VOIDPTR_TIF.copy()
 
 			vtbl.append_member(member_name, func_ptr_tif, hex(func_addr))
 		return vtbl
