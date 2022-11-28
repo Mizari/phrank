@@ -58,7 +58,9 @@ class TypeAnalyzer(FunctionManager):
 		for obj_ea, new_type_tif in self.gvar2tinfo.items():
 			if new_type_tif is utils.UNKNOWN_TYPE:
 				continue
-			idc.SetType(obj_ea, str(new_type_tif) + ';')
+			rv = idc.SetType(obj_ea, str(new_type_tif) + ';')
+			if rv == 0:
+				print("setting", hex(obj_ea), "to", new_type_tif, "failed")
 
 		self.new_xrefs.clear()
 		self.lvar2tinfo.clear()
