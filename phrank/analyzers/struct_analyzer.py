@@ -87,24 +87,6 @@ class StructAnalyzer(TypeAnalyzer):
 			return lvar_tinfo
 		return self.analyze_lvar(func_ea, lvar_id)
 
-	def calculate_lvar_type_usage(self, func_ea, lvar_id, lvar_struct: Structure):
-		var_size = self.get_var_use_size(func_ea, lvar_id)
-		lvar_struct.maximize_size(var_size)
-
-		for write_offset, write_type in self.get_lvar_writes(func_ea, lvar_id):
-			if not lvar_struct.member_exists(write_offset):
-				lvar_struct.add_member(write_offset)
-			lvar_struct.set_member_type(write_offset, write_type)
-
-		for offset, arg_tinfo in self.get_lvar_call_arg_casts(func_ea, lvar_id):
-			# cast exists, just type is unknown. will use simple int instead
-			if arg_tinfo is utils.UNKNOWN_TYPE:
-				arg_tinfo = utils.get_int_tinfo(1)
-
-			if not lvar_struct.member_exists(offset):
-				lvar_struct.add_member(offset)
-			lvar_struct.set_member_type(offset, arg_tinfo)
-
 	def analyze_existing_lvar_type_by_writes(self, func_ea, lvar_id):
 		writes = [w for w in self.get_lvar_writes(func_ea, lvar_id)]
 		# single write at offset 0 does not create new type
@@ -155,7 +137,7 @@ class StructAnalyzer(TypeAnalyzer):
 		# TODO writes+casts
 		return utils.UNKNOWN_TYPE
 
-	def calculate_new_lvar_type(self, func_ea, lvar_id, struc_tinfo):
+	def calculate_new_lvar_type(self, func_ea, lvar_id):
 		func_aa = self.get_ast_analysis(func_ea)
 
 		var_type = self.get_var_type(func_ea, lvar_id)
@@ -170,15 +152,24 @@ class StructAnalyzer(TypeAnalyzer):
 				if func_aa.count_writes_into_var(lvar_id) == 0:
 					return utils.UNKNOWN_TYPE
 				else:
+					lvar_struct = Structure()
+					self.new_types.append(lvar_struct.strucid)
+					struc_tinfo = lvar_struct.get_tinfo()
 					struc_tinfo.create_ptr(struc_tinfo)
 					return struc_tinfo
 
 			if pointed.is_struct():
+				lvar_struct = Structure()
+				self.new_types.append(lvar_struct.strucid)
+				struc_tinfo = lvar_struct.get_tinfo()
 				return struc_tinfo
 
 			elif pointed.is_void() or pointed.is_integral():
 				if func_aa.count_writes_into_var(lvar_id) == 0:
 					return utils.UNKNOWN_TYPE
+				lvar_struct = Structure()
+				self.new_types.append(lvar_struct.strucid)
+				struc_tinfo = lvar_struct.get_tinfo()
 				struc_tinfo.create_ptr(struc_tinfo)
 				return struc_tinfo
 
@@ -189,6 +180,9 @@ class StructAnalyzer(TypeAnalyzer):
 		elif var_type.is_void() or var_type.is_integral():
 			if func_aa.count_writes_into_var(lvar_id) == 0:
 				return utils.UNKNOWN_TYPE
+			lvar_struct = Structure()
+			self.new_types.append(lvar_struct.strucid)
+			struc_tinfo = lvar_struct.get_tinfo()
 			return struc_tinfo
 
 		else:
@@ -270,15 +264,34 @@ class StructAnalyzer(TypeAnalyzer):
 		return lvar_tinfo
 
 	def analyze_new_lvar_type(self, func_ea, lvar_id):
-		lvar_struct = Structure()
-		lvar_tinfo = self.calculate_new_lvar_type(func_ea, lvar_id, lvar_struct.get_tinfo())
+		lvar_tinfo = self.calculate_new_lvar_type(func_ea, lvar_id)
 		if lvar_tinfo is utils.UNKNOWN_TYPE:
-			lvar_struct.delete()
 			return utils.UNKNOWN_TYPE
-		else:
-			self.new_types.append(lvar_struct.strucid)
 
-		self.calculate_lvar_type_usage(func_ea, lvar_id, lvar_struct)
+		strucid = utils.tif2strucid(lvar_tinfo)
+		if strucid == idaapi.BADADDR:
+			return lvar_tinfo
+
+		lvar_struct = Structure(struc_locator=strucid)
+		self.new_types.append(strucid)
+
+		var_size = self.get_var_use_size(func_ea, lvar_id)
+		lvar_struct.maximize_size(var_size)
+
+		for write_offset, write_type in self.get_lvar_writes(func_ea, lvar_id):
+			if not lvar_struct.member_exists(write_offset):
+				lvar_struct.add_member(write_offset)
+			lvar_struct.set_member_type(write_offset, write_type)
+
+		for offset, arg_tinfo in self.get_lvar_call_arg_casts(func_ea, lvar_id):
+			# cast exists, just type is unknown. will use simple int instead
+			if arg_tinfo is utils.UNKNOWN_TYPE:
+				arg_tinfo = utils.get_int_tinfo(1)
+
+			if not lvar_struct.member_exists(offset):
+				lvar_struct.add_member(offset)
+			lvar_struct.set_member_type(offset, arg_tinfo)
+
 		return lvar_tinfo
 
 	def analyze_lvar(self, func_ea, lvar_id):
