@@ -288,6 +288,9 @@ class StructAnalyzer(TypeAnalyzer):
 			if arg_tinfo is utils.UNKNOWN_TYPE:
 				arg_tinfo = utils.get_int_tinfo(1)
 
+			if arg_tinfo.is_ptr():
+				arg_tinfo = arg_tinfo.get_pointed_object()
+
 			if not lvar_struct.member_exists(offset):
 				lvar_struct.add_member(offset)
 			lvar_struct.set_member_type(offset, arg_tinfo)
