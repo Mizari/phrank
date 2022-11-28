@@ -211,7 +211,9 @@ class StructAnalyzer(TypeAnalyzer):
 
 			actual_type = utils.addr2tif(cexpr.obj_ea)
 			if actual_type is None or actual_type.is_array():
-				gvar_type.create_ptr(gvar_type)
+				gvar_ptr_type = idaapi.tinfo_t()
+				gvar_ptr_type.create_ptr(gvar_type)
+				gvar_type = gvar_ptr_type
 			return gvar_type
 
 		if cexpr.op == idaapi.cot_ref and cexpr.x.op == idaapi.cot_obj and not utils.is_func_start(cexpr.x.obj_ea):
@@ -219,8 +221,9 @@ class StructAnalyzer(TypeAnalyzer):
 			if gvar_type is utils.UNKNOWN_TYPE:
 				return utils.UNKNOWN_TYPE
 
-			gvar_type.create_ptr(gvar_type)
-			return gvar_type
+			gvar_ptr_type = idaapi.tinfo_t()
+			gvar_ptr_type.create_ptr(gvar_type)
+			return gvar_ptr_type
 
 		print("WARNING:", "unknown cexpr value", cexpr.opname)
 		return utils.UNKNOWN_TYPE
