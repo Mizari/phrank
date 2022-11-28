@@ -97,46 +97,52 @@ class StructAnalyzer(TypeAnalyzer):
 				lvar_struct.add_member(offset)
 			lvar_struct.set_member_type(offset, arg_tinfo)
 
-	def analyze_existing_lvar_type_by_uses(self, func_ea, lvar_id):
+	def analyze_existing_lvar_type_by_writes(self, func_ea, lvar_id):
 		writes = [w for w in self.get_lvar_writes(func_ea, lvar_id)]
+		# single write at offset 0 does not create new type
+		if len(writes) == 1 and writes[0][0] == 0:
+			_, write_type = writes[0]
+			write_type.create_ptr(write_type)
+			return write_type
+
+		# multiple writes or write to not 0 is a complex type
+		# TODO check if all writes are to the same offset
+		# TODO check if all writes are actually array writes at various offsets
+		return utils.UNKNOWN_TYPE
+
+	def analyze_existing_lvar_type_by_casts(self, func_ea, lvar_id):
 		casts = [c for c in self.get_lvar_call_arg_casts(func_ea, lvar_id)]
+		if len(casts) == 1:
+			# simple variable passing does not create new type
+			if casts[0][0] == 0:
+				return casts[0][1]
 
-		if len(casts) == 0:
-			# single write at offset 0 does not create new type
-			if len(writes) == 1 and writes[0][0] == 0:
-				_, write_type = writes[0]
-				write_type.create_ptr(write_type)
-				return write_type
-
-			# multiple writes or write to not 0 is a complex type
-			# TODO check if all writes are to the same offset
-			# TODO check if all writes are actually array writes at various offsets
+			# single cast at non-zero offset is a complex type
 			else:
 				return utils.UNKNOWN_TYPE
 
-		if len(writes) == 0:
-			if len(casts) == 1:
-				# simple variable passing does not create new type
-				if casts[0][0] == 0:
-					return casts[0][1]
-
-				# single cast at non-zero offset is a complex type
-				else:
+		# only passes of lvar to other functions, without creating new type here
+		# writes that do not go out of the bounds of passed types is OK
+		else:
+			# if casts are of different types, then type is complex
+			first_cast_type = casts[0][1]
+			for _, cast_type in casts[1:]:
+				if cast_type != first_cast_type:
 					return utils.UNKNOWN_TYPE
 
-			# only passes of lvar to other functions, without creating new type here
-			# writes that do not go out of the bounds of passed types is OK
-			else:
-				# if casts are of different types, then type is complex
-				first_cast_type = casts[0][1]
-				for _, cast_type in casts[1:]:
-					if cast_type != first_cast_type:
-						return utils.UNKNOWN_TYPE
+			# TODO check if multiple cast at single offset
+			# TODO if offsets are not continous, then type is complex
+			# otherwise return array of cast types
+			return utils.UNKNOWN_TYPE
 
-				# TODO check if multiple cast at single offset
-				# TODO if offsets are not continous, then type is complex
-				# otherwise return array of cast types
-				return utils.UNKNOWN_TYPE
+	def analyze_existing_lvar_type_by_uses(self, func_ea, lvar_id):
+		casts = [c for c in self.get_lvar_call_arg_casts(func_ea, lvar_id)]
+		if len(casts) == 0:
+			return self.analyze_existing_lvar_type_by_writes(func_ea, lvar_id)
+
+		writes = [w for w in self.get_lvar_writes(func_ea, lvar_id)]
+		if len(writes) == 0:
+			return self.analyze_existing_lvar_type_by_casts(func_ea, lvar_id)
 
 		# TODO writes+casts
 		return utils.UNKNOWN_TYPE
