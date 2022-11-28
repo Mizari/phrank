@@ -16,7 +16,7 @@ def str2strucid(s):
 	return rv
 
 def tif2strucid(tif):
-	if tif.is_ptr():
+	while tif.is_ptr():
 		tif = tif.get_pointed_object()
 
 	if tif.is_struct():
