@@ -34,10 +34,12 @@ class StructAnalyzer(TypeAnalyzer):
 
 				# if helper function, then skip
 				if call_ea is None:
+					yield offset, utils.UNKNOWN_TYPE
 					continue
 
 				arg_tinfo = self.analyze_lvar(call_ea, arg_id)
 				if arg_tinfo is utils.UNKNOWN_TYPE:
+					yield offset, utils.UNKNOWN_TYPE
 					continue
 
 				if arg_tinfo.is_ptr() and offset != 0:
@@ -87,6 +89,10 @@ class StructAnalyzer(TypeAnalyzer):
 			lvar_struct.set_member_type(write_offset, write_type)
 
 		for offset, arg_tinfo in self.get_lvar_call_arg_casts(func_ea, lvar_id):
+			# cast exists, just type is unknown. will use simple int instead
+			if arg_tinfo is utils.UNKNOWN_TYPE:
+				arg_tinfo = utils.get_int_tinfo(1)
+
 			if not lvar_struct.member_exists(offset):
 				lvar_struct.add_member(offset)
 			lvar_struct.set_member_type(offset, arg_tinfo)
