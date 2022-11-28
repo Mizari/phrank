@@ -13,6 +13,14 @@ class StructAnalyzer(TypeAnalyzer):
 		self.analyzed_functions = set()
 		self.vtable_analyzer = VtableAnalyzer(func_factory)
 
+	def apply_analysis(self):
+		super().apply_analysis()
+		self.vtable_analyzer.apply_analysis()
+
+	def clear_analysis(self):
+		super().clear_analysis()
+		self.vtable_analyzer.clear_analysis()
+
 	def get_lvar_writes(self, func_ea, lvar_id):
 		func_aa = self.get_ast_analysis(func_ea)
 		for var_write in func_aa.get_writes_into_var(lvar_id):
