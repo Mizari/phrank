@@ -46,10 +46,11 @@ class VtableAnalyzer(TypeAnalyzer):
 
 		vtbl = self.create_vtable_at_address(gvar_ea)
 		if vtbl is None:
-			return None
+			tif = utils.UNKNOWN_TYPE
+		else:
+			self.new_types.append(vtbl.strucid)
+			tif = vtbl.get_tinfo()
 
-		self.new_types.append(vtbl.strucid)
-		tif = vtbl.get_tinfo()
 		self.gvar2tinfo[gvar_ea] = tif
 		return tif
 

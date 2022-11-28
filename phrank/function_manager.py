@@ -77,7 +77,7 @@ class FunctionManager:
 		cfunc = self.get_cfunc(func_ea)
 		if cfunc is None:
 			print("Failed to get variable type, because of decompilation failure in", get_funcname(func_ea))
-			return None
+			return utils.UNKNOWN_TYPE
 
 		var = cfunc.lvars[var_id]
 		return var.type()

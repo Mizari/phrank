@@ -9,6 +9,9 @@ VOID_FUNC_TIF = idaapi.tinfo_t()
 idaapi.parse_decl(VOID_FUNC_TIF, idaapi.get_idati(), "__int64 (*)();", 0)
 assert VOID_FUNC_TIF.is_correct()
 
+UNKNOWN_TYPE = idaapi.tinfo_t()
+
+
 def str2strucid(s):
 	if s.startswith("struct "):
 		s = s[7:]

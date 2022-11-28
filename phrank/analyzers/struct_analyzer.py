@@ -19,7 +19,7 @@ class StructAnalyzer(TypeAnalyzer):
 			write_offset = var_write.offset
 			write_type = self.analyze_cexpr(func_ea, var_write.val)
 			# write exists, just type is unknown. will use simple int instead
-			if write_type is None:
+			if write_type is utils.UNKNOWN_TYPE:
 				write_type = utils.get_int_tinfo(var_write.val.type.get_size())
 			yield write_offset, write_type
 
@@ -29,13 +29,16 @@ class StructAnalyzer(TypeAnalyzer):
 			call_ea = func_call.get_ea()
 			for arg_id, arg in enumerate(func_call.get_args()):
 				varid, offset = utils.get_var_offset(arg)
-				if varid != lvar_id: continue
+				if varid != lvar_id:
+					continue
 
 				# if helper function, then skip
-				if call_ea is None: continue
+				if call_ea is None:
+					continue
 
 				arg_tinfo = self.analyze_lvar(call_ea, arg_id)
-				if arg_tinfo is None: continue
+				if arg_tinfo is utils.UNKNOWN_TYPE:
+					continue
 
 				if arg_tinfo.is_ptr() and offset != 0:
 					arg_tinfo = arg_tinfo.get_pointed_object()
@@ -103,7 +106,7 @@ class StructAnalyzer(TypeAnalyzer):
 			# TODO check if all writes are to the same offset
 			# TODO check if all writes are actually array writes at various offsets
 			else:
-				return None
+				return utils.UNKNOWN_TYPE
 
 		if len(writes) == 0:
 			if len(casts) == 1:
@@ -113,7 +116,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 				# single cast at non-zero offset is a complex type
 				else:
-					return None
+					return utils.UNKNOWN_TYPE
 
 			# only passes of lvar to other functions, without creating new type here
 			# writes that do not go out of the bounds of passed types is OK
@@ -122,30 +125,30 @@ class StructAnalyzer(TypeAnalyzer):
 				first_cast_type = casts[0][1]
 				for _, cast_type in casts[1:]:
 					if cast_type != first_cast_type:
-						return None
+						return utils.UNKNOWN_TYPE
 
 				# TODO check if multiple cast at single offset
 				# TODO if offsets are not continous, then type is complex
 				# otherwise return array of cast types
-				return None
+				return utils.UNKNOWN_TYPE
 
 		# TODO writes+casts
-		return None
+		return utils.UNKNOWN_TYPE
 
 	def calculate_new_lvar_type(self, func_ea, lvar_id, struc_tinfo):
 		func_aa = self.get_ast_analysis(func_ea)
 
 		var_type = self.get_var_type(func_ea, lvar_id)
-		if var_type is None:
+		if var_type is utils.UNKNOWN_TYPE:
 			print("WARNING: unexpected variable type in", idaapi.get_name(func_ea), lvar_id)
-			return None
+			return utils.UNKNOWN_TYPE
 
 		if var_type.is_ptr():
 			pointed = var_type.get_pointed_object()
 
 			if not pointed.is_correct():
 				if func_aa.count_writes_into_var(lvar_id) == 0:
-					return None
+					return utils.UNKNOWN_TYPE
 				else:
 					struc_tinfo.create_ptr(struc_tinfo)
 					return struc_tinfo
@@ -155,29 +158,29 @@ class StructAnalyzer(TypeAnalyzer):
 
 			elif pointed.is_void() or pointed.is_integral():
 				if func_aa.count_writes_into_var(lvar_id) == 0:
-					return None
+					return utils.UNKNOWN_TYPE
 				struc_tinfo.create_ptr(struc_tinfo)
 				return struc_tinfo
 
 			else:
 				print("WARNING:", "unknown pointer tinfo", str(var_type), "in", idaapi.get_name(func_ea))
-				return None
+				return utils.UNKNOWN_TYPE
 
 		elif var_type.is_void() or var_type.is_integral():
 			if func_aa.count_writes_into_var(lvar_id) == 0:
-				return None
+				return utils.UNKNOWN_TYPE
 			return struc_tinfo
 
 		else:
 			print("WARNING:", "failed to create struct from tinfo", str(var_type), "in", idaapi.get_name(func_ea))
-			return None
+			return utils.UNKNOWN_TYPE
 
 	def analyze_gvar(self, gvar_ea):
 		vtbl = self.vtable_analyzer.analyze_gvar(gvar_ea)
-		if vtbl is not None:
+		if vtbl is not utils.UNKNOWN_TYPE:
 			return vtbl
 
-		return None
+		return utils.UNKNOWN_TYPE
 
 	def analyze_cexpr(self, func_ea, cexpr):
 		if cexpr.op == idaapi.cot_call:
@@ -189,8 +192,8 @@ class StructAnalyzer(TypeAnalyzer):
 
 		if cexpr.op == idaapi.cot_obj and not utils.is_func_start(cexpr.obj_ea):
 			gvar_type = self.analyze_gvar(cexpr.obj_ea)
-			if gvar_type is None:
-				return None
+			if gvar_type is utils.UNKNOWN_TYPE:
+				return utils.UNKNOWN_TYPE
 
 			actual_type = utils.addr2tif(cexpr.obj_ea)
 			if actual_type is None or actual_type.is_array():
@@ -199,14 +202,14 @@ class StructAnalyzer(TypeAnalyzer):
 
 		if cexpr.op == idaapi.cot_ref and cexpr.x.op == idaapi.cot_obj and not utils.is_func_start(cexpr.x.obj_ea):
 			gvar_type = self.analyze_gvar(cexpr.x.obj_ea)
-			if gvar_type is None:
-				return None
+			if gvar_type is utils.UNKNOWN_TYPE:
+				return utils.UNKNOWN_TYPE
 
 			gvar_type.create_ptr(gvar_type)
 			return gvar_type
 
 		print("WARNING:", "unknown cexpr value", cexpr.opname)
-		return None
+		return utils.UNKNOWN_TYPE
 
 	def analyze_existing_lvar_type_by_assigns(self, func_ea, lvar_id):
 		func_aa = self.get_ast_analysis(func_ea)
@@ -214,11 +217,11 @@ class StructAnalyzer(TypeAnalyzer):
 		for wr in func_aa.var_writes():
 			if wr.varid != lvar_id: continue
 			atype = self.analyze_cexpr(func_ea, wr.val)
-			if atype is not None:
+			if atype is not utils.UNKNOWN_TYPE:
 				assigns.append(atype)
 
 		if len(assigns) == 0:
-			return None
+			return utils.UNKNOWN_TYPE
 		elif len(assigns) == 1:
 			return assigns[0]
 
@@ -228,19 +231,19 @@ class StructAnalyzer(TypeAnalyzer):
 			return strucid_assigns[0]
 
 		print("WARNING:", "unknown assigned value in", idaapi.get_name(func_ea), "for", lvar_id)
-		return None
+		return utils.UNKNOWN_TYPE
 
 	def analyze_existing_lvar_type(self, func_ea, lvar_id):
 		lvar_tinfo = self.get_var_type(func_ea, lvar_id)
-		if lvar_tinfo is not None and utils.tif2strucid(lvar_tinfo) != idaapi.BADADDR:
+		if lvar_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(lvar_tinfo) != idaapi.BADADDR:
 			# TODO check correctness of writes, read, casts
 			return lvar_tinfo
 
 		lvar_tinfo = self.analyze_existing_lvar_type_by_assigns(func_ea, lvar_id)
-		if lvar_tinfo is None:
+		if lvar_tinfo is utils.UNKNOWN_TYPE:
 			lvar_tinfo = self.analyze_existing_lvar_type_by_uses(func_ea, lvar_id)
 
-		if lvar_tinfo is not None:
+		if lvar_tinfo is not utils.UNKNOWN_TYPE:
 			# TODO check correctness of writes, read, casts
 			pass
 
@@ -249,9 +252,9 @@ class StructAnalyzer(TypeAnalyzer):
 	def analyze_new_lvar_type(self, func_ea, lvar_id):
 		lvar_struct = Structure()
 		lvar_tinfo = self.calculate_new_lvar_type(func_ea, lvar_id, lvar_struct.get_tinfo())
-		if lvar_tinfo is None:
+		if lvar_tinfo is utils.UNKNOWN_TYPE:
 			lvar_struct.delete()
-			return None
+			return utils.UNKNOWN_TYPE
 		else:
 			self.new_types.append(lvar_struct.strucid)
 
@@ -264,11 +267,8 @@ class StructAnalyzer(TypeAnalyzer):
 			return current_lvar_tinfo
 
 		lvar_tinfo = self.analyze_existing_lvar_type(func_ea, lvar_id)
-		if lvar_tinfo is None:
+		if lvar_tinfo is utils.UNKNOWN_TYPE:
 			lvar_tinfo = self.analyze_new_lvar_type(func_ea, lvar_id)
-
-		if lvar_tinfo is None:
-			return None
 
 		self.lvar2tinfo[(func_ea, lvar_id)] = lvar_tinfo
 		return lvar_tinfo
@@ -284,7 +284,7 @@ class StructAnalyzer(TypeAnalyzer):
 			retval_lvar_id = lvs.pop()
 			return self.analyze_lvar(func_ea, retval_lvar_id)
 
-		return None
+		return utils.UNKNOWN_TYPE
 
 	def analyze_function(self, func_ea):
 		if func_ea in self.analyzed_functions:
