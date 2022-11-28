@@ -91,7 +91,6 @@ class StructAnalyzer(TypeAnalyzer):
 	def analyze_existing_lvar_type_by_uses(self, func_ea, lvar_id):
 		writes = [w for w in self.get_lvar_writes(func_ea, lvar_id)]
 		casts = [c for c in self.get_lvar_call_arg_casts(func_ea, lvar_id)]
-		print("analyzing existing by uses", idaapi.get_name(func_ea), len(writes), len(casts))
 
 		if len(casts) == 0:
 			# single write at offset 0 does not create new type
@@ -131,7 +130,6 @@ class StructAnalyzer(TypeAnalyzer):
 				return None
 
 		# TODO writes+casts
-		print("multiple in", idaapi.get_name(func_ea))
 		return None
 
 	def calculate_new_lvar_type(self, func_ea, lvar_id, struc_tinfo):
