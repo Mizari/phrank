@@ -134,7 +134,21 @@ class StructAnalyzer(TypeAnalyzer):
 		if len(writes) == 0:
 			return self.analyze_existing_lvar_type_by_casts(func_ea, lvar_id)
 
-		# TODO writes+casts
+		if len(casts) == 1:
+			cast_offset, cast_type = casts[0]
+			if cast_type.is_ptr():
+				cast_type = cast_type.get_pointed_object()
+			cast_end = cast_offset + cast_type.get_size()
+			if cast_offset == 0 and cast_type is not utils.UNKNOWN_TYPE:
+				for w in writes:
+					write_start, write_end = w[0], w[1].get_size()
+					if write_start < cast_offset or write_end > cast_end:
+						return utils.UNKNOWN_TYPE
+
+				cast_type.create_ptr(cast_type)
+				return cast_type
+
+		# TODO writes into array of one type casts, that start at offset 0
 		return utils.UNKNOWN_TYPE
 
 	def calculate_new_lvar_type(self, func_ea, lvar_id):
