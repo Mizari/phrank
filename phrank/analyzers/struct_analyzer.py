@@ -50,7 +50,8 @@ class StructAnalyzer(TypeAnalyzer):
 					yield offset, utils.UNKNOWN_TYPE
 					continue
 
-				if arg_tinfo.is_ptr() and offset != 0:
+				# TODO remove when proper type analysis by uses is implemented
+				if arg_tinfo.is_ptr():
 					arg_tinfo = arg_tinfo.get_pointed_object()
 
 				yield offset, arg_tinfo
@@ -152,13 +153,22 @@ class StructAnalyzer(TypeAnalyzer):
 		return utils.UNKNOWN_TYPE
 
 	def calculate_new_lvar_type(self, func_ea, lvar_id):
-		func_aa = self.get_ast_analysis(func_ea)
-
 		var_type = self.get_var_type(func_ea, lvar_id)
 		if var_type is utils.UNKNOWN_TYPE:
 			print("WARNING: unexpected variable type in", idaapi.get_name(func_ea), lvar_id)
 			return utils.UNKNOWN_TYPE
 
+		writes = [w for w in self.get_lvar_writes(func_ea, lvar_id)]
+		casts = [c for c in self.get_lvar_call_arg_casts(func_ea, lvar_id)]
+		if len(writes) == 0 and len(casts) == 0:
+			return utils.UNKNOWN_TYPE
+
+		lvar_struct = Structure()
+		self.new_types.append(lvar_struct.strucid)
+		struc_tinfo = lvar_struct.get_ptr_tinfo()
+		return struc_tinfo
+
+		"""
 		if var_type.is_ptr():
 			pointed = var_type.get_pointed_object()
 
@@ -168,8 +178,7 @@ class StructAnalyzer(TypeAnalyzer):
 				else:
 					lvar_struct = Structure()
 					self.new_types.append(lvar_struct.strucid)
-					struc_tinfo = lvar_struct.get_tinfo()
-					struc_tinfo.create_ptr(struc_tinfo)
+					struc_tinfo = lvar_struct.get_ptr_tinfo()
 					return struc_tinfo
 
 			if pointed.is_struct():
@@ -183,8 +192,7 @@ class StructAnalyzer(TypeAnalyzer):
 					return utils.UNKNOWN_TYPE
 				lvar_struct = Structure()
 				self.new_types.append(lvar_struct.strucid)
-				struc_tinfo = lvar_struct.get_tinfo()
-				struc_tinfo.create_ptr(struc_tinfo)
+				struc_tinfo = lvar_struct.get_ptr_tinfo()
 				return struc_tinfo
 
 			else:
@@ -202,6 +210,7 @@ class StructAnalyzer(TypeAnalyzer):
 		else:
 			print("WARNING:", "failed to create struct from tinfo", str(var_type), "in", idaapi.get_name(func_ea))
 			return utils.UNKNOWN_TYPE
+		"""
 
 	def analyze_gvar(self, gvar_ea):
 		vtbl = self.vtable_analyzer.analyze_gvar(gvar_ea)
@@ -288,7 +297,9 @@ class StructAnalyzer(TypeAnalyzer):
 		return lvar_tinfo
 
 	def analyze_new_lvar_type(self, func_ea, lvar_id):
+		print("calculating new", idaapi.get_name(func_ea))
 		lvar_tinfo = self.calculate_new_lvar_type(func_ea, lvar_id)
+		print("new type", lvar_tinfo)
 		if lvar_tinfo is utils.UNKNOWN_TYPE:
 			return utils.UNKNOWN_TYPE
 
@@ -300,6 +311,7 @@ class StructAnalyzer(TypeAnalyzer):
 		self.new_types.append(strucid)
 
 		var_size = self.get_var_use_size(func_ea, lvar_id)
+		print("var size", var_size)
 		lvar_struct.maximize_size(var_size)
 
 		for write_offset, write_type in self.get_lvar_writes(func_ea, lvar_id):
