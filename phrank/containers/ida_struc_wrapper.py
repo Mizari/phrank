@@ -183,8 +183,3 @@ class IdaStrucWrapper(object):
 		self.set_member_type(offset, member_type)
 		if member_comment is not None:
 			self.set_member_comment(offset, member_comment)
-
-	def add_member_type(self, offset, member_type):
-		if not self.member_exists(offset):
-			self.add_member(offset)
-		self.set_member_type(offset, member_type)
