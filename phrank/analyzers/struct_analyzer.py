@@ -275,8 +275,17 @@ class StructAnalyzer(TypeAnalyzer):
 			lvar_tinfo = self.analyze_existing_lvar_type_by_uses(func_ea, lvar_id)
 
 		if lvar_tinfo is not utils.UNKNOWN_TYPE:
+			strucid = utils.tif2strucid(lvar_tinfo)
+			if strucid == idaapi.BADADDR:
+				return lvar_tinfo
+
+			lvar_struct = Structure(struc_locator=strucid)
+			for write_offset, write_type in self.get_lvar_writes(func_ea, lvar_id):
+				if not lvar_struct.member_exists(write_offset):
+					lvar_struct.add_member(write_offset)
+					lvar_struct.set_member_type(write_offset, write_type)
+
 			# TODO check correctness of writes, read, casts
-			pass
 
 		return lvar_tinfo
 
