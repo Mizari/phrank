@@ -124,23 +124,30 @@ class Structure(IdaStrucWrapper):
 		return retval
 
 	def get_next_member_offset(self, offset):
-		for o in self.member_offsets():
-			if o > offset:
-				return o
-		return -1
+		if offset < 0 or offset > self.get_size():
+			return -1
+
+		sptr = ida_struct.get_struc(self.strucid)
+		offset = ida_struct.get_struc_next_offset(sptr, offset)
+		while offset != idaapi.BADADDR and not self.get_member_name(offset):
+			offset = ida_struct.get_struc_next_offset(sptr, offset)
+
+		if offset == idaapi.BADADDR:
+			offset = -1
+		return offset
 
 	def get_member_start(self, offset):
-		last_offset = 0xffffffffffffffff
-		for o in self.member_offsets():
-			if o == offset:
-				return o
-			elif o > offset:
-				return last_offset
-			last_offset = o
-		return last_offset
+		if offset < 0 or offset > self.get_size():
+			return -1
+
+		sptr = ida_struct.get_struc(self.strucid)
+		member = ida_struct.get_member(sptr, offset)
+		if member is None:
+			return -1
+		return member.soff
 
 	def is_member_start(self, offset):
-		for o in self.member_offsets():
-			if o == offset:
-				return True
-		return False
+		if offset < 0 or offset > self.get_size():
+			return False
+
+		return offset == self.get_member_start(offset)

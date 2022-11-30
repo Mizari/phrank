@@ -133,14 +133,15 @@ class IdaStrucWrapper(object):
 			print("Failed to set member name " + str(member_name) + " in " + self.get_name() + ' ' + hex(member_offset))
 		return rv
 
-	def member_offsets(self):
-		member_offset = idc.get_first_member(self.strucid)
-		while member_offset != idaapi.BADADDR:
-			if member_offset >= self.get_size(): 
-				return
-
-			yield member_offset
-			member_offset = idc.get_next_offset(self.strucid, member_offset)
+	def member_offsets(self, skip_holes=True):
+		sptr = ida_struct.get_struc(self.strucid)
+		off = ida_struct.get_struc_first_offset(sptr)
+		while off != idaapi.BADADDR:
+			if skip_holes and not self.get_member_name(off):
+				off = ida_struct.get_struc_next_offset(sptr, off)
+			else:
+				yield off
+				off = ida_struct.get_struc_next_offset(sptr, off)
 
 	def unset_members(self, offset_from, unset_size):
 		unset_offsets = []
