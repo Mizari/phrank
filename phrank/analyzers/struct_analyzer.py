@@ -20,10 +20,14 @@ class StructAnalyzer(TypeAnalyzer):
 	def add_member_type(self, strucid, offset, member_type):
 		lvar_struct = Structure(struc_locator=strucid)
 
-		next_member_offset = lvar_struct.get_next_member_offset(offset)
-		if next_member_offset != -1 and offset + member_type.get_size() > next_member_offset:
-			print("WARNING:", "changing type overwrites next field, skipping")
-			return
+		next_offset = lvar_struct.get_next_member_offset(offset)
+		if next_offset != -1 and offset + member_type.get_size() > next_offset:
+			# TODO remove when struct sizes are remembered
+			# currently struct size is set by adding 1byte int at the end
+			# if that is the case, then allow member type setting
+			if lvar_struct.get_member_size(next_offset) != 1 or lvar_struct.get_size() != next_offset + 1:
+				print("WARNING:", "changing type overwrites next field, skipping")
+				return
 
 		if not lvar_struct.member_exists(offset):
 			lvar_struct.add_member(offset)
