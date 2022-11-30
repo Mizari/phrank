@@ -26,7 +26,13 @@ class StructAnalyzer(TypeAnalyzer):
 			# currently struct size is set by adding 1byte int at the end
 			# if that is the case, then allow member type setting
 			if lvar_struct.get_member_size(next_offset) != 1 or lvar_struct.get_size() != next_offset + 1:
-				print("WARNING:", "changing type overwrites next field, skipping")
+				print(
+					"WARNING:", "changing type overwrites next field, skipping",
+					lvar_struct.get_name(),
+					hex(offset),
+					str(member_type),
+					member_type.get_size()
+				)
 				return
 
 		if not lvar_struct.member_exists(offset):
