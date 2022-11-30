@@ -123,7 +123,24 @@ class Structure(IdaStrucWrapper):
 
 		return retval
 
-	def add_member_type(self, offset, member_type):
-		if self.member_exists(offset):
-			self.add_member(offset)
-		self.set_member_type(offset, member_type)
+	def get_next_member_offset(self, offset):
+		for o in self.member_offsets():
+			if o > offset:
+				return o
+		return -1
+
+	def get_member_start(self, offset):
+		last_offset = 0xffffffffffffffff
+		for o in self.member_offsets():
+			if o == offset:
+				return o
+			elif o > offset:
+				return last_offset
+			last_offset = o
+		return last_offset
+
+	def is_member_start(self, offset):
+		for o in self.member_offsets():
+			if o == offset:
+				return True
+		return False

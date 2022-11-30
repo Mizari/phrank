@@ -13,6 +13,34 @@ class StructAnalyzer(TypeAnalyzer):
 		self.analyzed_functions = set()
 		self.vtable_analyzer = VtableAnalyzer(func_factory)
 
+	def set_size(self, strucid, size):
+		lvar_struct = Structure(struc_locator=strucid)
+		lvar_struct.maximize_size(size)
+
+	def add_member_type(self, strucid, offset, member_type):
+		lvar_struct = Structure(struc_locator=strucid)
+
+		next_member_offset = lvar_struct.get_next_member_offset(offset)
+		if next_member_offset != -1 and offset + member_type.get_size() > next_member_offset:
+			print("WARNING:", "changing type overwrites next field, skipping")
+			return
+
+		if not lvar_struct.member_exists(offset):
+			lvar_struct.add_member(offset)
+			lvar_struct.set_member_type(offset, member_type)
+			return
+
+		member_offset = lvar_struct.get_member_start(offset)
+		current_type = lvar_struct.get_member_tinfo(offset)
+		if  current_type is not None and \
+			current_type.is_struct() and \
+			current_type.get_size() > member_type.get_size():
+
+			strucid = utils.tif2strucid(current_type)
+			self.add_member_type(strucid, offset - member_offset, member_type)
+		else:
+			lvar_struct.set_member_type(offset, member_type)
+
 	def apply_analysis(self):
 		super().apply_analysis()
 		self.vtable_analyzer.apply_analysis()
@@ -288,18 +316,15 @@ class StructAnalyzer(TypeAnalyzer):
 			if strucid == idaapi.BADADDR:
 				return lvar_tinfo
 
-			lvar_struct = Structure(struc_locator=strucid)
 			for write_offset, write_type in self.get_lvar_writes(func_ea, lvar_id):
-				lvar_struct.add_member_type(write_offset, write_type)
+				self.add_member_type(strucid, write_offset, write_type)
 
 			# TODO check correctness of writes, read, casts
 
 		return lvar_tinfo
 
 	def analyze_new_lvar_type(self, func_ea, lvar_id):
-		print("calculating new", idaapi.get_name(func_ea))
 		lvar_tinfo = self.calculate_new_lvar_type(func_ea, lvar_id)
-		print("new type", lvar_tinfo)
 		if lvar_tinfo is utils.UNKNOWN_TYPE:
 			return utils.UNKNOWN_TYPE
 
@@ -307,15 +332,11 @@ class StructAnalyzer(TypeAnalyzer):
 		if strucid == idaapi.BADADDR:
 			return lvar_tinfo
 
-		lvar_struct = Structure(struc_locator=strucid)
-		self.new_types.append(strucid)
-
 		var_size = self.get_var_use_size(func_ea, lvar_id)
-		print("var size", var_size)
-		lvar_struct.maximize_size(var_size)
+		self.set_size(strucid, var_size)
 
 		for write_offset, write_type in self.get_lvar_writes(func_ea, lvar_id):
-			lvar_struct.add_member_type(write_offset, write_type)
+			self.add_member_type(strucid, write_offset, write_type)
 
 		for offset, arg_tinfo in self.get_lvar_call_arg_casts(func_ea, lvar_id):
 			# cast exists, just type is unknown. will use simple int instead
@@ -325,7 +346,7 @@ class StructAnalyzer(TypeAnalyzer):
 			if arg_tinfo.is_ptr():
 				arg_tinfo = arg_tinfo.get_pointed_object()
 
-			lvar_struct.add_member_type(offset, arg_tinfo)
+			self.add_member_type(strucid, offset, arg_tinfo)
 
 		return lvar_tinfo
 
