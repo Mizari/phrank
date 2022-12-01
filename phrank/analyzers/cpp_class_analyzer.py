@@ -219,7 +219,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 	def create_cpp_class(self):
 		class_name = "cpp_class_" + str(len(self._created_classes))
 		class_name = utils.get_next_available_strucname(class_name)
-		cpp_class = CppClass(name=class_name)
+		cpp_class = CppClass.create(class_name)
 		self._created_classes.append(cpp_class)
 		return cpp_class
 

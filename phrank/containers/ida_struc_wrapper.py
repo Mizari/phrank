@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import idaapi
 import idc
 import ida_struct
@@ -19,15 +21,18 @@ def handle_addstrucmember_ret(ret):
 
 
 class IdaStrucWrapper(object):
-	def __init__(self, struc_locator=None, is_union=False):
-		strucid = self.get_existing_strucid(struc_locator)
-		if strucid == idaapi.BADADDR:
-			# idc.add_struc second arg is name(str) or None
-			if isinstance(struc_locator, int):
-				struc_locator
-			# create new struc
-			strucid = idc.add_struc(idaapi.BADADDR, struc_locator, is_union)
+	def __init__(self, strucid):
 		self.strucid = strucid
+
+	@classmethod
+	def get(cls, struc_info:str|idaapi.tinfo_t):
+		if isinstance(struc_info, str):
+			strucid = ida_struct.get_struc_id(struc_info)
+		elif isinstance(struc_info, idaapi.tinfo_t):
+			strucid = utils.tif2strucid(struc_info)
+		else:
+			raise TypeError("Invalid type for struc info")
+		return cls(strucid)
 
 	@property
 	def name(self):
@@ -50,25 +55,6 @@ class IdaStrucWrapper(object):
 		ptr_tinfo = self.tinfo
 		ptr_tinfo.create_ptr(ptr_tinfo)
 		return ptr_tinfo
-
-	@staticmethod
-	def get_existing_strucid(struc_locator):
-		if struc_locator is None:
-			return idaapi.BADADDR
-
-		if isinstance(struc_locator, int):
-			if idc.get_struc_idx(struc_locator) == idaapi.BADADDR:
-				return idaapi.BADADDR
-			return struc_locator
-
-		elif isinstance(struc_locator, str):
-			return utils.str2strucid(struc_locator)
-
-		elif isinstance(struc_locator, idaapi.tinfo_t):
-			return utils.tif2strucid(struc_locator)
-
-		else:
-			raise TypeError()
 
 	def is_union(self):
 		return idaapi.is_union(self.strucid)

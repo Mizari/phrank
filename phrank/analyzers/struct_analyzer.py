@@ -14,11 +14,11 @@ class StructAnalyzer(TypeAnalyzer):
 		self.vtable_analyzer = VtableAnalyzer(func_factory)
 
 	def set_size(self, strucid, size):
-		lvar_struct = Structure(struc_locator=strucid)
+		lvar_struct = Structure(strucid)
 		lvar_struct.maximize_size(size)
 
 	def add_member_type(self, strucid, offset, member_type):
-		lvar_struct = Structure(struc_locator=strucid)
+		lvar_struct = Structure(strucid)
 
 		next_offset = lvar_struct.get_next_member_offset(offset)
 		if next_offset != -1 and offset + member_type.get_size() > next_offset:
@@ -201,7 +201,7 @@ class StructAnalyzer(TypeAnalyzer):
 		if len(writes) == 0 and len(casts) == 0:
 			return utils.UNKNOWN_TYPE
 
-		lvar_struct = Structure()
+		lvar_struct = Structure.create()
 		self.new_types.append(lvar_struct.strucid)
 		struc_tinfo = lvar_struct.ptr_tinfo
 		return struc_tinfo

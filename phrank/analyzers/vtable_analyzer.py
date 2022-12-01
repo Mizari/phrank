@@ -12,7 +12,7 @@ class VtableAnalyzer(TypeAnalyzer):
 
 		vtbl_name = "vtable_" + hex(addr)[2:]
 		vtbl_name = utils.get_next_available_strucname(vtbl_name)
-		vtbl = Vtable(struc_locator=vtbl_name)
+		vtbl = Vtable.create(vtbl_name)
 
 		for func_addr in vfcs:
 			member_name = idaapi.get_name(func_addr)

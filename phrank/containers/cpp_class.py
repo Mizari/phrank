@@ -8,8 +8,8 @@ from phrank.containers.vtable import Vtable
 from phrank.analyzers.vtable_analyzer import VtableAnalyzer
 
 class CppClass(Structure):
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
+	def __init__(self, strucid):
+		super().__init__(strucid)
 		self._cdtors : set[CDtor] = set()
 		self._vtables : dict[int, Vtable]= {}
 		self._parents : dict[int, CppClass]= {}
@@ -86,7 +86,7 @@ class CppClass(Structure):
 		if mname == "vtable" or mname == "vtable_" + hex(offset)[2:]:
 			member_vtbl = self.get_member_tinfo(offset)
 			member_vtbl = str(member_vtbl.get_pointed_object())
-			member_vtbl = Structure(name=member_vtbl)
+			member_vtbl = Structure.get(member_vtbl)
 
 			vtbl_union_name = "vtables_union_0"
 			vtbl_union_name = utils.get_next_available_strucname(vtbl_union_name)

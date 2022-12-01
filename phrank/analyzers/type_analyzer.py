@@ -1,7 +1,6 @@
 import idc
 import idaapi
 
-from phrank.containers.ida_struc_wrapper import IdaStrucWrapper
 from phrank.function_manager import FunctionManager
 import phrank.utils as utils
 

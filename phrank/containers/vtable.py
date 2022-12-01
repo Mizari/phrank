@@ -8,8 +8,8 @@ from phrank.containers.structure import Structure
 
 class Vtable(Structure):
 	REUSE_DELIM = "___V"
-	def __init__(self, struc_locator=None):
-		super().__init__(struc_locator=struc_locator)
+	def __init__(self, strucid):
+		super().__init__(strucid)
 		assert Vtable.is_strucid_vtable(self.strucid), "Structure is not vtable"
 
 	@classmethod

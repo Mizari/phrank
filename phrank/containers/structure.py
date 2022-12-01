@@ -6,9 +6,14 @@ import phrank.utils as utils
 
 
 class Structure(IdaStrucWrapper):
-	def __init__ (self, struc_locator=None):
-		super().__init__(struc_locator=struc_locator)
+	def __init__ (self, strucid):
+		super().__init__(strucid)
 		assert not self.is_union(), "Error, should be struct"
+
+	@classmethod
+	def create(cls, struc_name=None):
+		strucid = idc.add_struc(idaapi.BADADDR, struc_name, False)
+		return cls(strucid)
 
 	def member_names(self):
 		for member_offset in self.member_offsets():
