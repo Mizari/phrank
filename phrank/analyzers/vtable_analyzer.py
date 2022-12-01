@@ -17,7 +17,7 @@ class VtableAnalyzer(TypeAnalyzer):
 		for func_addr in vfcs:
 			member_name = idaapi.get_name(func_addr)
 			if member_name is None:
-				member_name = "field_" + hex(vtbl.get_size())[2:]
+				member_name = "field_" + hex(vtbl.size)[2:]
 				print("Failed to get function name", hex(func_addr))
 
 			member_name = vtbl.get_next_available_name(member_name, Vtable.REUSE_DELIM)
@@ -40,7 +40,7 @@ class VtableAnalyzer(TypeAnalyzer):
 		# trying to initialize from type at address
 		vtbl = Vtable.get_vtable_at_address(gvar_ea)
 		if vtbl is not None:
-			tif = vtbl.get_tinfo()
+			tif = vtbl.tinfo
 			self.gvar2tinfo[gvar_ea] = tif
 			return tif
 
@@ -49,7 +49,7 @@ class VtableAnalyzer(TypeAnalyzer):
 			tif = utils.UNKNOWN_TYPE
 		else:
 			self.new_types.append(vtbl.strucid)
-			tif = vtbl.get_tinfo()
+			tif = vtbl.tinfo
 
 		self.gvar2tinfo[gvar_ea] = tif
 		return tif

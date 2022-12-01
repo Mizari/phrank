@@ -47,7 +47,7 @@ class VtablesUnion(Union):
 
 	def add_vtable(self, vtbl: Vtable):
 		# TODO check vtbl is vtable
-		vname = vtbl.get_name()
+		vname = vtbl.name
 		for member_offset in range(idc.get_member_qty(self.strucid)):
 			mname = self.get_member_name(member_offset)
 			if mname == vname:
@@ -57,5 +57,5 @@ class VtablesUnion(Union):
 			if str(mtif) == vname + " *":
 				return
 
-		tif = vtbl.get_ptr_tinfo()
+		tif = vtbl.ptr_tinfo
 		self.append_member(vname, tif)

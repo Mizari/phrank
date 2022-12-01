@@ -315,7 +315,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 
 		for c in self._created_classes:
 			for offset, parent in c._parents.items():
-				c.set_member_type(offset, parent.get_name())
+				c.set_member_type(offset, parent.name)
 				if offset == 0:
 					base_name = "base"
 				else:
@@ -335,8 +335,8 @@ class CppClassAnalyzer(TypeAnalyzer):
 					print("[*] WARNING:", "vtable has no parent class in", idaapi.get_name(cdtor.get_ea()), hex(vtbl.get_ea()))
 					continue
 
-				if cpp_class.get_name() == parent.get_name():
-					print("Attempting to make recursive inheritance in %s, skipping" % cpp_class.get_name())
+				if cpp_class.name == parent.name:
+					print("Attempting to make recursive inheritance in %s, skipping" % cpp_class.name)
 					continue
 
 				if offset <= 0:
@@ -362,7 +362,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 	def print_unfinished(self):
 		for vtbl in self._cctx.get_vtables():
 			if vtbl._cpp_class is None:
-				print("[*] WARNING:", "vtable has no cpp class", vtbl.get_name(), idaapi.get_name(vtbl.get_ea()))
+				print("[*] WARNING:", "vtable has no cpp class", vtbl.name, idaapi.get_name(vtbl.get_ea()))
 
 		for cpp_class in self._created_classes:
 			if len(cpp_class.get_ctors()) == 0:
@@ -386,11 +386,11 @@ class CppClassAnalyzer(TypeAnalyzer):
 	def print_classes(self):
 		print()
 		for c in self._created_classes:
-			print("class", hex(c.get_size()), c.get_name())
+			print("class", hex(c.size), c.name)
 			print("ctors", [(idaapi.get_name(c.get_ea()), c._is_ctor, c._is_dtor) for c in c._cdtors])
 			print("vtbls", [(hex(o), idaapi.get_name(v.get_ea())) for o, v in c._vtables.items()])
 			for offset, parent in c._parents.items():
-				print("inherits:", hex(offset), parent.get_name(), idaapi.get_name(parent.get_vtable(0).get_ea()))
+				print("inherits:", hex(offset), parent.name, idaapi.get_name(parent.get_vtable(0).get_ea()))
 			print()
 
 	def set_vtables(self):

@@ -29,6 +29,28 @@ class IdaStrucWrapper(object):
 			strucid = idc.add_struc(idaapi.BADADDR, struc_locator, is_union)
 		self.strucid = strucid
 
+	@property
+	def name(self):
+		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
+		return idc.get_struc_name(self.strucid, 0)
+
+	@property
+	def size(self):
+		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
+		return ida_struct.get_struc_size(self.strucid)
+
+	@property
+	def tinfo(self):
+		tif = idaapi.tinfo_t()
+		assert tif.get_named_type(idaapi.get_idati(), self.name)
+		return tif
+
+	@property
+	def ptr_tinfo(self):
+		ptr_tinfo = self.tinfo
+		ptr_tinfo.create_ptr(ptr_tinfo)
+		return ptr_tinfo
+
 	@staticmethod
 	def get_existing_strucid(struc_locator):
 		if struc_locator is None:
@@ -51,16 +73,6 @@ class IdaStrucWrapper(object):
 	def is_union(self):
 		return idaapi.is_union(self.strucid)
 
-	def get_tinfo(self):
-		tif = idaapi.tinfo_t()
-		assert tif.get_named_type(idaapi.get_idati(), self.get_name())
-		return tif
-
-	def get_ptr_tinfo(self):
-		ptr_tinfo = self.get_tinfo()
-		ptr_tinfo.create_ptr(ptr_tinfo)
-		return ptr_tinfo
-
 	def delete(self):
 		if self.strucid == idaapi.BADADDR:
 			return
@@ -79,10 +91,6 @@ class IdaStrucWrapper(object):
 			return False
 		return True
 
-	def get_name(self):
-		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
-		return idc.get_struc_name(self.strucid, 0)
-
 	def get_member_size(self, offset):
 		return idc.get_member_size(self.strucid, offset)
 
@@ -91,13 +99,6 @@ class IdaStrucWrapper(object):
 
 	def rename(self, newname):
 		return idc.set_struc_name(self.strucid, newname)
-
-	def get_strucid(self):
-		return self.strucid
-
-	def get_size(self):
-		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
-		return ida_struct.get_struc_size(self.strucid)
 
 	def set_member_comment(self, offset, cmt):
 		rv = idc.set_member_cmt(self.strucid, offset, cmt, 0)
@@ -130,7 +131,7 @@ class IdaStrucWrapper(object):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
 		rv = idc.set_member_name(self.strucid, member_offset, member_name)
 		if rv == 0:
-			print("Failed to set member name " + str(member_name) + " in " + self.get_name() + ' ' + hex(member_offset))
+			print("Failed to set member name " + str(member_name) + " in " + self.name + ' ' + hex(member_offset))
 		return rv
 
 	def member_offsets(self, skip_holes=True):
@@ -153,7 +154,7 @@ class IdaStrucWrapper(object):
 			self.del_member(mo)
 
 	def del_member(self, offset):
-		if not self.is_offset_ok(offset, 1): raise BaseException("Offset too big " + hex(offset) + " in " + str(self.get_size()))
+		if not self.is_offset_ok(offset, 1): raise BaseException("Offset too big " + hex(offset) + " in " + str(self.size))
 		idc.del_struc_member(self.strucid, offset)
 
 	def set_member_type(self, member_offset: int, member_type: idaapi.tinfo_t):
@@ -165,7 +166,7 @@ class IdaStrucWrapper(object):
 		mptr = ida_struct.get_member(sptr, member_offset)
 		rv = ida_struct.set_member_tinfo(sptr, mptr, member_offset, member_type, ida_struct.SET_MEMTI_COMPATIBLE | ida_struct.SET_MEMTI_MAY_DESTROY)
 		if rv == 0:
-			print("[*] ERROR:", self.get_name(), hex(member_offset), str(member_type))
+			print("[*] ERROR:", self.name, hex(member_offset), str(member_type))
 			raise BaseException("Failed to change member type")
 		return rv
 
@@ -180,7 +181,7 @@ class IdaStrucWrapper(object):
 		size = member_type.get_size()
 		ret = idc.add_struc_member(self.strucid, name, -1, utils.size2dataflags(size), -1, size)
 		handle_addstrucmember_ret(ret)
-		offset = self.get_size() - size
+		offset = self.size - size
 		self.set_member_type(offset, member_type)
 		if member_comment is not None:
 			self.set_member_comment(offset, member_comment)

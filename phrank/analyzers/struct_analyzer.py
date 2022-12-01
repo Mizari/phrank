@@ -25,10 +25,10 @@ class StructAnalyzer(TypeAnalyzer):
 			# TODO remove when struct sizes are remembered
 			# currently struct size is set by adding 1byte int at the end
 			# if that is the case, then allow member type setting
-			if lvar_struct.get_member_size(next_offset) != 1 or lvar_struct.get_size() != next_offset + 1:
+			if lvar_struct.get_member_size(next_offset) != 1 or lvar_struct.size != next_offset + 1:
 				print(
 					"WARNING:", "changing type overwrites next field, skipping",
-					lvar_struct.get_name(),
+					lvar_struct.name,
 					hex(offset),
 					str(member_type),
 					member_type.get_size()
@@ -203,7 +203,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 		lvar_struct = Structure()
 		self.new_types.append(lvar_struct.strucid)
-		struc_tinfo = lvar_struct.get_ptr_tinfo()
+		struc_tinfo = lvar_struct.ptr_tinfo
 		return struc_tinfo
 
 		"""

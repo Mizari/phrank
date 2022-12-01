@@ -32,7 +32,7 @@ class CppClass(Structure):
 	def add_vtable(self, offset, vtbl):
 		current_vtbl = self._vtables.setdefault(offset, vtbl)
 		if current_vtbl != vtbl:
-			print("[*] ERROR", self.get_name(), hex(offset), idaapi.get_name(current_vtbl.get_ea()), idaapi.get_name(vtbl.get_ea()))
+			print("[*] ERROR", self.name, hex(offset), idaapi.get_name(current_vtbl.get_ea()), idaapi.get_name(vtbl.get_ea()))
 			raise BaseException("Already have vtbl at this offset")
 
 	@staticmethod
@@ -46,7 +46,7 @@ class CppClass(Structure):
 
 	def get_parent_offset(self, offset):
 		for parent_offset, parent in self._parents.items():
-			if parent_offset <= offset and parent_offset + parent.get_size() > offset:
+			if parent_offset <= offset and parent_offset + parent.size > offset:
 				return parent, parent_offset
 		return None, None
 
@@ -58,8 +58,8 @@ class CppClass(Structure):
 			assert current_parent == parent, "Already have parent at this offset, and it is a different one"
 			return
 
-		if parent.get_size() + offset > self.get_size():
-			print("ERROR:", self.get_name(), idaapi.get_name(self.get_vtable(0).get_ea()), hex(offset), parent.get_name(), hex(parent.get_size()), idaapi.get_name(parent.get_vtable(0).get_ea()))
+		if parent.size + offset > self.size:
+			print("ERROR:", self.name, idaapi.get_name(self.get_vtable(0).get_ea()), hex(offset), parent.name, hex(parent.size), idaapi.get_name(parent.get_vtable(0).get_ea()))
 			raise BaseException("Cpp class size is changing on setting parent, this shouldnt happen (means size/inheritance analysis failed)")
 
 		self._parents[offset] = parent
@@ -94,7 +94,7 @@ class CppClass(Structure):
 			# need to add vtbl to union first, otherwise ida cant set member type, because its size is 0
 			vu.add_vtable(vtbl)
 			vu.add_vtable(member_vtbl)
-			self.set_member_type(offset, vu.get_name())
+			self.set_member_type(offset, vu.name)
 
 			if offset == 0:
 				vtbl_name = "vtables"
