@@ -94,32 +94,6 @@ class StructAnalyzer(TypeAnalyzer):
 
 				yield offset, arg_tinfo
 
-	def get_var_use_size(self, func_ea:int, lvar_id:int) -> int:
-		func_aa = self.get_ast_analysis(func_ea)
-		max_var_use = func_aa.get_var_use_size(lvar_id)
-
-		for func_call in func_aa.get_calls():
-			known_func_var_use = func_call.get_var_use_size(lvar_id)
-			if known_func_var_use != 0:
-				max_var_use = max(max_var_use, known_func_var_use)
-				continue
-
-			call_ea = func_call.get_ea()
-			if call_ea is None: continue 
-
-			for arg_id, arg in enumerate(func_call.get_args()):
-				varid, offset = utils.get_var_offset(arg)
-				if varid == -1:
-					continue
-
-				if varid != lvar_id:
-					continue
-
-				var_use = self.get_var_use_size(call_ea, arg_id)
-				max_var_use = max(max_var_use, var_use + offset)
-
-		return max_var_use
-
 	def get_analyzed_lvar_type(self, func_ea, lvar_id):
 		lvar_tinfo = self.lvar2tinfo.get((func_ea, lvar_id))
 		if lvar_tinfo is not None:
@@ -341,9 +315,6 @@ class StructAnalyzer(TypeAnalyzer):
 		strucid = utils.tif2strucid(lvar_tinfo)
 		if strucid == idaapi.BADADDR:
 			return lvar_tinfo
-
-		var_size = self.get_var_use_size(func_ea, lvar_id)
-		self.set_size(strucid, var_size)
 
 		for write_offset, write_type in self.get_lvar_writes(func_ea, lvar_id):
 			self.add_member_type(strucid, write_offset, write_type)
