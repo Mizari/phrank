@@ -26,7 +26,7 @@ def _strip_casts(func):
 		return func(expr)
 	return wrapper
 
-def get_lvar_write(expr):
+def get_lvar_assign(expr):
 	if expr.op == idaapi.cot_var:
 		return expr.v.idx
 
@@ -44,7 +44,7 @@ def get_lvar_write(expr):
 	return -1
 
 @_strip_casts
-def get_lvar_access(expr):
+def get_lvar_read(expr):
 	if expr.op == idaapi.cot_memptr and expr.x.op == idaapi.cot_var:
 		return expr.x.v.idx, expr.m + expr.x.type.get_size()
 
@@ -70,7 +70,7 @@ def get_gvar_read(expr):
 
 # not found is (-1, None) since there are no such local variables
 # with negative id, and there CAN be negative offset
-def get_lvarptr_write_offset(expr):
+def get_lvar_write(expr):
 	if expr.op == idaapi.cot_idx:
 		if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
 			return -1, None

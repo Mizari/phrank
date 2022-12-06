@@ -10,25 +10,25 @@ class ASTAnalysis():
 		self._returns : list[ReturnWrapper] = []
 		self._calls : list[FuncCall] = []
 
-		self._lvarptr_writes : list[LvarPtrWrite] = []
-		self._lvar_writes: list[LvarWrite] = []
+		self._lvar_writes : list[LvarWrite] = []
+		self._lvar_assigns: list[LvarAssign] = []
 		self._lvar_substitutes = {} # var_id_i -> (var_id_j, offset). for situations like "Vi = Vj + offset"
-		self._lvar_accesses : list[LvarAccess] = []
+		self._lvar_reads : list[LvarRead] = []
 
 		self._gvar_assigns = []
 		self._gvar_writes = []
 		self._gvar_reads = []
 
 	def clear(self):
+		self._lvar_assigns.clear()
 		self._lvar_writes.clear()
-		self._lvarptr_writes.clear()
 		self._calls.clear()
-		self._lvar_accesses.clear()
+		self._lvar_reads.clear()
 		self._lvar_substitutes.clear()
 		self._returns.clear()
 
 	def print_uses(self):
-		for w in self._lvarptr_writes:
+		for w in self._lvar_writes:
 			if w.get_int() is not None:
 				print("write", hex(w.offset), hex(w.get_int()))
 			else:
@@ -38,7 +38,7 @@ class ASTAnalysis():
 			print("call", c.get_name(), hex(c.get_offset(0)), c.get_nargs(), c.get_var_use_size(0), [a.opname for a in c.get_args()])
 
 	def lvarptr_writes(self, offset=None, val=None):
-		for w in self._lvarptr_writes:
+		for w in self._lvar_writes:
 			if w.check(offset, val):
 				yield w
 
@@ -59,7 +59,7 @@ class ASTAnalysis():
 		return self.get_returned_lvars() == {lvar_id}
 
 	def lvar_writes(self, val=None):
-		for w in self._lvar_writes:
+		for w in self._lvar_assigns:
 			if w.check(val=val):
 				yield w
 
@@ -96,7 +96,7 @@ class ASTAnalysis():
 				continue
 
 			write_offset = w.offset + var_offset
-			yield LvarPtrWrite(w.varid, w.val, write_offset)
+			yield LvarWrite(w.varid, w.val, write_offset)
 
 	def get_lvar_uses_in_calls(self, var_id):
 		for func_call in self.get_calls():
@@ -118,9 +118,9 @@ class ASTAnalysis():
 
 	def get_lvar_use_size(self, var_id):
 		var_use_sz = 0
-		for w in self._lvar_accesses:
+		for w in self._lvar_reads:
 			var_use_sz = max(var_use_sz, w.get_var_use(var_id))
 
-		for w in self._lvarptr_writes:
+		for w in self._lvar_writes:
 			var_use_sz = max(var_use_sz, w.get_var_use(var_id))
 		return var_use_sz

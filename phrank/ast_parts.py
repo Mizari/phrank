@@ -28,7 +28,7 @@ class Write:
 			return self.is_int(val)
 		return self.val == val
 
-class LvarAccess:
+class LvarRead:
 	def __init__(self, varid, offset):
 		self.varid = varid
 		self.offset = offset
@@ -39,7 +39,7 @@ class LvarAccess:
 		else:
 			return self.offset
 
-class LvarWrite(Write):
+class LvarAssign(Write):
 	def __init__(self, varid, val):
 		super().__init__(val)
 		self.varid = varid
@@ -62,7 +62,7 @@ class GvarRead:
 	def __init__(self) -> None:
 		pass
 
-class LvarPtrWrite(Write):
+class LvarWrite(Write):
 	def __init__(self, varid, val, offset):
 		super().__init__(val)
 		self.varid = varid
