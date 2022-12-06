@@ -224,14 +224,46 @@ class StructAnalyzer(TypeAnalyzer):
 			return utils.UNKNOWN_TYPE
 		"""
 
+	def analyze_gvar_type_by_assigns(self, gvar_ea):
+		# analyzing gvar type by assigns to it
+		funcs = set(utils.get_func_calls_to(gvar_ea))
+		assigns = []
+		for func_ea in funcs:
+			aa = self.get_ast_analysis(func_ea)
+			for ga in aa._gvar_assigns:
+				if ga.varid == gvar_ea:
+					assigns.append((func_ea, ga))
+
+		if len(assigns) != 1:
+			return None
+
+		assign_ea, gvar_assign = assigns[0]
+		return self.analyze_cexpr(assign_ea, gvar_assign.val)
+
 	def analyze_gvar(self, gvar_ea):
+		current_type = self.gvar2tinfo.get(gvar_ea)
+		if current_type is not None:
+			return current_type
+
 		vtbl = self.vtable_analyzer.analyze_gvar(gvar_ea)
 		if vtbl is not utils.UNKNOWN_TYPE:
 			return vtbl
 
-		return utils.UNKNOWN_TYPE
+		gvar_type = self.analyze_gvar_type_by_assigns(gvar_ea)
+		if gvar_type is not None:
+			self.gvar2tinfo[gvar_ea] = gvar_type
+		else:
+			gvar_type = utils.UNKNOWN_TYPE
+
+		self.gvar2tinfo[gvar_ea] = gvar_type
+		return gvar_type
 
 	def analyze_cexpr(self, func_ea, cexpr):
+		cexpr = utils.strip_casts(cexpr)
+
+		if cexpr.op == idaapi.cot_var:
+			return self.analyze_lvar(func_ea, cexpr.v.idx)
+
 		if cexpr.op == idaapi.cot_call:
 			call_ea = cexpr.x.obj_ea
 			return self.analyze_retval(call_ea)

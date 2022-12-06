@@ -15,9 +15,9 @@ class ASTAnalysis():
 		self._lvar_substitutes = {} # var_id_i -> (var_id_j, offset). for situations like "Vi = Vj + offset"
 		self._lvar_reads : list[LvarRead] = []
 
-		self._gvar_assigns = []
-		self._gvar_writes = []
-		self._gvar_reads = []
+		self._gvar_assigns : list[GvarAssign] = []
+		self._gvar_writes : list[GvarWrite]= []
+		self._gvar_reads : list[GvarRead] = []
 
 	def clear(self):
 		self._lvar_assigns.clear()

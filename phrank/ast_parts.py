@@ -57,6 +57,9 @@ class GvarAssign(Write):
 class GvarWrite(Write):
 	def __init__(self, varid, val, offset):
 		super().__init__(val)
+		self.varid = varid
+		self.val = val
+		self.offset = offset
 
 class GvarRead:
 	def __init__(self) -> None:
