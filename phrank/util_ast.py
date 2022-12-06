@@ -59,10 +59,37 @@ def get_lvar_read(expr):
 
 	return -1, None
 
+@_strip_casts
 def get_gvar_assign(expr):
+	if expr.op == idaapi.cot_obj:
+		return expr.obj_ea
+
+	if expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
+		func = expr.x.helper
+		if func in HELPER_FUNCS:
+			arg0 = expr.a[0]
+			if arg0.op == idaapi.cot_obj:
+				return expr.obj_ea
+
+	if expr.op == idaapi.cot_ptr and expr.x.op == idaapi.cot_cast:
+		if expr.x.x.op == idaapi.cot_ref and expr.x.x.x.op == idaapi.cot_obj:
+			return expr.x.x.x.obj_ea
+
 	return -1
 
 def get_gvar_write(expr):
+	if expr.op == idaapi.cot_idx:
+		if expr.x.op != idaapi.cot_obj or expr.y.op != idaapi.cot_num:
+			return -1, None
+
+		return expr.x.obj_ea, expr.y.n._value * expr.x.type.get_size()
+
+	if expr.op == idaapi.cot_ptr:
+		return get_gvar_offset(expr.x)
+
+	if expr.op == idaapi.cot_memptr and expr.x.op == idaapi.cot_obj:
+		return expr.x.obj_ea, expr.m
+
 	return -1, None
 
 def get_gvar_read(expr):
@@ -118,6 +145,40 @@ def get_lvar_offset(expr):
 			offset = offset * sz
 
 		return var.idx, offset
+
+	else:
+		return -1, None
+
+@_strip_casts
+def get_gvar_offset(expr):
+	if expr.op == idaapi.cot_obj:
+		return expr.obj_ea, 0
+
+	# form ((CASTTYPE*)var) + N
+	elif expr.op in [idaapi.cot_add, idaapi.cot_sub]:
+		if expr.y.op != idaapi.cot_num:
+			return -1, None
+		offset = expr.y.n._value
+		if expr.op == idaapi.cot_sub:
+			offset = - offset
+
+		op_x = expr.x
+		if op_x.op == idaapi.cot_obj:
+			obj_ea = op_x.obj_ea
+
+		elif op_x.op == idaapi.cot_cast and op_x.x.op == idaapi.cot_obj:
+			obj_ea = op_x.x.obj_ea
+
+		else:
+			return -1, None
+
+		if op_x.type.is_ptr():
+			sz = op_x.type.get_pointed_object().get_size()
+			if sz == idaapi.BADSIZE: 
+				raise BaseException("Failed to get object's size")
+			offset = offset * sz
+
+		return obj_ea, offset
 
 	else:
 		return -1, None
