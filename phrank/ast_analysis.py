@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import idaapi
 
-from phrank.utils import VarWrite, ReturnWrapper, VarPtrWrite, VarAccess, FuncCall
+from phrank.utils import LvarWrite, ReturnWrapper, LvarPtrWrite, LvarAccess, FuncCall
 
 
 class ASTAnalysis():
 	def __init__(self):
 		self._returns : list[ReturnWrapper] = []
-		self._lvarptr_writes : list[VarPtrWrite] = []
-		self._lvar_writes: list[VarWrite] = []
+		self._lvarptr_writes : list[LvarPtrWrite] = []
+		self._lvar_writes: list[LvarWrite] = []
 		self._lvar_substitutes = {} # var_id_i -> (var_id_j, offset). for situations like "Vi = Vj + offset"
-		self._lvar_accesses : list[VarAccess] = []
+		self._lvar_accesses : list[LvarAccess] = []
 		self._calls : list[FuncCall] = []
 
 	def clear(self):
@@ -91,7 +91,7 @@ class ASTAnalysis():
 				continue
 
 			write_offset = w.offset + var_offset
-			yield VarPtrWrite(w.varid, w.val, write_offset)
+			yield LvarPtrWrite(w.varid, w.val, write_offset)
 
 	def get_lvar_uses_in_calls(self, var_id):
 		for func_call in self.get_calls():

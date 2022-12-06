@@ -3,7 +3,7 @@ from __future__ import annotations
 import idaapi
 
 from phrank.utils import get_var_offset, get_var_access, ReturnWrapper, \
-VarAccess, VarPtrWrite, VarWrite, get_var_write, FuncCall, get_varptr_write_offset
+LvarAccess, LvarPtrWrite, LvarWrite, get_var_write, FuncCall, get_varptr_write_offset
 from phrank.ast_analysis import ASTAnalysis
 
 
@@ -65,13 +65,13 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 	def handle_assignment(self, expr):
 		varid, offset = get_varptr_write_offset(expr.x)
 		if varid != -1:
-			w = VarPtrWrite(varid, expr.y, offset)
+			w = LvarPtrWrite(varid, expr.y, offset)
 			self.current_ast_analysis._lvarptr_writes.append(w)
 
 		else:
 			varid = get_var_write(expr.x)
 			if varid != -1:
-				w = VarWrite(varid, expr.y)
+				w = LvarWrite(varid, expr.y)
 				self.current_ast_analysis._lvar_writes.append(w)
 
 			else:
@@ -84,7 +84,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 	def handle_expr(self, expr):
 		varid, offset = get_var_access(expr)
 		if varid != -1:
-			w = VarAccess(varid, offset)
+			w = LvarAccess(varid, offset)
 			self.current_ast_analysis._lvar_accesses.append(w)
 			return True
 

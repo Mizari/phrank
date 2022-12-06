@@ -154,7 +154,7 @@ class Write:
 			return self.is_int(val)
 		return self.val == val
 
-class VarAccess:
+class LvarAccess:
 	def __init__(self, varid, offset):
 		self.varid = varid
 		self.offset = offset
@@ -165,7 +165,7 @@ class VarAccess:
 		else:
 			return self.offset
 
-class VarWrite(Write):
+class LvarWrite(Write):
 	def __init__(self, varid, val):
 		super().__init__(val)
 		self.varid = varid
@@ -175,7 +175,7 @@ class VarWrite(Write):
 			return False
 		return True
 
-class VarPtrWrite(Write):
+class LvarPtrWrite(Write):
 	def __init__(self, varid, val, offset):
 		super().__init__(val)
 		self.varid = varid
