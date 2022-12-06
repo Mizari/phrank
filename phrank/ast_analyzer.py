@@ -16,7 +16,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		self.current_ast_analysis = ASTAnalysis()
 		self.apply_to(cfunc.body, None)
 
-		for w in self.current_ast_analysis._var_writes:
+		for w in self.current_ast_analysis._lvar_writes:
 			varid, offset = get_var_offset(w.val)
 			if varid == -1:
 				continue
@@ -25,10 +25,10 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			if varid == vid:
 				continue
 
-			curr = self.current_ast_analysis._var_substitutes.get(vid, None)
+			curr = self.current_ast_analysis._lvar_substitutes.get(vid, None)
 			if curr is not None:
 				print("[*] WARNING", "var", vid, "is already substituted with", curr[0], "overwriting")
-			self.current_ast_analysis._var_substitutes[vid] = (varid, offset)
+			self.current_ast_analysis._lvar_substitutes[vid] = (varid, offset)
 
 		rv, self.current_ast_analysis = self.current_ast_analysis, None
 		return rv
@@ -66,13 +66,13 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		varid, offset = get_varptr_write_offset(expr.x)
 		if varid != -1:
 			w = VarPtrWrite(varid, expr.y, offset)
-			self.current_ast_analysis._varptr_writes.append(w)
+			self.current_ast_analysis._lvarptr_writes.append(w)
 
 		else:
 			varid = get_var_write(expr.x)
 			if varid != -1:
 				w = VarWrite(varid, expr.y)
-				self.current_ast_analysis._var_writes.append(w)
+				self.current_ast_analysis._lvar_writes.append(w)
 
 			else:
 				self.apply_to(expr.x, None)
@@ -85,7 +85,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		varid, offset = get_var_access(expr)
 		if varid != -1:
 			w = VarAccess(varid, offset)
-			self.current_ast_analysis._var_accesses.append(w)
+			self.current_ast_analysis._lvar_accesses.append(w)
 			return True
 
 		return False

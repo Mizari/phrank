@@ -131,7 +131,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 
 		vtbls = set()
 		func_fav = self.get_ast_analysis(func_addr)
-		for w in func_fav.get_writes_into_var(0):
+		for w in func_fav.get_writes_into_lvar(0):
 			intval = w.get_int()
 			if intval is None:
 				continue
@@ -150,12 +150,12 @@ class CppClassAnalyzer(TypeAnalyzer):
 		for v in vtbls:
 			self.search_vtable(v)
 
-		for _, callee_addr in func_fav.get_var_uses_in_calls(0):
+		for _, callee_addr in func_fav.get_lvar_uses_in_calls(0):
 			self.search_func(callee_addr)
 
 		for caller_addr in utils.get_func_calls_to(func_addr):
 			caller_fav = self.get_ast_analysis(caller_addr)
-			if any(w[1] == caller_addr for w in caller_fav.get_var_uses_in_calls(0)):
+			if any(w[1] == caller_addr for w in caller_fav.get_lvar_uses_in_calls(0)):
 				continue
 			self.search_func(caller_addr)
 
@@ -225,7 +225,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 
 	def create_class_per_cdtor(self, cdtor: CDtor):
 		fav = self.get_ast_analysis(cdtor.get_ea())
-		writes = [w for w in fav.get_writes_into_var(0)]
+		writes = [w for w in fav.get_writes_into_lvar(0)]
 		if len(writes) == 0:
 			print("[*] WARNING", "no writes to thisptr found in cdtor at", idaapi.get_name(cdtor.get_ea()))
 			return
@@ -304,7 +304,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 
 	def analyze_class_sizes(self):
 		for cpp_class in self._created_classes:
-			sizes = [self.get_ast_analysis(cdtor.get_ea()).get_var_use_size(0) for cdtor in cpp_class._cdtors]
+			sizes = [self.get_ast_analysis(cdtor.get_ea()).get_lvar_use_size(0) for cdtor in cpp_class._cdtors]
 			new_class_sz = max(sizes)
 			cpp_class.resize(new_class_sz)
 
@@ -347,7 +347,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 				parent.add_child(cpp_class)
 
 		fav = self.get_ast_analysis(cdtor.get_ea())
-		for offset, func_call_ea in fav.get_var_uses_in_calls(0):
+		for offset, func_call_ea in fav.get_lvar_uses_in_calls(0):
 			parent_cdtor = self._cctx.get_cdtor(func_call_ea)
 			if parent_cdtor is None:
 				continue

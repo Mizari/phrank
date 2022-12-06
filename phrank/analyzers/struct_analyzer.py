@@ -61,7 +61,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def get_lvar_writes(self, func_ea, lvar_id):
 		func_aa = self.get_ast_analysis(func_ea)
-		for var_write in func_aa.get_writes_into_var(lvar_id):
+		for var_write in func_aa.get_writes_into_lvar(lvar_id):
 			write_offset = var_write.offset
 			write_type = self.analyze_cexpr(func_ea, var_write.val)
 			# write exists, just type is unknown. will use simple int instead
@@ -266,7 +266,7 @@ class StructAnalyzer(TypeAnalyzer):
 	def analyze_existing_lvar_type_by_assigns(self, func_ea, lvar_id):
 		func_aa = self.get_ast_analysis(func_ea)
 		assigns = []
-		for wr in func_aa.var_writes():
+		for wr in func_aa.lvar_writes():
 			if wr.varid != lvar_id: continue
 			atype = self.analyze_cexpr(func_ea, wr.val)
 			if atype is not utils.UNKNOWN_TYPE:
