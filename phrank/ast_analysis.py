@@ -8,11 +8,16 @@ from phrank.ast_parts import *
 class ASTAnalysis():
 	def __init__(self):
 		self._returns : list[ReturnWrapper] = []
+		self._calls : list[FuncCall] = []
+
 		self._lvarptr_writes : list[LvarPtrWrite] = []
 		self._lvar_writes: list[LvarWrite] = []
 		self._lvar_substitutes = {} # var_id_i -> (var_id_j, offset). for situations like "Vi = Vj + offset"
 		self._lvar_accesses : list[LvarAccess] = []
-		self._calls : list[FuncCall] = []
+
+		self._gvar_assigns = []
+		self._gvar_writes = []
+		self._gvar_reads = []
 
 	def clear(self):
 		self._lvar_writes.clear()

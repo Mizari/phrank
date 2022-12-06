@@ -59,6 +59,15 @@ def get_lvar_access(expr):
 
 	return -1, None
 
+def get_gvar_assign(expr):
+	return -1
+
+def get_gvar_write(expr):
+	return -1, None
+
+def get_gvar_read(expr):
+	return -1, None
+
 # not found is (-1, None) since there are no such local variables
 # with negative id, and there CAN be negative offset
 def get_lvarptr_write_offset(expr):
