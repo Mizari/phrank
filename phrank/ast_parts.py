@@ -101,7 +101,7 @@ class FuncCall:
 
 	def get_var_offset(self):
 		for arg in self._call_expr.a:
-			varid, offset = utils.get_var_offset(arg)
+			varid, offset = utils.get_lvar_offset(arg)
 			if varid == -1:
 				continue
 
@@ -114,7 +114,7 @@ class FuncCall:
 			return 0
 
 		arg0 = self._call_expr.a[0]
-		varid, offset = utils.get_var_offset(arg0)
+		varid, offset = utils.get_lvar_offset(arg0)
 		if varid == var_id:
 			func_use_value = 0
 			if self._func_name in utils.ARRAY_FUNCS:

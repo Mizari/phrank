@@ -74,7 +74,7 @@ class StructAnalyzer(TypeAnalyzer):
 		for func_call in func_aa.get_calls():
 			call_ea = func_call.get_ea()
 			for arg_id, arg in enumerate(func_call.get_args()):
-				varid, offset = utils.get_var_offset(arg)
+				varid, offset = utils.get_lvar_offset(arg)
 				if varid != lvar_id:
 					continue
 

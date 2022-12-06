@@ -26,7 +26,7 @@ def _strip_casts(func):
 		return func(expr)
 	return wrapper
 
-def get_var_write(expr):
+def get_lvar_write(expr):
 	if expr.op == idaapi.cot_var:
 		return expr.v.idx
 
@@ -44,7 +44,7 @@ def get_var_write(expr):
 	return -1
 
 @_strip_casts
-def get_var_access(expr):
+def get_lvar_access(expr):
 	if expr.op == idaapi.cot_memptr and expr.x.op == idaapi.cot_var:
 		return expr.x.v.idx, expr.m + expr.x.type.get_size()
 
@@ -55,13 +55,13 @@ def get_var_access(expr):
 		return expr.x.v.idx, (expr.y.n._value + 1) * expr.x.type.get_size()
 
 	if expr.op == idaapi.cot_ptr:
-		return get_var_offset(expr.x)
+		return get_lvar_offset(expr.x)
 
 	return -1, None
 
 # not found is (-1, None) since there are no such local variables
 # with negative id, and there CAN be negative offset
-def get_varptr_write_offset(expr):
+def get_lvarptr_write_offset(expr):
 	if expr.op == idaapi.cot_idx:
 		if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
 			return -1, None
@@ -69,7 +69,7 @@ def get_varptr_write_offset(expr):
 		return expr.x.v.idx, expr.y.n._value * expr.x.type.get_size()
 
 	if expr.op == idaapi.cot_ptr:
-		return get_var_offset(expr.x)
+		return get_lvar_offset(expr.x)
 
 	if expr.op == idaapi.cot_memptr and expr.x.op == idaapi.cot_var:
 		return expr.x.v.idx, expr.m
@@ -80,7 +80,7 @@ def get_varptr_write_offset(expr):
 # not found is (-1, None) since there are no such local variables
 # with negative id, and there CAN be negative offset
 @_strip_casts
-def get_var_offset(expr):
+def get_lvar_offset(expr):
 	if expr.op == idaapi.cot_var:
 		return expr.v.idx, 0
 
