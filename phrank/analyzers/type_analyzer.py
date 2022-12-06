@@ -23,7 +23,7 @@ class TypeAnalyzer(FunctionManager):
 		self.retval2tinfo = {}
 
 		# analysis results
-		self.new_types : list[int] = []    # created types
+		self.new_types : set[int] = set()    # created types
 		self.new_xrefs = []    # created xrefs
 
 	def get_gvar_tinfo(self, gvar_ea) -> idaapi.tinfo_t:

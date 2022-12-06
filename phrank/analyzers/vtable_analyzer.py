@@ -48,7 +48,7 @@ class VtableAnalyzer(TypeAnalyzer):
 		if vtbl is None:
 			tif = utils.UNKNOWN_TYPE
 		else:
-			self.new_types.append(vtbl.strucid)
+			self.new_types.add(vtbl.strucid)
 			tif = vtbl.tinfo
 
 		self.gvar2tinfo[gvar_ea] = tif

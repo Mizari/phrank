@@ -18,6 +18,10 @@ class StructAnalyzer(TypeAnalyzer):
 		lvar_struct.maximize_size(size)
 
 	def add_member_type(self, strucid, offset, member_type):
+		# do not modificate existing types
+		if strucid not in self.new_types:
+			return
+
 		lvar_struct = Structure(strucid)
 
 		next_offset = lvar_struct.get_next_member_offset(offset)
@@ -176,7 +180,7 @@ class StructAnalyzer(TypeAnalyzer):
 			return utils.UNKNOWN_TYPE
 
 		lvar_struct = Structure.create()
-		self.new_types.append(lvar_struct.strucid)
+		self.new_types.add(lvar_struct.strucid)
 		struc_tinfo = lvar_struct.ptr_tinfo
 		return struc_tinfo
 
