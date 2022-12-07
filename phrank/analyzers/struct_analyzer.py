@@ -13,10 +13,6 @@ class StructAnalyzer(TypeAnalyzer):
 		self.analyzed_functions = set()
 		self.vtable_analyzer = VtableAnalyzer(func_factory)
 
-	def set_size(self, strucid, size):
-		lvar_struct = Structure(strucid)
-		lvar_struct.maximize_size(size)
-
 	def add_member_type(self, strucid, offset, member_type):
 		# do not modificate existing types
 		if strucid not in self.new_types:
