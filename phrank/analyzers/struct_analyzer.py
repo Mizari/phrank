@@ -98,12 +98,6 @@ class StructAnalyzer(TypeAnalyzer):
 
 				yield offset, arg_tinfo
 
-	def get_analyzed_lvar_type(self, func_ea, lvar_id):
-		lvar_tinfo = self.lvar2tinfo.get((func_ea, lvar_id))
-		if lvar_tinfo is not None:
-			return lvar_tinfo
-		return self.analyze_lvar(func_ea, lvar_id)
-
 	def analyze_existing_lvar_type_by_writes(self, func_ea, lvar_id):
 		writes = [w for w in self.get_lvar_writes(func_ea, lvar_id)]
 		# single write at offset 0 does not create new type
