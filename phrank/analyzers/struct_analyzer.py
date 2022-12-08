@@ -52,6 +52,10 @@ class StructAnalyzer(TypeAnalyzer):
 			lvar_struct.set_member_type(offset, member_type)
 
 	def apply_analysis(self):
+		for (func_ea, lvar_id), new_type_tif in self.lvar2tinfo.items():
+			self.propagate_lvar_down(func_ea, lvar_id)
+		for obj_ea, new_type_tif in self.gvar2tinfo.items():
+			self.propagate_gvar_down(obj_ea)
 		super().apply_analysis()
 		self.vtable_analyzer.apply_analysis()
 
@@ -397,3 +401,71 @@ class StructAnalyzer(TypeAnalyzer):
 			self.analyze_lvar(func_ea, i)
 
 		self.analyze_retval(func_ea)
+
+	def is_ok_propagation_type(self, tif):
+		if tif is None or tif is utils.UNKNOWN_TYPE:
+			return False
+		strucid = utils.tif2strucid(tif)
+		if strucid not in self.new_types:
+			return False
+		return True
+
+	def propagate_lvar_down(self, func_ea, lvar_id):
+		lvar_type = self.lvar2tinfo.get((func_ea, lvar_id))
+		if not self.is_ok_propagation_type(lvar_type):
+			return
+
+		aa = self.get_ast_analysis(func_ea)
+		for func_call in aa.get_calls():
+			call_ea = func_call.get_ea()
+			if call_ea is None:
+				continue
+
+			for arg_id, arg in enumerate(func_call.get_args()):
+				arg_lvar_id, offset = utils.get_lvar_offset(arg)
+				if arg_lvar_id != lvar_id or offset != 0:
+					continue
+
+				current_type = self.lvar2tinfo.get(call_ea, arg_id)
+				if current_type == lvar_type:
+					continue
+
+				if current_type is None or current_type is utils.UNKNOWN_TYPE:
+					self.lvar2tinfo[(call_ea, arg_id)] = lvar_type
+					self.propagate_lvar_down(call_ea, arg_id)
+					continue
+
+	def propagate_gvar_down(self, gvar_ea):
+		gvar_type = self.gvar2tinfo.get(gvar_ea)
+		if not self.is_ok_propagation_type(gvar_type):
+			return
+
+		funcs = set(utils.get_func_calls_to(gvar_ea))
+		for func_ea in funcs:
+			aa = self.get_ast_analysis(func_ea)
+			for func_call in aa.get_calls():
+				call_ea = func_call.get_ea()
+				if call_ea is None:
+					continue
+				for arg_id, arg in enumerate(func_call.get_args()):
+					arg_gvar_id, offset = utils.get_gvar_offset(arg)
+					if arg_gvar_id != gvar_ea or offset != 0:
+						continue
+
+					current_type = self.lvar2tinfo.get((call_ea, arg_id))
+					if current_type == gvar_type:
+						continue
+
+					if current_type is None or current_type is utils.UNKNOWN_TYPE:
+						self.lvar2tinfo[(call_ea, arg_id)] = gvar_type
+						self.propagate_lvar_down(call_ea, arg_id)
+						continue 
+
+					print(
+						"Error in gvar propagation of", hex(gvar_ea),
+						"in", idaapi.get_name(func_ea),
+						"to", idaapi.get_name(call_ea),
+						"-- arg", arg_id, "has different type", current_type,
+						"from gvar type", str(gvar_type),
+						"\n",
+					)
