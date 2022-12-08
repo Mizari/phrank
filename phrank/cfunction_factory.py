@@ -23,11 +23,10 @@ def should_skip_decompiling(func_ea):
 	return False
 
 class CFunctionFactory:
-	def __init__(self, decompile_recursively = phrank_settings.DECOMPILE_RECURSIVELY):
+	def __init__(self):
 		self.cached_ast_analysis = {}
 		self.cached_func_wrappers = {}
 		self.cached_cfuncs = {}
-		self.decompile_recursively = decompile_recursively
 
 	def get_cfunc(self, func_ea: int):
 		cfunc = self.cached_cfuncs.get(func_ea)
@@ -36,7 +35,7 @@ class CFunctionFactory:
 		if cfunc is not None:
 			return cfunc
 
-		if self.decompile_recursively:
+		if phrank_settings.DECOMPILE_RECURSIVELY:
 			for subcall in utils.get_func_calls_from(func_ea):
 				self.get_cfunc(subcall)
 
@@ -53,8 +52,8 @@ class CFunctionFactory:
 		self.cached_cfuncs.pop(func_ea, None)
 
 	def decompile_all(self):
-		saved_decomp = self.decompile_recursively
-		self.decompile_recursively = True
+		saved_decomp = phrank_settings.DECOMPILE_RECURSIVELY
+		phrank_settings.DECOMPILE_RECURSIVELY = True
 		for func_ea in utils.iterate_all_functions():
 			self.get_cfunc(func_ea)
-		self.decompile_recursively = saved_decomp
+		phrank_settings.DECOMPILE_RECURSIVELY = saved_decomp
