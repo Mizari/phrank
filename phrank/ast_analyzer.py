@@ -15,7 +15,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		self.current_ast_analysis = ASTAnalysis()
 		self.apply_to(cfunc.body, None)
 
-		for w in self.current_ast_analysis._lvar_assigns:
+		for w in self.current_ast_analysis.lvar_assigns:
 			varid, offset = utils.get_lvar_offset(w.val)
 			if varid == -1:
 				continue
@@ -24,10 +24,10 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			if varid == vid:
 				continue
 
-			curr = self.current_ast_analysis._lvar_substitutes.get(vid, None)
+			curr = self.current_ast_analysis.lvar_substitutes.get(vid, None)
 			if curr is not None:
 				print("[*] WARNING", "var", vid, "is already substituted with", curr[0], "overwriting")
-			self.current_ast_analysis._lvar_substitutes[vid] = (varid, offset)
+			self.current_ast_analysis.lvar_substitutes[vid] = (varid, offset)
 
 		rv, self.current_ast_analysis = self.current_ast_analysis, None
 		return rv
@@ -51,12 +51,12 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		return 0
 
 	def handle_return(self, insn):
-		self.current_ast_analysis._returns.append(ReturnWrapper(insn))
+		self.current_ast_analysis.returns.append(ReturnWrapper(insn))
 		return False
 
 	def handle_call(self, expr):
 		fc = FuncCall(call_expr=expr)
-		self.current_ast_analysis._calls.append(fc)
+		self.current_ast_analysis.calls.append(fc)
 		for arg in expr.a:
 			self.apply_to_exprs(arg, None)
 		return True
@@ -67,25 +67,25 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		lvarid, offset = utils.get_lvar_write(expr.x)
 		if lvarid != -1:
 			w = LvarWrite(lvarid, expr.y, offset)
-			self.current_ast_analysis._lvar_writes.append(w)
+			self.current_ast_analysis.lvar_writes.append(w)
 			return True
 
 		lvarid = utils.get_lvar_assign(expr.x)
 		if lvarid != -1:
 			w = LvarAssign(lvarid, expr.y)
-			self.current_ast_analysis._lvar_assigns.append(w)
+			self.current_ast_analysis.lvar_assigns.append(w)
 			return True
 
 		gvarid = utils.get_gvar_assign(expr.x)
 		if gvarid != -1:
 			w = GvarAssign(gvarid, expr.y)
-			self.current_ast_analysis._gvar_assigns.append(w)
+			self.current_ast_analysis.gvar_assigns.append(w)
 			return True
 
 		gvarid, offset = utils.get_gvar_write(expr.x)
 		if gvarid != -1:
 			w = GvarWrite(gvarid, expr.y, offset)
-			self.current_ast_analysis._gvar_writes.append(w)
+			self.current_ast_analysis.gvar_writes.append(w)
 			return True
 
 		self.apply_to(expr.x, None)
@@ -95,7 +95,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		varid, offset = utils.get_lvar_read(expr)
 		if varid != -1:
 			w = LvarRead(varid, offset)
-			self.current_ast_analysis._lvar_reads.append(w)
+			self.current_ast_analysis.lvar_reads.append(w)
 			return True
 
 		return False
