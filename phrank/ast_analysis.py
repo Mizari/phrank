@@ -67,9 +67,6 @@ class ASTAnalysis():
 			return None
 		return var_offset
 
-	def count_writes_into_lvar(self, var_id):
-		return len([w for w in self.get_writes_into_lvar(var_id)])
-
 	def get_writes_into_lvar(self, var_id, offset=None, val=None):
 		for w in self.lvarptr_writes(offset, val):
 			var_offset = None
