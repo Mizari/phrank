@@ -7,21 +7,6 @@ class Write:
 	def __init__(self, val):
 		self.val : idaapi.cexpr_t|None = val
 
-	def is_int(self, val=None):
-		intval = utils.get_int(self.val)
-		if intval is None:
-			return False
-
-		if val is None:
-			return True
-
-		return val == intval
-
-	def check_val(self, val):
-		if isinstance(val, int):
-			return self.is_int(val)
-		return self.val == val
-
 class LvarRead:
 	def __init__(self, varid, offset):
 		self.varid = varid
@@ -31,11 +16,6 @@ class LvarAssign(Write):
 	def __init__(self, varid, val):
 		super().__init__(val)
 		self.varid = varid
-
-	def check(self, val=None):
-		if val is not None and not self.check_val(val):
-			return False
-		return True
 
 class GvarAssign(Write):
 	def __init__(self, varid, val):
@@ -62,13 +42,6 @@ class LvarWrite(Write):
 	def get_int(self):
 		return utils.get_int(self.val)
 
-	def check(self, offset=None, val=None):
-		if offset is not None and self.offset != offset:
-			return False
-
-		if val is not None and not self.check_val(val):
-			return False
-		return True
 
 class FuncCall:
 	def __init__(self, call_expr):
