@@ -54,9 +54,6 @@ class ASTAnalysis():
 	def returns_lvar(self, lvar_id: int) -> bool:
 		return self.get_returned_lvars() == {lvar_id}
 
-	def get_calls(self):
-		return list(self.calls)
-
 	def get_lvar_substitute(self, varid):
 		return self.lvar_substitutes.get(varid, None)
 
@@ -90,7 +87,7 @@ class ASTAnalysis():
 			yield LvarWrite(w.varid, w.val, write_offset)
 
 	def get_lvar_uses_in_calls(self, var_id):
-		for func_call in self.get_calls():
+		for func_call in self.calls:
 			argid, arg_offset = func_call.get_var_offset()
 			if argid == -1:
 				continue

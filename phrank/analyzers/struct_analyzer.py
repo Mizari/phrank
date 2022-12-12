@@ -75,7 +75,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def get_lvar_call_arg_casts(self, func_ea, lvar_id):
 		func_aa = self.get_ast_analysis(func_ea)
-		for func_call in func_aa.get_calls():
+		for func_call in func_aa.calls:
 			call_ea = func_call.get_ea()
 			for arg_id, arg in enumerate(func_call.get_args()):
 				varid, offset = utils.get_lvar_offset(arg)
@@ -416,7 +416,7 @@ class StructAnalyzer(TypeAnalyzer):
 			return
 
 		aa = self.get_ast_analysis(func_ea)
-		for func_call in aa.get_calls():
+		for func_call in aa.calls:
 			call_ea = func_call.get_ea()
 			if call_ea is None:
 				continue
@@ -443,7 +443,7 @@ class StructAnalyzer(TypeAnalyzer):
 		funcs = set(utils.get_func_calls_to(gvar_ea))
 		for func_ea in funcs:
 			aa = self.get_ast_analysis(func_ea)
-			for func_call in aa.get_calls():
+			for func_call in aa.calls:
 				call_ea = func_call.get_ea()
 				if call_ea is None:
 					continue
