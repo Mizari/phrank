@@ -27,12 +27,6 @@ class LvarRead:
 		self.varid = varid
 		self.offset = offset
 
-	def get_var_use(self, var_id):
-		if self.varid != var_id:
-			return 0
-		else:
-			return self.offset
-
 class LvarAssign(Write):
 	def __init__(self, varid, val):
 		super().__init__(val)
