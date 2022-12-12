@@ -27,16 +27,6 @@ class ASTAnalysis():
 		self.lvar_substitutes.clear()
 		self.returns.clear()
 
-	def print_uses(self):
-		for w in self.lvar_writes:
-			if w.get_int() is not None:
-				print("write", hex(w.offset), hex(w.get_int()))
-			else:
-				print("write", hex(w.offset), w.val.opname)
-
-		for c in self.calls:
-			print("call", c.get_name(), hex(c.get_offset(0)), c.get_nargs(), c.get_var_use_size(0), [a.opname for a in c.get_args()])
-
 	def get_returned_lvars(self) -> set[int]:
 		returned_lvars = set()
 		for r in self.returns:
