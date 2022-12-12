@@ -37,11 +37,6 @@ class ASTAnalysis():
 		for c in self.calls:
 			print("call", c.get_name(), hex(c.get_offset(0)), c.get_nargs(), c.get_var_use_size(0), [a.opname for a in c.get_args()])
 
-	def lvarptr_writes(self, offset=None, val=None):
-		for w in self.lvar_writes:
-			if w.check(offset, val):
-				yield w
-
 	def get_returned_lvars(self) -> set[int]:
 		returned_lvars = set()
 		for r in self.returns:
@@ -67,8 +62,8 @@ class ASTAnalysis():
 			return None
 		return var_offset
 
-	def get_writes_into_lvar(self, var_id, offset=None, val=None):
-		for w in self.lvarptr_writes(offset, val):
+	def get_writes_into_lvar(self, var_id):
+		for w in self.lvar_writes:
 			var_offset = None
 			if w.varid == var_id:
 				var_offset = 0
