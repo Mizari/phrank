@@ -39,9 +39,6 @@ class LvarWrite(Write):
 		self.varid = varid
 		self.offset : int|None = offset
 
-	def get_int(self):
-		return utils.get_int(self.val)
-
 
 class FuncCall:
 	def __init__(self, call_expr):

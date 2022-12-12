@@ -131,7 +131,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 		vtbls = set()
 		func_fav = self.get_ast_analysis(func_addr)
 		for w in func_fav.get_writes_into_lvar(0):
-			intval = w.get_int()
+			intval = utils.get_int(w.val)
 			if intval is None:
 				continue
 
