@@ -17,12 +17,6 @@ class Write:
 
 		return val == intval
 
-	def get_write_size(self):
-		sz = self.val.type.get_size()
-		if sz == idaapi.BADSIZE:
-			raise BaseException("Failed to get write size " + self.val.opname)
-		return sz
-
 	def check_val(self, val):
 		if isinstance(val, int):
 			return self.is_int(val)
@@ -73,11 +67,6 @@ class LvarWrite(Write):
 
 	def get_int(self):
 		return utils.get_int(self.val)
-	
-	def get_var_use(self, var_id):
-		if self.varid != var_id:
-			return 0
-		return self.offset + self.get_write_size()
 
 	def check(self, offset=None, val=None):
 		if offset is not None and self.offset != offset:

@@ -115,12 +115,3 @@ class ASTAnalysis():
 
 			if func_ea is not None:
 				yield var_offset + arg_offset, func_ea
-
-	def get_lvar_use_size(self, var_id):
-		var_use_sz = 0
-		for w in self._lvar_reads:
-			var_use_sz = max(var_use_sz, w.get_var_use(var_id))
-
-		for w in self._lvar_writes:
-			var_use_sz = max(var_use_sz, w.get_var_use(var_id))
-		return var_use_sz
