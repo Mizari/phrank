@@ -80,40 +80,6 @@ class FuncCall:
 			return varid, offset
 		return None
 
-	def get_var_use_size(self, var_id):
-		nargs = self.get_nargs()
-		if nargs == 0:
-			return 0
-
-		arg0 = self._call_expr.a[0]
-		varid, offset = utils.get_var_offset(arg0)
-		if varid == var_id:
-			func_use_value = 0
-			if self._func_name in utils.ARRAY_FUNCS:
-				arg2 = self._call_expr.a[2]
-				if arg2.op == idaapi.cot_num:
-					func_use_value = arg2.n._value
-			elif self._func_name in utils.WARRAY_FUNCS:
-				arg2 = self._call_expr.a[2]
-				if arg2.op == idaapi.cot_num:
-					func_use_value = arg2.n._value * 2
-			elif self._func_name in utils.PRINTF_FUNCS:
-				arg2 = self._call_expr.a[1]
-				if arg2.op == idaapi.cot_num:
-					func_use_value = arg2.n._value
-
-			if func_use_value != 0:
-				return offset + func_use_value
-
-		# sanity check
-		if self._func_ea == idaapi.BADADDR:
-			return 0
-
-		# cant look into imported funcs, assume that args are somehow used there
-		if utils.is_func_import(self._func_ea):
-			return 1
-		return 0
-
 
 class ReturnWrapper:
 	def __init__(self, insn) -> None:
