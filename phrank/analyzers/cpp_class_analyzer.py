@@ -121,6 +121,19 @@ class CppClassAnalyzer(TypeAnalyzer):
 		self.search_vtable(vtbl)
 		self.post_analysis()
 
+	def get_lvar_uses_in_calls(self, lvar_id):
+		for func_call in self.calls:
+			func_ea = func_call.get_ea()
+			if func_ea is None:
+				continue
+
+			for arg in func_call._call_expr.a:
+				argid, arg_offset = utils.get_lvar_offset(arg)
+				if argid != lvar_id:
+					continue
+
+				yield arg_offset, func_ea
+
 	def search_func(self, func_addr):
 		if func_addr in self._cctx._cdtors:
 			return
@@ -149,12 +162,11 @@ class CppClassAnalyzer(TypeAnalyzer):
 		for v in vtbls:
 			self.search_vtable(v)
 
-		for _, callee_addr in func_fav.get_lvar_uses_in_calls(0):
+		for _, callee_addr in self.get_lvar_uses_in_calls(0):
 			self.search_func(callee_addr)
 
 		for caller_addr in utils.get_func_calls_to(func_addr):
-			caller_fav = self.get_ast_analysis(caller_addr)
-			if any(w[1] == caller_addr for w in caller_fav.get_lvar_uses_in_calls(0)):
+			if any(w[1] == caller_addr for w in self.get_lvar_uses_in_calls(0)):
 				continue
 			self.search_func(caller_addr)
 
@@ -339,8 +351,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 				cpp_class.add_parent(offset, parent)
 				parent.add_child(cpp_class)
 
-		fav = self.get_ast_analysis(cdtor.get_ea())
-		for offset, func_call_ea in fav.get_lvar_uses_in_calls(0):
+		for offset, func_call_ea in self.get_lvar_uses_in_calls(0):
 			parent_cdtor = self._cctx.get_cdtor(func_call_ea)
 			if parent_cdtor is None:
 				continue

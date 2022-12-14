@@ -68,15 +68,6 @@ class FuncCall:
 	def get_name(self):
 		return self._func_name
 
-	def get_var_offset(self):
-		for arg in self._call_expr.a:
-			varid, offset = utils.get_var_offset(arg)
-			if varid == -1:
-				continue
-
-			return varid, offset
-		return None
-
 
 class ReturnWrapper:
 	def __init__(self, insn) -> None:

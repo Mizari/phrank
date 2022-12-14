@@ -41,13 +41,3 @@ class ASTAnalysis():
 		for w in self.lvar_writes:
 			if w.varid != var_id: continue
 			yield w
-
-	def get_lvar_uses_in_calls(self, var_id):
-		for func_call in self.calls:
-			argid, arg_offset = func_call.get_var_offset()
-			if argid != var_id:
-				continue
-
-			func_ea = func_call.get_ea()
-			if func_ea is not None:
-				yield arg_offset, func_ea
