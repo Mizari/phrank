@@ -52,8 +52,6 @@ class FuncCall:
 		elif call_expr.x.op == idaapi.cot_helper:
 			self._func_name = call_expr.x.helper
 
-		self._this_args : dict[int, int] = {}
-
 	def get_ea(self):
 		if self._func_ea == idaapi.BADADDR:
 			return None
