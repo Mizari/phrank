@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import idaapi
 
 
@@ -36,7 +34,7 @@ class FuncCall:
 		self.call_expr : idaapi.cexpr_t = call_expr.x
 		self.args = call_expr.a
 		self.address : int = -1
-		self.name : str|None = None
+		self.name : str = ""
 
 		if self.call_expr.op == idaapi.cot_obj:
 			self.address = self.call_expr.obj_ea
