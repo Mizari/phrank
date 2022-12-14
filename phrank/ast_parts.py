@@ -2,41 +2,33 @@ from __future__ import annotations
 
 import idaapi
 
-class Write:
-	def __init__(self, val):
-		self.val : idaapi.cexpr_t|None = val
 
-class LvarRead:
-	def __init__(self, varid, offset):
+class VarUse:
+	LOCAL_VAR  = 0
+	GLOBAL_VAR = 1
+
+	def __init__(self, vartype, varid):
+		self.vartype = vartype
 		self.varid = varid
+
+
+class VarRead(VarUse):
+	def __init__(self, vartype, varid, offset):
+		super().__init__(vartype, varid)
 		self.offset = offset
 
-class LvarAssign(Write):
-	def __init__(self, varid, val):
-		super().__init__(val)
-		self.varid = varid
 
-class GvarAssign(Write):
-	def __init__(self, varid, val):
-		super().__init__(val)
-		self.varid = varid
-
-class GvarWrite(Write):
-	def __init__(self, varid, val, offset):
-		super().__init__(val)
-		self.varid = varid
-		self.val = val
+class VarWrite(VarUse):
+	def __init__(self, vartype, varid, value, offset):
+		super().__init__(vartype, varid)
+		self.value : idaapi.cexpr_t = value
 		self.offset = offset
 
-class GvarRead:
-	def __init__(self) -> None:
-		pass
 
-class LvarWrite(Write):
-	def __init__(self, varid, val, offset):
-		super().__init__(val)
-		self.varid = varid
-		self.offset : int|None = offset
+class VarAssign(VarUse):
+	def __init__(self, vartype, varid, value):
+		super().__init__(vartype, varid)
+		self.value : idaapi.cexpr_t = value
 
 
 class FuncCall:

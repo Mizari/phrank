@@ -10,13 +10,13 @@ class ASTAnalysis():
 		self.returns : list[ReturnWrapper] = []
 		self.calls : list[FuncCall] = []
 
-		self.lvar_writes : list[LvarWrite] = []
-		self.lvar_assigns: list[LvarAssign] = []
-		self.lvar_reads : list[LvarRead] = []
+		self.lvar_assigns : list[VarAssign] = []
+		self.lvar_writes  : list[VarWrite]  = []
+		self.lvar_reads   : list[VarRead]   = []
 
-		self.gvar_assigns : list[GvarAssign] = []
-		self.gvar_writes : list[GvarWrite]= []
-		self.gvar_reads : list[GvarRead] = []
+		self.gvar_assigns : list[VarAssign] = []
+		self.gvar_writes  : list[VarWrite]  = []
+		self.gvar_reads   : list[VarRead]   = []
 
 	def clear(self):
 		self.lvar_assigns.clear()

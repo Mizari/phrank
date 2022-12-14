@@ -67,10 +67,10 @@ class StructAnalyzer(TypeAnalyzer):
 		func_aa = self.get_ast_analysis(func_ea)
 		for var_write in func_aa.get_writes_into_lvar(lvar_id):
 			write_offset = var_write.offset
-			write_type = self.analyze_cexpr(func_ea, var_write.val)
+			write_type = self.analyze_cexpr(func_ea, var_write.value)
 			# write exists, just type is unknown. will use simple int instead
 			if write_type is utils.UNKNOWN_TYPE:
-				write_type = utils.get_int_tinfo(var_write.val.type.get_size())
+				write_type = utils.get_int_tinfo(var_write.value.type.get_size())
 			yield write_offset, write_type
 
 	def get_lvar_call_arg_casts(self, func_ea, lvar_id):
@@ -236,7 +236,7 @@ class StructAnalyzer(TypeAnalyzer):
 			return None
 
 		assign_ea, gvar_assign = assigns[0]
-		return self.analyze_cexpr(assign_ea, gvar_assign.val)
+		return self.analyze_cexpr(assign_ea, gvar_assign.value)
 
 	def analyze_gvar(self, gvar_ea):
 		current_type = self.gvar2tinfo.get(gvar_ea)
@@ -298,7 +298,7 @@ class StructAnalyzer(TypeAnalyzer):
 		assigns = []
 		for wr in func_aa.lvar_assigns:
 			if wr.varid != lvar_id: continue
-			atype = self.analyze_cexpr(func_ea, wr.val)
+			atype = self.analyze_cexpr(func_ea, wr.value)
 			if atype is not utils.UNKNOWN_TYPE:
 				assigns.append(atype)
 

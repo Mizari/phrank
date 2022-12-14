@@ -52,25 +52,25 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 
 		lvarid, offset = utils.get_lvar_write(expr.x)
 		if lvarid != -1:
-			w = LvarWrite(lvarid, expr.y, offset)
+			w = VarWrite(VarUse.LOCAL_VAR, lvarid, expr.y, offset)
 			self.current_ast_analysis.lvar_writes.append(w)
 			return True
 
 		lvarid = utils.get_lvar_assign(expr.x)
 		if lvarid != -1:
-			w = LvarAssign(lvarid, expr.y)
+			w = VarAssign(VarUse.LOCAL_VAR, lvarid, expr.y)
 			self.current_ast_analysis.lvar_assigns.append(w)
 			return True
 
 		gvarid = utils.get_gvar_assign(expr.x)
 		if gvarid != -1:
-			w = GvarAssign(gvarid, expr.y)
+			w = VarAssign(VarUse.GLOBAL_VAR, gvarid, expr.y)
 			self.current_ast_analysis.gvar_assigns.append(w)
 			return True
 
 		gvarid, offset = utils.get_gvar_write(expr.x)
 		if gvarid != -1:
-			w = GvarWrite(gvarid, expr.y, offset)
+			w = VarWrite(VarUse.GLOBAL_VAR, gvarid, expr.y, offset)
 			self.current_ast_analysis.gvar_writes.append(w)
 			return True
 
@@ -80,7 +80,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 	def handle_expr(self, expr):
 		varid, offset = utils.get_lvar_read(expr)
 		if varid != -1:
-			w = LvarRead(varid, offset)
+			w = VarRead(VarRead.LOCAL_VAR, varid, offset)
 			self.current_ast_analysis.lvar_reads.append(w)
 			return True
 
