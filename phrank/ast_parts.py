@@ -46,11 +46,11 @@ class FuncCall:
 		self.address : int = -1
 		self.name : str|None = None
 
-		if call_expr.op == idaapi.cot_obj:
-			self.address = call_expr.obj_ea
+		if self.call_expr.op == idaapi.cot_obj:
+			self.address = self.call_expr.obj_ea
 			self.name = idaapi.get_func_name(self.address)
-		elif call_expr.op == idaapi.cot_helper:
-			self.name = call_expr.helper
+		elif self.call_expr.op == idaapi.cot_helper:
+			self.name = self.call_expr.helper
 
 
 class ReturnWrapper:
