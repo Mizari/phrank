@@ -76,14 +76,14 @@ class StructAnalyzer(TypeAnalyzer):
 	def get_lvar_call_arg_casts(self, func_ea, lvar_id):
 		func_aa = self.get_ast_analysis(func_ea)
 		for func_call in func_aa.calls:
-			call_ea = func_call.get_ea()
-			for arg_id, arg in enumerate(func_call.get_args()):
+			call_ea = func_call.address
+			for arg_id, arg in enumerate(func_call.args):
 				varid, offset = utils.get_lvar_offset(arg)
 				if varid != lvar_id:
 					continue
 
 				# if helper function, then skip
-				if call_ea is None:
+				if call_ea == -1:
 					yield offset, utils.UNKNOWN_TYPE
 					continue
 
@@ -417,11 +417,11 @@ class StructAnalyzer(TypeAnalyzer):
 
 		aa = self.get_ast_analysis(func_ea)
 		for func_call in aa.calls:
-			call_ea = func_call.get_ea()
-			if call_ea is None:
+			call_ea = func_call.address
+			if call_ea == -1:
 				continue
 
-			for arg_id, arg in enumerate(func_call.get_args()):
+			for arg_id, arg in enumerate(func_call.args):
 				arg_lvar_id, offset = utils.get_lvar_offset(arg)
 				if arg_lvar_id != lvar_id or offset != 0:
 					continue
@@ -444,10 +444,10 @@ class StructAnalyzer(TypeAnalyzer):
 		for func_ea in funcs:
 			aa = self.get_ast_analysis(func_ea)
 			for func_call in aa.calls:
-				call_ea = func_call.get_ea()
-				if call_ea is None:
+				call_ea = func_call.address
+				if call_ea == -1:
 					continue
-				for arg_id, arg in enumerate(func_call.get_args()):
+				for arg_id, arg in enumerate(func_call.args):
 					arg_gvar_id, offset = utils.get_gvar_offset(arg)
 					if arg_gvar_id != gvar_ea or offset != 0:
 						continue

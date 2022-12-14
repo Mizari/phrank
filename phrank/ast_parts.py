@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import idaapi
-import phrank.utils as utils
 
 class Write:
 	def __init__(self, val):
@@ -42,32 +41,18 @@ class LvarWrite(Write):
 
 class FuncCall:
 	def __init__(self, call_expr):
-		self._call_expr : idaapi.cexpr_t = call_expr
-		self._func_ea : int = idaapi.BADADDR
-		self._func_name : str|None = None
+		self.call_expr : idaapi.cexpr_t = call_expr.x
+		self.args = call_expr.a
+		self.address : int = -1
+		self.name : str|None = None
 
-		if call_expr.x.op == idaapi.cot_obj:
-			self._func_ea = call_expr.x.obj_ea
-			self._func_name = idaapi.get_func_name(self._func_ea)
-		elif call_expr.x.op == idaapi.cot_helper:
-			self._func_name = call_expr.x.helper
-
-	def get_ea(self):
-		if self._func_ea == idaapi.BADADDR:
-			return None
-		return self._func_ea
-
-	def get_nargs(self):
-		return len(self._call_expr.a)
-
-	def get_args(self):
-		return self._call_expr.a
-
-	def get_name(self):
-		return self._func_name
+		if call_expr.op == idaapi.cot_obj:
+			self.address = call_expr.obj_ea
+			self.name = idaapi.get_func_name(self.address)
+		elif call_expr.op == idaapi.cot_helper:
+			self.name = call_expr.helper
 
 
 class ReturnWrapper:
 	def __init__(self, insn) -> None:
 		self.insn = insn
-
