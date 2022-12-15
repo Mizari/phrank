@@ -2,9 +2,15 @@ import idaapi
 import idautils
 import idc
 
-ptr_size = None
-get_data = None
-
+if idaapi.get_inf_structure().is_64bit():
+	pointer_size = 8
+	read_pointer_func = idaapi.get_qword
+elif idaapi.get_inf_structure().is_32bit():
+	pointer_size = 4
+	read_pointer_func = idaapi.get_dword
+else:
+	pointer_size = 2
+	read_pointer_func = idaapi.get_word
 
 def split_list(l, cond):
 	on_true = []
@@ -21,42 +27,6 @@ def get_next_available_strucname(strucname):
 		prefix, ctr = strucname.rsplit('_', 1)
 		strucname = prefix + '_' + str(int(ctr) + 1)
 	return strucname
-
-def get_ptr_size():
-	global ptr_size
-	global get_data
-
-	if ptr_size is None:
-		info = idaapi.get_inf_structure()
-		if info.is_64bit():
-			ptr_size = 8
-			get_data = idaapi.get_qword
-		elif info.is_32bit():
-			ptr_size = 4
-			get_data = idaapi.get_dword
-		else:
-			ptr_size = 2
-			get_data = idaapi.get_word
-
-	return ptr_size
-
-def read_ptr(addr):
-	global get_data
-	global ptr_size
-
-	if get_data is None:
-		info = idaapi.get_inf_structure()
-		if info.is_64bit():
-			ptr_size = 8
-			get_data = idaapi.get_qword
-		elif info.is_32bit():
-			ptr_size = 4
-			get_data = idaapi.get_dword
-		else:
-			ptr_size = 2
-			get_data = idaapi.get_word
-
-	return get_data(addr)
 
 def size2dataflags(sz):
 	df = {8: idaapi.FF_QWORD, 4: idaapi.FF_DWORD, 2: idaapi.FF_WORD, 1: idaapi.FF_BYTE}.get(sz, 0)

@@ -64,7 +64,7 @@ class Structure(IdaStrucWrapper):
 		idc.SetType(ida_struct.get_member_id(self.strucid, offset), struc.get_name())
 
 	def set_strucptr(self, name, offset, struc):
-		ptr_size = utils.get_ptr_size()
+		ptr_size = utils.pointer_size
 		if not self.is_offset_ok(offset, ptr_size): raise BaseException("offset and size are too big")
 		self.unset_members(offset, ptr_size)
 		ret = ida_struct.add_struc_member(self.strucid, name, offset, utils.size2dataflags(ptr_size), -1, ptr_size)

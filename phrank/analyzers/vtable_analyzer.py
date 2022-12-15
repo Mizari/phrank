@@ -59,10 +59,9 @@ class VtableAnalyzer(TypeAnalyzer):
 			self.analyze_segment(segstart, segend)
 
 	def analyze_segment(self, segstart, segend):
-		ptr_size = utils.get_ptr_size()
 		while segstart < segend:
 			vtbl = self.analyze_gvar(segstart)
 			if vtbl is None:
-				segstart += ptr_size
+				segstart += utils.pointer_size
 			else:
 				segstart += vtbl.get_size()

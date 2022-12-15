@@ -62,7 +62,7 @@ class Vtable(Structure):
 		if ida_struct.is_union(strucid):
 			return False
 
-		if ida_struct.get_struc_size(strucid) % utils.get_ptr_size() != 0:
+		if ida_struct.get_struc_size(strucid) % utils.pointer_size != 0:
 			return False
 
 		# vtable has one data xref max
@@ -90,15 +90,15 @@ class Vtable(Structure):
 		if len([x for x in idautils.XrefsTo(addr)]) == 0:
 			return []
 
-		ptr_size = utils.get_ptr_size()
-		ptrs = [utils.read_ptr(addr)]
+		ptr_size = utils.pointer_size
+		ptrs = [utils.read_pointer_func(addr)]
 		addr += ptr_size
 		while True:
 			# on next xref next vtable starts, vtables are used as pointers only
 			if len([x for x in idautils.XrefsTo(addr)]) != 0:
 				break
 
-			ptr = utils.read_ptr(addr)
+			ptr = utils.read_pointer_func(addr)
 			if not idaapi.is_loaded(ptr):
 				break
 
