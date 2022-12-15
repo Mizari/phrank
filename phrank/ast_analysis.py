@@ -20,13 +20,6 @@ class ASTAnalysis():
 
 		self.unknown_asgs = []
 
-	def clear(self):
-		self.lvar_assigns.clear()
-		self.lvar_writes.clear()
-		self.calls.clear()
-		self.lvar_reads.clear()
-		self.returns.clear()
-
 	def get_returned_lvars(self) -> set[int]:
 		returned_lvars = set()
 		for r in self.returns:
