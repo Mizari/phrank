@@ -22,14 +22,6 @@ def should_skip_decompiling(func_ea):
 
 	return False
 
-def decompile_function(func_ea):
-	try:
-		cfunc = idaapi.decompile(func_ea)
-		str(cfunc)
-		return cfunc
-	except idaapi.DecompilationFailure:
-		print("failed to decompile", hex(func_ea), idaapi.get_name(func_ea))
-		return -1
 
 class CFunctionFactory:
 	def __init__(self):
@@ -37,13 +29,16 @@ class CFunctionFactory:
 
 	def get_cfunc(self, func_ea: int):
 		cfunc = self.cached_cfuncs.get(func_ea)
+		# -1 to act as bad decompilation
 		if cfunc == -1:
 			return None
 		if cfunc is not None:
 			return cfunc
 
 		if not phrank_settings.DECOMPILE_RECURSIVELY:
-			cfunc = decompile_function(func_ea)
+			cfunc = utils.decompile_function(func_ea)
+			if cfunc is None:
+				cfunc = -1
 			self.cached_cfuncs[func_ea] = cfunc
 			return cfunc
 
@@ -57,7 +52,9 @@ class CFunctionFactory:
 				new_functions_to_decompile.add(subcall)
 
 			if len(new_functions_to_decompile) == 0:
-				cfunc = decompile_function(func_ea)
+				cfunc = utils.decompile_function(func_ea)
+				if cfunc is None: 
+					cfunc = -1
 				self.cached_cfuncs[func_ea] = cfunc
 				decompilation_queue.pop()
 			else:

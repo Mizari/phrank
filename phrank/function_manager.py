@@ -1,7 +1,4 @@
 import idaapi
-import idc
-import idautils
-import re
 
 import phrank.utils as utils
 
@@ -10,31 +7,6 @@ from phrank.cfunction_factory import CFunctionFactory
 
 def get_funcname(func_ea: int):
 	return idaapi.get_name(func_ea)
-
-def is_movrax_ret(func_ea: int):
-	# count blocks
-	blocks = [b for b in idautils.Chunks(func_ea)]
-	if len(blocks) > 1:
-		return False
-	block = blocks[0]
-
-	# count instructions
-	instrs = [h for h in idautils.Heads(block[0], block[1])]
-	if len(instrs) != 2:
-		return False
-
-	# first is xor rax|eax
-	disasm = idc.GetDisasm(instrs[0])
-	p1 = re.compile("xor[ ]*(eax|rax), (eax|rax).*")  # mov rax, 0
-	p2 = re.compile("mov[ ]*(eax|rax), \d+.*")        # mov rax, !0
-	if re.fullmatch(p1, disasm) is None and re.fullmatch(p2, disasm) is None:
-		return False
-
-	# second is retn
-	disasm = idc.GetDisasm(instrs[1])
-	if not disasm.startswith("retn"):
-		return False
-	return True
 
 
 class FunctionManager:
@@ -149,7 +121,7 @@ class FunctionManager:
 		if idaapi.get_tinfo(tif, func_ea) and tif.is_correct():
 			return tif
 
-		if is_movrax_ret(func_ea):
+		if utils.is_movrax_ret(func_ea):
 			return utils.VOID_FUNC_TIF.copy()
 
 		print("Failed to get tinfo for", hex(func_ea), get_funcname(func_ea))
