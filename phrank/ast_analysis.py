@@ -18,6 +18,8 @@ class ASTAnalysis():
 		self.gvar_writes  : list[VarWrite]  = []
 		self.gvar_reads   : list[VarRead]   = []
 
+		self.unknown_asgs = []
+
 	def clear(self):
 		self.lvar_assigns.clear()
 		self.lvar_writes.clear()

@@ -13,6 +13,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 
 	def analyze_cfunc(self, cfunc: idaapi.cfunc_t) -> ASTAnalysis:
 		self.current_ast_analysis = ASTAnalysis()
+		self.current_func_ea = cfunc.entry_ea
 		self.apply_to(cfunc.body, None)
 
 		rv, self.current_ast_analysis = self.current_ast_analysis, None
@@ -74,6 +75,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			self.current_ast_analysis.gvar_writes.append(w)
 			return True
 
+		self.current_ast_analysis.unknown_asgs.append(expr.x)
 		self.apply_to(expr.x, None)
 		return True
 
