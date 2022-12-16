@@ -1,13 +1,6 @@
 import idaapi
 import idc
 
-VOIDPTR_TIF = idaapi.tinfo_t()
-idaapi.parse_decl(VOIDPTR_TIF, idaapi.get_idati(), "void*;", 0)
-assert VOIDPTR_TIF.is_correct()
-
-VOID_FUNC_TIF = idaapi.tinfo_t()
-idaapi.parse_decl(VOID_FUNC_TIF, idaapi.get_idati(), "__int64 (*)();", 0)
-assert VOID_FUNC_TIF.is_correct()
 
 UNKNOWN_TYPE = idaapi.tinfo_t()
 
