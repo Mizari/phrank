@@ -17,10 +17,15 @@ class VarRead(VarUse):
 
 
 class VarWrite(VarUse):
-	def __init__(self, vartype, varid, value, offset):
+	# write types
+	PTR_WRITE = 0
+	STRUCT_WRITE = 1
+
+	def __init__(self, vartype, varid, value, offset, write_type):
 		super().__init__(vartype, varid)
 		self.value : idaapi.cexpr_t = value
 		self.offset = offset
+		self.write_type = write_type
 
 
 class VarAssign(VarUse):

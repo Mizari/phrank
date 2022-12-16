@@ -51,9 +51,15 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 	def handle_assignment(self, expr):
 		self.apply_to(expr.y, None)
 
-		lvarid, offset = utils.get_lvar_write(expr.x)
+		lvarid, offset = utils.get_lvar_ptr_write(expr.x)
 		if lvarid != -1:
-			w = VarWrite(VarUse.LOCAL_VAR, lvarid, expr.y, offset)
+			w = VarWrite(VarUse.LOCAL_VAR, lvarid, expr.y, offset, VarWrite.PTR_WRITE)
+			self.current_ast_analysis.lvar_writes.append(w)
+			return True
+
+		lvarid, offset = utils.get_lvar_struct_write(expr.x)
+		if lvarid != -1:
+			w = VarWrite(VarUse.LOCAL_VAR, lvarid, expr.y, offset, VarWrite.STRUCT_WRITE)
 			self.current_ast_analysis.lvar_writes.append(w)
 			return True
 
@@ -69,9 +75,15 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			self.current_ast_analysis.gvar_assigns.append(w)
 			return True
 
-		gvarid, offset = utils.get_gvar_write(expr.x)
+		gvarid, offset = utils.get_gvar_ptr_write(expr.x)
 		if gvarid != -1:
-			w = VarWrite(VarUse.GLOBAL_VAR, gvarid, expr.y, offset)
+			w = VarWrite(VarUse.GLOBAL_VAR, gvarid, expr.y, offset, VarWrite.PTR_WRITE)
+			self.current_ast_analysis.gvar_writes.append(w)
+			return True
+
+		gvarid, offset = utils.get_gvar_struct_write(expr.x)
+		if gvarid != -1:
+			w = VarWrite(VarUse.GLOBAL_VAR, gvarid, expr.y, offset, VarWrite.STRUCT_WRITE)
 			self.current_ast_analysis.gvar_writes.append(w)
 			return True
 

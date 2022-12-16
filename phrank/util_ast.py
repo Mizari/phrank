@@ -77,7 +77,7 @@ def get_gvar_assign(expr):
 
 	return -1
 
-def get_gvar_write(expr):
+def get_gvar_ptr_write(expr):
 	if expr.op == idaapi.cot_idx:
 		if expr.x.op != idaapi.cot_obj or expr.y.op != idaapi.cot_num:
 			return -1, None
@@ -92,12 +92,26 @@ def get_gvar_write(expr):
 
 	return -1, None
 
+def get_gvar_struct_write(expr):
+	if expr.op != idaapi.cot_memref:
+		return -1, None
+
+	offset = 0
+	while expr.op == idaapi.cot_memref:
+		offset += expr.m
+		expr = expr.x
+	if expr.op == idaapi.cot_obj:
+		return expr.obj_ea, offset
+	return -1, None
+
+# trying to get various forms of "var + X", where X is int
+
 def get_gvar_read(expr):
 	return -1, None
 
 # not found is (-1, None) since there are no such local variables
 # with negative id, and there CAN be negative offset
-def get_lvar_write(expr):
+def get_lvar_ptr_write(expr):
 	if expr.op == idaapi.cot_idx:
 		if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
 			return -1, None
@@ -110,6 +124,18 @@ def get_lvar_write(expr):
 	if expr.op == idaapi.cot_memptr and expr.x.op == idaapi.cot_var:
 		return expr.x.v.idx, expr.m
 
+	return -1, None
+
+def get_lvar_struct_write(expr):
+	if expr.op != idaapi.cot_memref:
+		return -1, None
+
+	offset = 0
+	while expr.op == idaapi.cot_memref:
+		offset += expr.m
+		expr = expr.x
+	if expr.op == idaapi.cot_var:
+		return expr.v.idx, offset
 	return -1, None
 
 # trying to get various forms of "var + X", where X is int
