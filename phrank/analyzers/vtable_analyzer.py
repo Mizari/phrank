@@ -14,6 +14,7 @@ class VtableAnalyzer(TypeAnalyzer):
 		vtbl_name = utils.get_next_available_strucname(vtbl_name)
 		vtbl = Vtable.create(vtbl_name)
 
+		unknown_func_ptr_tif = utils.str2tif("void*")
 		for func_addr in vfcs:
 			member_name = idaapi.get_name(func_addr)
 			if member_name is None:
@@ -24,7 +25,7 @@ class VtableAnalyzer(TypeAnalyzer):
 
 			func_ptr_tif = self.get_ptr_tinfo(func_addr)
 			if func_ptr_tif is None:
-				func_ptr_tif = utils.VOIDPTR_TIF.copy()
+				func_ptr_tif = unknown_func_ptr_tif
 
 			vtbl.append_member(member_name, func_ptr_tif, hex(func_addr))
 		return vtbl

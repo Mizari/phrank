@@ -122,7 +122,10 @@ class FunctionManager:
 			return tif
 
 		if utils.is_movrax_ret(func_ea):
-			return utils.VOID_FUNC_TIF.copy()
+			rv = utils.str2tif("__int64 (*)()")
+			if rv is None:
+				return rv
+			return rv.copy()
 
 		print("Failed to get tinfo for", hex(func_ea), get_funcname(func_ea))
 		return None

@@ -1,5 +1,6 @@
 import idaapi
 import idc
+from functools import cache as _cache
 
 
 UNKNOWN_TYPE = idaapi.tinfo_t()
@@ -40,6 +41,7 @@ def addr2tif(addr):
 	return str2tif(addr_type)
 
 
+@_cache
 def str2tif(type_str):
 	if type_str[-1] != ';': type_str = type_str + ';'
 
