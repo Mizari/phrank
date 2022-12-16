@@ -40,7 +40,10 @@ class CFunctionFactory:
 			if cfunc is None:
 				cfunc = -1
 			self.cached_cfuncs[func_ea] = cfunc
-			return cfunc
+			if cfunc == -1:
+				return None
+			else:
+				return cfunc
 
 		decompilation_queue = [func_ea]
 		while len(decompilation_queue) != 0:
