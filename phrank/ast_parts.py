@@ -24,6 +24,7 @@ class VarWrite(VarUse):
 	def __init__(self, vartype, varid, value, offset, write_type):
 		super().__init__(vartype, varid)
 		self.value : idaapi.cexpr_t = value
+		self.value_type = None
 		self.offset = offset
 		self.write_type = write_type
 

@@ -66,12 +66,12 @@ class StructAnalyzer(TypeAnalyzer):
 	def get_lvar_writes(self, func_ea, lvar_id):
 		func_aa = self.get_ast_analysis(func_ea)
 		for var_write in func_aa.get_writes_into_lvar(lvar_id):
-			write_offset = var_write.offset
 			write_type = self.analyze_cexpr(func_ea, var_write.value)
 			# write exists, just type is unknown. will use simple int instead
 			if write_type is utils.UNKNOWN_TYPE:
 				write_type = utils.get_int_tinfo(var_write.value.type.get_size())
-			yield write_offset, write_type
+			var_write.value_type = write_type
+			yield var_write
 
 	def get_lvar_call_arg_casts(self, func_ea, lvar_id):
 		func_aa = self.get_ast_analysis(func_ea)
@@ -101,8 +101,8 @@ class StructAnalyzer(TypeAnalyzer):
 	def analyze_existing_lvar_type_by_writes(self, func_ea, lvar_id):
 		writes = [w for w in self.get_lvar_writes(func_ea, lvar_id)]
 		# single write at offset 0 does not create new type
-		if len(writes) == 1 and writes[0][0] == 0:
-			_, write_type = writes[0]
+		if len(writes) == 1 and writes[0].offset == 0:
+			write_type = writes[0].value_type.copy()
 			write_type.create_ptr(write_type)
 			return write_type
 
@@ -152,7 +152,9 @@ class StructAnalyzer(TypeAnalyzer):
 			cast_end = cast_offset + cast_type.get_size()
 			if cast_offset == 0 and cast_type is not utils.UNKNOWN_TYPE:
 				for w in writes:
-					write_start, write_end = w[0], w[1].get_size()
+					write_start = w.offset
+					write_end = w.value_type.get_size()
+					# write_start, write_end = w[0], w[1].get_size()
 					if write_start < cast_offset or write_end > cast_end:
 						return utils.UNKNOWN_TYPE
 
@@ -172,6 +174,11 @@ class StructAnalyzer(TypeAnalyzer):
 		casts = [c for c in self.get_lvar_call_arg_casts(func_ea, lvar_id)]
 		if len(writes) == 0 and len(casts) == 0:
 			return utils.UNKNOWN_TYPE
+
+		write_types = set()
+		for w in writes:
+			write_types.add(w.write_type)
+		print("write types", write_types)
 
 		lvar_struct = Structure.create()
 		self.new_types.add(lvar_struct.strucid)
@@ -330,8 +337,8 @@ class StructAnalyzer(TypeAnalyzer):
 			if strucid == idaapi.BADADDR:
 				return lvar_tinfo
 
-			for write_offset, write_type in self.get_lvar_writes(func_ea, lvar_id):
-				self.add_member_type(strucid, write_offset, write_type)
+			for lvar_write in self.get_lvar_writes(func_ea, lvar_id):
+				self.add_member_type(strucid, lvar_write.offset, lvar_write.value_type)
 
 			# TODO check correctness of writes, read, casts
 
@@ -346,8 +353,8 @@ class StructAnalyzer(TypeAnalyzer):
 		if strucid == idaapi.BADADDR:
 			return lvar_tinfo
 
-		for write_offset, write_type in self.get_lvar_writes(func_ea, lvar_id):
-			self.add_member_type(strucid, write_offset, write_type)
+		for lvar_write in self.get_lvar_writes(func_ea, lvar_id):
+			self.add_member_type(strucid, lvar_write.offset, lvar_write.value_type)
 
 		for offset, arg_tinfo in self.get_lvar_call_arg_casts(func_ea, lvar_id):
 			# cast exists, just type is unknown. will use simple int instead
