@@ -420,12 +420,12 @@ class CppClassAnalyzer(TypeAnalyzer):
 			parent_vtbl = cpp_class.get_parent_vtable(vtbl_offset)
 			self.change_this_in_vtable(new_arg_tinfo, vtbl, parent_vtbl)
 
-	def change_this_in_vtable(self, new_arg_tinfo, vtbl, parent_vtbl=None):
-		for member_offset in range(0, vtbl.get_size(), utils.pointer_size):
+	def change_this_in_vtable(self, new_arg_tinfo, vtbl:Vtable, parent_vtbl=None):
+		for member_offset in vtbl.member_offsets():
 			fname = vtbl.get_member_name(member_offset)
 
 			# do not set if found in parent, will be updated later in parent
-			if parent_vtbl is not None and parent_vtbl.get_size() > member_offset:
+			if parent_vtbl is not None and parent_vtbl.size > member_offset:
 				fname_parent = parent_vtbl.get_member_name(member_offset)
 				if fname_parent == fname:
 					continue
