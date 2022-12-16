@@ -1,7 +1,7 @@
 import idaapi
 
 import phrank_api
-import phrank.util_ast as p_hrays
+import phrank.utils as utils
 
 
 def get_lvar_id(cfunc, lvar_arg):
@@ -69,7 +69,7 @@ class HRActionHandler(idaapi.action_handler_t):
 
 class VtableMaker(HRActionHandler):
 	def handl_expr(self, cfunc, citem):
-		intval = p_hrays.get_int(citem)
+		intval = utils.get_int(citem)
 		if intval is None:
 			print("Failed to get int value")
 			return 0
