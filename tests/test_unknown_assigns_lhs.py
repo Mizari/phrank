@@ -1,12 +1,12 @@
 import idaapi
 import phrank_api
 
+factory = phrank_api.CFunctionFactory()
+factory.decompile_all()
 analyzer = phrank_api.ASTAnalyzer()
 for fea in phrank_api.iterate_all_functions():
-	try:
-		cfunc = idaapi.decompile(fea)
-	except:
-		print("failed to decompile", idaapi.get_name(fea))
+	cfunc = factory.get_cfunc(fea)
+	if cfunc is None:
 		continue
 
 	aa = analyzer.analyze_cfunc(cfunc)
