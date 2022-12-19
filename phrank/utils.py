@@ -1,7 +1,6 @@
 from phrank.util_ast import *
 from phrank.util_tif import *
 from phrank.util_func import *
-from phrank.util_idb import *
 
 def split_list(l, cond):
 	on_true = []
