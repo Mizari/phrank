@@ -25,3 +25,5 @@ def should_skip_by_prefix(fname:str) -> bool:
 		if fname.startswith(prefix):
 			return True
 	return False
+
+PTRSIZE = 8

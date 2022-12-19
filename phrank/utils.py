@@ -26,3 +26,11 @@ def size2dataflags(sz):
 def iterate_segments():
 	for segea in idautils.Segments():
 		yield idc.get_segm_start(segea), idc.get_segm_end(segea)
+
+def get_pointer_size():
+	if idaapi.get_inf_structure().is_64bit():
+		return 8
+	elif idaapi.get_inf_structure().is_32bit():
+		return 4
+	else:
+		return 2

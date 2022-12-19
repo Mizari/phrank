@@ -137,8 +137,9 @@ class PhrankPlugin(idaapi.plugin_t):
 	wanted_hotkey = ""
 
 	def init(self):
+		phrank_api.settings.PTRSIZE = phrank_api.get_pointer_size()
 		return idaapi.PLUGIN_SKIP
-	
+
 	def run(self, arg):
 		return
 

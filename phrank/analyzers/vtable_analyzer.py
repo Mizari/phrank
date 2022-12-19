@@ -3,6 +3,8 @@ import phrank.utils as utils
 
 from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.containers.vtable import Vtable
+import phrank.settings as settings
+
 
 class VtableAnalyzer(TypeAnalyzer):
 	def create_vtable_at_address(self, addr:int):
@@ -63,6 +65,6 @@ class VtableAnalyzer(TypeAnalyzer):
 		while segstart < segend:
 			vtbl = self.analyze_gvar(segstart)
 			if vtbl is None:
-				segstart += utils.pointer_size
+				segstart += settings.PTRSIZE
 			else:
 				segstart += vtbl.get_size()

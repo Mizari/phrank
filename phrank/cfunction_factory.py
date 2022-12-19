@@ -1,6 +1,6 @@
 import idaapi
 
-import phrank.phrank_settings as phrank_settings
+import phrank.settings as settings
 import phrank.utils as utils
 
 def should_skip_decompiling(func_ea):
@@ -9,7 +9,7 @@ def should_skip_decompiling(func_ea):
 		print("emtpy name %s" % hex(func_ea))
 		return True
 
-	if phrank_settings.should_skip_by_prefix(fname):
+	if settings.should_skip_by_prefix(fname):
 		return True
 
 	# global constructors
@@ -17,7 +17,7 @@ def should_skip_decompiling(func_ea):
 		return True
 
 	dfname = idaapi.demangle_name(fname, idaapi.MNG_NODEFINIT | idaapi.MNG_NORETTYPE)
-	if dfname is not None and phrank_settings.should_skip_by_prefix(dfname):
+	if dfname is not None and settings.should_skip_by_prefix(dfname):
 		return True
 
 	return False
@@ -35,7 +35,7 @@ class CFunctionFactory:
 		if cfunc is not None:
 			return cfunc
 
-		if not phrank_settings.DECOMPILE_RECURSIVELY:
+		if not settings.DECOMPILE_RECURSIVELY:
 			cfunc = utils.decompile_function(func_ea)
 			if cfunc is None:
 				cfunc = -1
@@ -71,8 +71,8 @@ class CFunctionFactory:
 		self.cached_cfuncs.pop(func_ea, None)
 
 	def decompile_all(self):
-		saved_decomp = phrank_settings.DECOMPILE_RECURSIVELY
-		phrank_settings.DECOMPILE_RECURSIVELY = True
+		saved_decomp = settings.DECOMPILE_RECURSIVELY
+		settings.DECOMPILE_RECURSIVELY = True
 		for func_ea in utils.iterate_all_functions():
 			self.get_cfunc(func_ea)
-		phrank_settings.DECOMPILE_RECURSIVELY = saved_decomp
+		settings.DECOMPILE_RECURSIVELY = saved_decomp

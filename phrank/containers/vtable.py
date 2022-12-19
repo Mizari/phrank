@@ -3,6 +3,7 @@ import idautils
 import idc
 import ida_struct
 
+import phrank.settings as settings
 import phrank.utils as utils
 from phrank.containers.structure import Structure
 
@@ -62,7 +63,7 @@ class Vtable(Structure):
 		if ida_struct.is_union(strucid):
 			return False
 
-		if ida_struct.get_struc_size(strucid) % utils.pointer_size != 0:
+		if ida_struct.get_struc_size(strucid) % settings.PTRSIZE != 0:
 			return False
 
 		# vtable has one data xref max
@@ -90,20 +91,24 @@ class Vtable(Structure):
 		if len([x for x in idautils.XrefsTo(addr)]) == 0:
 			return []
 
-		ptr_size = utils.pointer_size
-		ptrs = [utils.read_pointer_func(addr)]
-		addr += ptr_size
+		if settings.PTRSIZE == 8:
+			read_pointer_func = lambda addr: idaapi.get_qword(addr)
+		else:
+			read_pointer_func = lambda addr: idaapi.get_dword(addr)
+
+		ptrs = [read_pointer_func(addr)]
+		addr += settings.PTRSIZE
 		while True:
 			# on next xref next vtable starts, vtables are used as pointers only
 			if len([x for x in idautils.XrefsTo(addr)]) != 0:
 				break
 
-			ptr = utils.read_pointer_func(addr)
+			ptr = read_pointer_func(addr)
 			if not idaapi.is_loaded(ptr):
 				break
 
 			ptrs.append(ptr)
-			addr += ptr_size
+			addr += settings.PTRSIZE
 
 		if len(ptrs) < minsize:
 			return []
