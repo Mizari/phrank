@@ -9,22 +9,21 @@ from phrank.ast_analysis import *
 class ASTAnalyzer(idaapi.ctree_visitor_t):
 	def __init__(self):
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
-		self.current_ast_analysis: ASTAnalysis|None = None
+		self.current_ast_analysis: ASTAnalysis = ASTAnalysis()
 
 	def analyze_cfunc(self, cfunc: idaapi.cfunc_t) -> ASTAnalysis:
-		self.current_ast_analysis = ASTAnalysis()
 		self.current_func_ea = cfunc.entry_ea
 		self.apply_to(cfunc.body, None)
 
-		rv, self.current_ast_analysis = self.current_ast_analysis, None
+		rv, self.current_ast_analysis = self.current_ast_analysis, ASTAnalysis()
 		return rv
 
-	def visit_insn(self, insn):
+	def visit_insn(self, insn: idaapi.cinsn_t) -> int:
 		if insn.op == idaapi.cit_return and self.handle_return(insn):
 			self.prune_now()
 		return 0
 
-	def visit_expr(self, expr):
+	def visit_expr(self, expr: idaapi.cexpr_t) -> int:
 		if expr.op == idaapi.cot_asg:
 			should_prune = self.handle_assignment(expr)
 		elif expr.op == idaapi.cot_call:
@@ -37,18 +36,18 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 
 		return 0
 
-	def handle_return(self, insn):
+	def handle_return(self, insn:idaapi.cinsn_t) -> bool:
 		self.current_ast_analysis.returns.append(ReturnWrapper(insn))
 		return False
 
-	def handle_call(self, expr):
+	def handle_call(self, expr:idaapi.cexpr_t) -> bool:
 		fc = FuncCall(call_expr=expr)
 		self.current_ast_analysis.calls.append(fc)
 		for arg in expr.a:
 			self.apply_to_exprs(arg, None)
 		return True
 
-	def handle_assignment(self, expr):
+	def handle_assignment(self, expr: idaapi.cexpr_t) -> bool:
 		self.apply_to(expr.y, None)
 
 		lvarid, offset = utils.get_lvar_ptr_write(expr.x)
@@ -91,7 +90,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		self.apply_to(expr.x, None)
 		return True
 
-	def handle_expr(self, expr):
+	def handle_expr(self, expr:idaapi.cexpr_t) -> bool:
 		varid, offset = utils.get_lvar_read(expr)
 		if varid != -1:
 			w = VarRead(VarRead.LOCAL_VAR, varid, offset)

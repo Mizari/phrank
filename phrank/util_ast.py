@@ -142,7 +142,7 @@ def get_lvar_struct_write(expr):
 # not found is (-1, None) since there are no such local variables
 # with negative id, and there CAN be negative offset
 @_strip_casts
-def get_lvar_offset(expr):
+def get_lvar_offset(expr) -> tuple[int, int|None]:
 	if expr.op == idaapi.cot_var:
 		return expr.v.idx, 0
 

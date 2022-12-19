@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import idaapi
 import idc
 from functools import cache as _cache
@@ -6,7 +8,7 @@ from functools import cache as _cache
 UNKNOWN_TYPE = idaapi.tinfo_t()
 
 
-def str2strucid(s):
+def str2strucid(s:str) -> int:
 	if s.startswith("struct "):
 		s = s[7:]
 
@@ -19,7 +21,7 @@ def str2strucid(s):
 		return idaapi.BADADDR
 	return rv
 
-def tif2strucid(tif):
+def tif2strucid(tif:idaapi.tinfo_t) -> int:
 	while tif.is_ptr():
 		tif = tif.get_pointed_object()
 
@@ -33,7 +35,7 @@ def tif2strucid(tif):
 	raise NotImplementedError
 
 
-def addr2tif(addr):
+def addr2tif(addr:int) -> idaapi.tinfo_t:
 	addr_type = idc.get_type(addr)
 	if addr_type is None:
 		return None
@@ -42,7 +44,7 @@ def addr2tif(addr):
 
 
 @_cache
-def str2tif(type_str):
+def str2tif(type_str:str) -> idaapi.tinfo_t|None:
 	if type_str[-1] != ';': type_str = type_str + ';'
 
 	tinfo = idaapi.tinfo_t()
@@ -52,7 +54,7 @@ def str2tif(type_str):
 		return None
 	return tinfo
 
-def get_int_tinfo(size=1):
+def get_int_tinfo(size:int=1) -> idaapi.tinfo_t:
 	char_tinfo = idaapi.tinfo_t()
 	if size == 2:
 		idaapi.parse_decl(char_tinfo, idaapi.get_idati(), "unsigned short;", 0)
@@ -64,7 +66,7 @@ def get_int_tinfo(size=1):
 	return char_tinfo
 
 # inner *__shifted(outer, offset)
-def make_shifted_ptr(outer, inner, offset):
+def make_shifted_ptr(outer:idaapi.tinfo_t, inner:idaapi.tinfo_t, offset:int) -> idaapi.tinfo_t:
 	shifted_tif = idaapi.tinfo_t()
 	pi = idaapi.ptr_type_data_t()
 	pi.taptr_bits = idaapi.TAPTR_SHIFTED

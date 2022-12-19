@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import idaapi
 import idc
 import ida_struct
@@ -20,7 +22,7 @@ class Structure(IdaStrucWrapper):
 		for member_offset in self.member_offsets():
 			yield idc.get_member_name(self.strucid, member_offset), hex(member_offset)
 
-	def maximize_size(self, min_size):
+	def maximize_size(self, min_size:int):
 		if self.size < min_size:
 			self.resize(min_size)
 
@@ -41,11 +43,11 @@ class Structure(IdaStrucWrapper):
 		idc.add_struc_member(self.strucid, membername, current_size, utils.size2dataflags(1), -1, 1)
 		idc.expand_struc(self.strucid, current_size, extra_size - 1, False)
 
-	def is_offset_ok(self, offset, size):
+	def is_offset_ok(self, offset:int, size:int):
 		if offset + size <= self.size: return True
 		else: return False
 
-	def set_member(self, name, offset, size):
+	def set_member(self, name:str, offset:int, size:int):
 		if not self.is_offset_ok(offset, size): raise BaseException("offset and size are too big")
 		original_size = self.size
 		self.unset_members(offset, size)
@@ -56,7 +58,7 @@ class Structure(IdaStrucWrapper):
 		handle_addstrucmember_ret(ret)
 		if ret == idaapi.BADADDR: raise BaseException("Failed to append structure pointer")
 
-	def set_struc(self, name, offset, struc):
+	def set_struc(self, name:str, offset:int, struc):
 		size = struc.size
 		if not self.is_offset_ok(offset, size): raise BaseException("offset and size are too big")
 		self.unset_members(offset, size)
@@ -64,7 +66,7 @@ class Structure(IdaStrucWrapper):
 		handle_addstrucmember_ret(ret)
 		idc.SetType(ida_struct.get_member_id(self.strucid, offset), struc.get_name())
 
-	def set_strucptr(self, name, offset, struc):
+	def set_strucptr(self, name:str, offset:int, struc):
 		PTRSIZE = settings.PTRSIZE
 		if not self.is_offset_ok(offset, PTRSIZE): raise BaseException("offset and size are too big")
 		self.unset_members(offset, PTRSIZE)
@@ -72,14 +74,14 @@ class Structure(IdaStrucWrapper):
 		handle_addstrucmember_ret(ret)
 		idc.SetType(ida_struct.get_member_id(self.strucid, offset), struc.get_name() + "*")
 
-	def member_exists(self, offset):
+	def member_exists(self, offset:int) -> bool:
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
 
 		sptr = ida_struct.get_struc(self.strucid)
 		mptr = ida_struct.get_member(sptr, offset)
 		return mptr is not None
 
-	def get_member_tinfo(self, member_offset):
+	def get_member_tinfo(self, member_offset:int) -> idaapi.tinfo_t|None:
 		# TODO add ability to get member by offset or by name
 		# get_member_by_fullname(fullname) -> member_t Get a member by its fully qualified name, "struct.field".
 		# get_member_by_name(sptr, membername) -> member_t
@@ -105,7 +107,7 @@ class Structure(IdaStrucWrapper):
 			return None
 		return tif
 
-	def get_shifted_member_ptr_tinfo(self, offset):
+	def get_shifted_member_ptr_tinfo(self, offset:int) -> idaapi.tinfo_t:
 		retval = idaapi.tinfo_t()
 
 		class_tif = self.tinfo
@@ -129,7 +131,7 @@ class Structure(IdaStrucWrapper):
 
 		return retval
 
-	def get_next_member_offset(self, offset):
+	def get_next_member_offset(self, offset:int) -> int:
 		if offset < 0 or offset > self.size:
 			return -1
 
@@ -142,7 +144,7 @@ class Structure(IdaStrucWrapper):
 			offset = -1
 		return offset
 
-	def get_member_start(self, offset):
+	def get_member_start(self, offset:int) -> int:
 		if offset < 0 or offset > self.size:
 			return -1
 
@@ -152,7 +154,7 @@ class Structure(IdaStrucWrapper):
 			return -1
 		return member.soff
 
-	def is_member_start(self, offset):
+	def is_member_start(self, offset:int) -> bool:
 		if offset < 0 or offset > self.size:
 			return False
 

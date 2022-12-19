@@ -17,16 +17,15 @@ class TypeAnalyzer(FunctionManager):
 
 		# analysis context
 		# analyzed types without actually changing types
-		self.lvar2tinfo = {}
-		self.gvar2tinfo = {}
-		self.field2tinfo = {}
-		self.retval2tinfo = {}
+		self.lvar2tinfo : dict[tuple[int,int], idaapi.tinfo_t] = {}
+		self.gvar2tinfo : dict[int, idaapi.tinfo_t] = {}
+		self.retval2tinfo : dict[int, idaapi.tinfo_t] = {}
 
 		# analysis results
 		self.new_types : set[int] = set()    # created types
 		self.new_xrefs = []    # created xrefs
 
-	def get_gvar_tinfo(self, gvar_ea) -> idaapi.tinfo_t:
+	def get_gvar_tinfo(self, gvar_ea:int) -> idaapi.tinfo_t:
 		gtype = self.gvar2tinfo.get(gvar_ea)
 		if gtype is not None:
 			return gtype
@@ -42,7 +41,6 @@ class TypeAnalyzer(FunctionManager):
 		self.new_xrefs.clear()
 		self.lvar2tinfo.clear()
 		self.gvar2tinfo.clear()
-		self.field2tinfo.clear()
 		self.retval2tinfo.clear()
 
 	def apply_analysis(self):
@@ -64,25 +62,24 @@ class TypeAnalyzer(FunctionManager):
 		self.new_xrefs.clear()
 		self.lvar2tinfo.clear()
 		self.gvar2tinfo.clear()
-		self.field2tinfo.clear()
 		self.retval2tinfo.clear()
 
 	def analyze_everything(self):
 		raise NotImplementedError
 
-	def analyze_function(self, func_ea):
+	def analyze_function(self, func_ea:int):
 		raise NotImplementedError
 
-	def analyze_lvar(self, func_ea, lvar_id):
+	def analyze_lvar(self, func_ea:int, lvar_id:int) -> idaapi.tinfo_t:
 		raise NotImplementedError
 
-	def analyze_retval(self, func_ea):
+	def analyze_retval(self, func_ea:int) -> idaapi.tinfo_t:
 		raise NotImplementedError
 
-	def analyze_gvar(self, gvar_ea):
+	def analyze_gvar(self, gvar_ea:int) -> idaapi.tinfo_t:
 		raise NotImplementedError
 
-	def analyze_cexpr(self, func_ea, cexpr):
+	def analyze_cexpr(self, func_ea:int, cexpr:int) -> idaapi.tinfo_t:
 		raise NotImplementedError
 
 	def analyze_structure(self, struct):

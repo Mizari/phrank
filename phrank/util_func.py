@@ -1,28 +1,30 @@
+from __future__ import annotations
+
 import idaapi
 import idc
 import idautils
 import re
 
-def is_func_start(addr):
+def is_func_start(addr:int) -> bool:
 	if addr == idaapi.BADADDR: return False
 	return addr == get_func_start(addr)
 
-def get_func_start(addr):
+def get_func_start(addr:int) -> int:
 	func = idaapi.get_func(addr)
 	if func is None:
 		return idaapi.BADADDR
 	return func.start_ea
 
-def get_func_calls_to(fea):
+def get_func_calls_to(fea:int) -> list[int]:
 	rv = filter(None, [get_func_start(x.frm) for x in idautils.XrefsTo(fea)])
 	rv = filter(lambda x: x != idaapi.BADADDR, rv)
 	return list(rv)
 
-def get_func_calls_from(fea):
+def get_func_calls_from(fea:int) -> list[int]:
 	return [x.to for r in idautils.FuncItems(fea) for x in idautils.XrefsFrom(r, 0) if x.type == idaapi.fl_CN or x.type == idaapi.fl_CF]
 
 # finds connection in call-graph for selected functions
-def got_path(fea, funcs):
+def got_path(fea:int, funcs) -> bool:
 	if isinstance(funcs, set):
 		_funcs = funcs
 	else:
@@ -33,7 +35,7 @@ def got_path(fea, funcs):
 	calls_from_to.update(get_func_calls_from(fea))
 	return len(_funcs & calls_from_to) != 0
 
-def is_func_import(func_ea):
+def is_func_import(func_ea:int) -> bool:
 	for segea in idautils.Segments():
 		if idc.get_segm_name(segea) != ".idata":
 			continue
@@ -49,7 +51,7 @@ def iterate_all_functions():
 		for funcea in idautils.Functions(segea, idc.get_segm_end(segea)):
 			yield funcea
 
-def is_movrax_ret(func_ea: int):
+def is_movrax_ret(func_ea:int) -> bool:
 	# count blocks
 	blocks = [b for b in idautils.Chunks(func_ea)]
 	if len(blocks) > 1:
@@ -74,7 +76,7 @@ def is_movrax_ret(func_ea: int):
 		return False
 	return True
 
-def decompile_function(func_ea):
+def decompile_function(func_ea:int) -> idaapi.cfunc_t|None:
 	try:
 		cfunc = idaapi.decompile(func_ea)
 		str(cfunc)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import idaapi
 import idc
 import ida_struct
@@ -8,7 +10,7 @@ from phrank.containers.vtable import Vtable
 
 class VtablesUnion(Union):
 	@staticmethod
-	def is_vtables_union(vtbl_info):
+	def is_vtables_union(vtbl_info:idaapi.tinfo_t|str|int) -> bool:
 		# TODO
 		if isinstance(vtbl_info, idaapi.tinfo_t):
 			if not vtbl_info.is_union():
@@ -45,7 +47,7 @@ class VtablesUnion(Union):
 		else:
 			raise BaseException("Unexpected vtable info type " + str(vtbl_info))
 
-	def add_vtable(self, vtbl: Vtable):
+	def add_vtable(self, vtbl:Vtable):
 		# TODO check vtbl is vtable
 		vname = vtbl.name
 		for member_offset in range(idc.get_member_qty(self.strucid)):

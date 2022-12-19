@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import idaapi
 
 import phrank.settings as settings
 import phrank.utils as utils
 
-def should_skip_decompiling(func_ea):
+def should_skip_decompiling(func_ea:int) -> bool:
 	fname = idaapi.get_name(func_ea)
 	if fname is None:
 		print("emtpy name %s" % hex(func_ea))
@@ -25,9 +27,9 @@ def should_skip_decompiling(func_ea):
 
 class CFunctionFactory:
 	def __init__(self):
-		self.cached_cfuncs = {}
+		self.cached_cfuncs:dict[int, idaapi.cfunc_t] = {}
 
-	def get_cfunc(self, func_ea: int):
+	def get_cfunc(self, func_ea:int) -> idaapi.cfunc_t|None:
 		cfunc = self.cached_cfuncs.get(func_ea)
 		# -1 to act as bad decompilation
 		if cfunc == -1:
@@ -67,7 +69,7 @@ class CFunctionFactory:
 		if cfunc == -1: cfunc = None
 		return cfunc
 
-	def clear_cfunc(self, func_ea: int):
+	def clear_cfunc(self, func_ea:int) -> idaapi.cfunc_t|None:
 		self.cached_cfuncs.pop(func_ea, None)
 
 	def decompile_all(self):

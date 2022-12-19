@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import idaapi
 
 import phrank.utils as utils
@@ -5,7 +7,7 @@ import phrank.utils as utils
 from phrank.ast_analyzer import ASTAnalyzer, ASTAnalysis
 from phrank.cfunction_factory import CFunctionFactory
 
-def get_funcname(func_ea: int):
+def get_funcname(func_ea: int) -> str:
 	return idaapi.get_name(func_ea)
 
 
@@ -17,7 +19,7 @@ class FunctionManager:
 		self.ast_analyzer = ASTAnalyzer()
 		self.ast_analysis_cache = {}
 
-	def get_ast_analysis(self, func_ea: int) -> ASTAnalysis:
+	def get_ast_analysis(self, func_ea:int) -> ASTAnalysis:
 		cached = self.ast_analysis_cache.get(func_ea)
 		if cached is not None:
 			return cached
@@ -30,7 +32,7 @@ class FunctionManager:
 		self.ast_analysis_cache[func_ea] = analysis
 		return analysis
 
-	def get_cfunc(self, func_ea):
+	def get_cfunc(self, func_ea:int) -> idaapi.cfunc_t|None:
 		return self.func_factory.get_cfunc(func_ea)
 
 	def get_func_details(self, func_ea: int):
@@ -45,7 +47,7 @@ class FunctionManager:
 			return None
 		return func_details
 
-	def get_var_type(self, func_ea: int, var_id):
+	def get_var_type(self, func_ea:int, var_id:int):
 		cfunc = self.get_cfunc(func_ea)
 		if cfunc is None:
 			print("Failed to get variable type, because of decompilation failure in", get_funcname(func_ea))
@@ -54,7 +56,7 @@ class FunctionManager:
 		var = cfunc.lvars[var_id]
 		return var.type()
 
-	def set_var_type(self, func_ea: int, var_id, var_type):
+	def set_var_type(self, func_ea:int, var_id:int, var_type:idaapi.tinfo_t):
 		cfunc = self.get_cfunc(func_ea)
 		if cfunc is None:
 			print("Failed to change variable type, because of decompilation failure in", get_funcname(func_ea))
@@ -73,13 +75,13 @@ class FunctionManager:
 
 		self.func_factory.clear_cfunc(func_ea)
 
-	def get_var(self, func_ea: int, var_idx):
+	def get_var(self, func_ea: int, var_idx:int):
 		cfunc = self.get_cfunc(func_ea)
 		if cfunc is None:
 			return None
 		return cfunc.lvars[var_idx]
 
-	def get_arg_type(self, func_ea: int, arg_id):
+	def get_arg_type(self, func_ea:int, arg_id:int):
 		# XXX do not refactor this into one liner, 
 		# XXX because ida will lose arg type somewhere along the way
 		fdet = self.get_func_details(func_ea)
@@ -89,7 +91,7 @@ class FunctionManager:
 
 		return fdet[arg_id].type.copy()
 
-	def set_arg_type(self, func_ea: int, arg_id, arg_type):
+	def set_arg_type(self, func_ea:int, arg_id:int, arg_type:idaapi.tinfo_t):
 		if isinstance(arg_type, str):
 			arg_type = utils.str2tif(arg_type)
 
@@ -109,7 +111,7 @@ class FunctionManager:
 
 		self.func_factory.clear_cfunc(func_ea)
 
-	def get_tinfo(self, func_ea: int):
+	def get_tinfo(self, func_ea:int) -> idaapi.tinfo_t|None:
 		tif = idaapi.tinfo_t()
 
 		cfunc = self.get_cfunc(func_ea)
@@ -130,7 +132,7 @@ class FunctionManager:
 		print("Failed to get tinfo for", hex(func_ea), get_funcname(func_ea))
 		return None
 
-	def get_ptr_tinfo(self, func_ea: int):
+	def get_ptr_tinfo(self, func_ea:int) -> idaapi.tinfo_t|None:
 		tif = self.get_tinfo(func_ea)
 		if tif is None:
 			return None
@@ -140,13 +142,13 @@ class FunctionManager:
 			return None
 		return tif
 
-	def get_nargs(self, func_ea: int):
+	def get_nargs(self, func_ea:int) -> int:
 		tif = self.get_tinfo(func_ea)
 		if tif is None:
 			return 0
 		return tif.get_nargs()
 
-	def get_lvars_counter(self, func_ea: int):
+	def get_lvars_counter(self, func_ea:int) -> int:
 		cfunc = self.get_cfunc(func_ea)
 		if cfunc is None: return 0
 

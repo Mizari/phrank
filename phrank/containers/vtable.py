@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import idaapi
 import idautils
 import idc
@@ -42,13 +44,13 @@ class Vtable(Structure):
 				continue
 			self.set_member_type(member_offset, func_ptr_tif)
 
-	def get_member_name(self, moffset):
+	def get_member_name(self, moffset:int) -> str:
 		member_name = super().get_member_name(moffset)
 		member_name = member_name.split(Vtable.REUSE_DELIM)[0]
 		return member_name
 
 	@staticmethod
-	def is_vtable(vtbl_tif: idaapi.tinfo_t):
+	def is_vtable(vtbl_tif:idaapi.tinfo_t):
 		if not vtbl_tif.is_struct():
 			return None
 
@@ -59,7 +61,7 @@ class Vtable(Structure):
 		return Vtable.is_strucid_vtable(strucid)
 
 	@staticmethod
-	def is_strucid_vtable(strucid: int):
+	def is_strucid_vtable(strucid:int):
 		if ida_struct.is_union(strucid):
 			return False
 
@@ -82,7 +84,7 @@ class Vtable(Structure):
 		return True
 
 	@staticmethod
-	def get_vtable_functions_at_addr(addr, minsize=2):
+	def get_vtable_functions_at_addr(addr, minsize:int=2) -> list[int]:
 		# TODO get list of ptrs inbetween xrefs
 		# TODO get list of ptrs that are idaapi.is_loaded (idaapi.is_mapped?)
 		# TODO get list of get_func_starts (mb try to expand it with add_func)
@@ -135,5 +137,5 @@ class Vtable(Structure):
 		return ptrs
 
 	@staticmethod
-	def calculate_vtable_size(addr):
+	def calculate_vtable_size(addr:int):
 		return len(Vtable.get_vtable_functions_at_addr(addr))

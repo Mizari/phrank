@@ -32,10 +32,10 @@ class VtableAnalyzer(TypeAnalyzer):
 			vtbl.append_member(member_name, func_ptr_tif, hex(func_addr))
 		return vtbl
 
-	def get_gvar_vtable(self, gvar_ea):
+	def get_gvar_vtable(self, gvar_ea:int):
 		return Vtable.get_vtable_at_address(gvar_ea)
 
-	def analyze_gvar(self, gvar_ea):
+	def analyze_gvar(self, gvar_ea:int):
 		vtbl = self.gvar2tinfo.get(gvar_ea)
 		if vtbl is not None:
 			return vtbl
@@ -61,7 +61,7 @@ class VtableAnalyzer(TypeAnalyzer):
 		for segstart, segend in utils.iterate_segments():
 			self.analyze_segment(segstart, segend)
 
-	def analyze_segment(self, segstart, segend):
+	def analyze_segment(self, segstart:int, segend:int):
 		while segstart < segend:
 			vtbl = self.analyze_gvar(segstart)
 			if vtbl is None:

@@ -32,7 +32,7 @@ class ASTAnalysis():
 	def returns_lvar(self, lvar_id: int) -> bool:
 		return self.get_returned_lvars() == {lvar_id}
 
-	def get_writes_into_lvar(self, var_id):
+	def get_writes_into_lvar(self, var_id:int):
 		for w in self.lvar_writes:
 			if w.varid != var_id: continue
 			yield w
