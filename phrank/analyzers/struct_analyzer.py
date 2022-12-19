@@ -5,6 +5,7 @@ import phrank.utils as utils
 from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.analyzers.vtable_analyzer import VtableAnalyzer
 from phrank.containers.structure import Structure
+from phrank.ast_parts import *
 
 
 class StructAnalyzer(TypeAnalyzer):
@@ -178,56 +179,26 @@ class StructAnalyzer(TypeAnalyzer):
 		write_types = set()
 		for w in writes:
 			write_types.add(w.write_type)
-		print("write types", write_types)
+
+		if len(write_types) > 1:
+			return utils.UNKNOWN_TYPE
 
 		lvar_struct = Structure.create()
 		self.new_types.add(lvar_struct.strucid)
-		struc_tinfo = lvar_struct.ptr_tinfo
-		return struc_tinfo
 
-		"""
-		if var_type.is_ptr():
-			pointed = var_type.get_pointed_object()
-
-			if not pointed.is_correct():
-				if func_aa.count_writes_into_var(lvar_id) == 0:
-					return utils.UNKNOWN_TYPE
-				else:
-					lvar_struct = Structure()
-					self.new_types.append(lvar_struct.strucid)
-					struc_tinfo = lvar_struct.get_ptr_tinfo()
-					return struc_tinfo
-
-			if pointed.is_struct():
-				lvar_struct = Structure()
-				self.new_types.append(lvar_struct.strucid)
-				struc_tinfo = lvar_struct.get_tinfo()
-				return struc_tinfo
-
-			elif pointed.is_void() or pointed.is_integral():
-				if func_aa.count_writes_into_var(lvar_id) == 0:
-					return utils.UNKNOWN_TYPE
-				lvar_struct = Structure()
-				self.new_types.append(lvar_struct.strucid)
-				struc_tinfo = lvar_struct.get_ptr_tinfo()
-				return struc_tinfo
-
-			else:
-				print("WARNING:", "unknown pointer tinfo", str(var_type), "in", idaapi.get_name(func_ea))
-				return utils.UNKNOWN_TYPE
-
-		elif var_type.is_void() or var_type.is_integral():
-			if func_aa.count_writes_into_var(lvar_id) == 0:
-				return utils.UNKNOWN_TYPE
-			lvar_struct = Structure()
-			self.new_types.append(lvar_struct.strucid)
-			struc_tinfo = lvar_struct.get_tinfo()
+		# only casts not implemented for now
+		if len(write_types) == 0:
+			struc_tinfo = lvar_struct.ptr_tinfo
 			return struc_tinfo
 
-		else:
-			print("WARNING:", "failed to create struct from tinfo", str(var_type), "in", idaapi.get_name(func_ea))
-			return utils.UNKNOWN_TYPE
-		"""
+		write = write_types.pop()
+		if write == VarWrite.PTR_WRITE:
+			struc_tinfo = lvar_struct.ptr_tinfo
+			return struc_tinfo
+
+		else: # struct write
+			struc_tinfo = lvar_struct.tinfo
+			return struc_tinfo
 
 	def analyze_gvar_type_by_assigns(self, gvar_ea):
 		# analyzing gvar type by assigns to it
