@@ -48,13 +48,13 @@ class IdaStrucWrapper(object):
 	def tinfo(self):
 		tif = idaapi.tinfo_t()
 		assert tif.get_named_type(idaapi.get_idati(), self.name)
-		return tif
+		return tif.copy()
 
 	@property
 	def ptr_tinfo(self):
 		ptr_tinfo = self.tinfo
 		ptr_tinfo.create_ptr(ptr_tinfo)
-		return ptr_tinfo
+		return ptr_tinfo.copy()
 
 	def is_union(self):
 		return idaapi.is_union(self.strucid)
