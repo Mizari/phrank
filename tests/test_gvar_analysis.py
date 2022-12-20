@@ -15,11 +15,21 @@ for fea in phrank_api.iterate_all_functions():
 	for gvar_assign in aa.gvar_assigns:
 		all_gvars.add(gvar_assign.varid)
 
-print("found", len(all_gvars), "gvars")
+failed_gvars = []
+analyzed_gvars = {}
 for addr in all_gvars:
 	analyzer.analyze_gvar(addr)
 	gvar_type = analyzer.gvar2tinfo[addr]
 	if gvar_type is phrank_api.UNKNOWN_TYPE:
-		print("failed to analyze", hex(addr))
+		failed_gvars.append(addr)
 	else:
-		print("analyzed", hex(addr), "as", str(gvar_type))
+		analyzed_gvars[addr] = gvar_type
+
+print("found", len(all_gvars), "gvars")
+print("analyzed", len(analyzed_gvars))
+for addr, gvar_type in analyzed_gvars.items():
+	print("  ", hex(addr), gvar_type)
+
+print("failed", len(failed_gvars))
+for addr in failed_gvars:
+	print("  ", hex(addr))
