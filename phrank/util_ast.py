@@ -139,17 +139,16 @@ def get_lvar_struct_write(expr):
 	return -1, None
 
 # trying to get various forms of "var + X", where X is int
-# not found is (-1, None) since there are no such local variables
-# with negative id, and there CAN be negative offset
+# not found is (-1, -1)
 @_strip_casts
-def get_lvar_offset(expr) -> tuple[int, int|None]:
+def get_lvar_offset(expr) -> tuple[int, int]:
 	if expr.op == idaapi.cot_var:
 		return expr.v.idx, 0
 
 	# form ((CASTTYPE*)var) + N
 	elif expr.op in [idaapi.cot_add, idaapi.cot_sub]:
 		if expr.y.op != idaapi.cot_num:
-			return -1, None
+			return -1, -1
 		offset = expr.y.n._value
 		if expr.op == idaapi.cot_sub:
 			offset = - offset
@@ -162,7 +161,7 @@ def get_lvar_offset(expr) -> tuple[int, int|None]:
 			var = op_x.x.v
 
 		else:
-			return -1, None
+			return -1, -1
 
 		if op_x.type.is_ptr():
 			sz = op_x.type.get_pointed_object().get_size()
@@ -173,7 +172,7 @@ def get_lvar_offset(expr) -> tuple[int, int|None]:
 		return var.idx, offset
 
 	else:
-		return -1, None
+		return -1, -1
 
 @_strip_casts
 def get_gvar_offset(expr):
