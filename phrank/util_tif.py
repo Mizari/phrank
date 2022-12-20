@@ -25,14 +25,17 @@ def tif2strucid(tif:idaapi.tinfo_t) -> int:
 	while tif.is_ptr():
 		tif = tif.get_pointed_object()
 
+	if tif.is_array():
+		tif = tif.get_array_element()
+
 	if tif.is_struct():
 		return str2strucid(str(tif))
 
-	if not tif.is_correct() or tif.is_int() or tif.is_void():
+	if (not tif.is_correct()) or tif.is_integral() or tif.is_void() or tif.is_func() or tif.is_enum() or tif.is_bool():
 		return idaapi.BADADDR
 
-	print("ERROR:", "unknown tinfo2strucid", tif)
-	raise NotImplementedError
+	print("WARNING: unknown tinfo2strucid", tif)
+	return idaapi.BADADDR
 
 
 def addr2tif(addr:int) -> idaapi.tinfo_t:
