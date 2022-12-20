@@ -75,11 +75,11 @@ class FunctionManager:
 
 		self.func_factory.clear_cfunc(func_ea)
 
-	def get_var(self, func_ea: int, var_idx:int):
+	def get_lvar(self, func_ea: int, lvar_id:int):
 		cfunc = self.get_cfunc(func_ea)
 		if cfunc is None:
 			return None
-		return cfunc.lvars[var_idx]
+		return cfunc.lvars[lvar_id]
 
 	def get_arg_type(self, func_ea:int, arg_id:int):
 		# XXX do not refactor this into one liner, 
@@ -158,3 +158,7 @@ class FunctionManager:
 				continue
 			counter += 1
 		return counter
+
+	def get_lvar_name(self, func_ea:int, lvar_id:int) -> str:
+		lvar = self.get_lvar(func_ea, lvar_id)
+		return lvar.name
