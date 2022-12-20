@@ -33,7 +33,7 @@ class Vtable(Structure):
 			print("WARNING:", "failed to get strucid from vtbl tinfo")
 			return None
 
-		return cls(struc_locator=vtbl_strucid)
+		return cls(vtbl_strucid)
 
 	def update_func_types(self):
 		for member_offset in self.member_offsets():
