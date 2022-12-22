@@ -41,10 +41,45 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		return False
 
 	def handle_call(self, expr:idaapi.cexpr_t) -> bool:
-		fc = FuncCall(call_expr=expr)
-		self.current_ast_analysis.calls.append(fc)
-		for arg in expr.a:
+		fc = FuncCall(expr)
+		for arg_id, arg in enumerate(expr.a):
 			self.apply_to_exprs(arg, None)
+			arg = utils.strip_casts(arg)
+			op = arg.op
+			if op in [idaapi.cot_num, idaapi.cot_sizeof, idaapi.cot_call]:
+				continue
+
+			lvar_id, offset = utils.get_lvar_offset(arg)
+			if lvar_id != -1:
+				cast = CallCast(CallCast.LOCAL_VAR, lvar_id, offset, CallCast.VAR_CAST, arg_id, fc)
+				self.current_ast_analysis.call_casts.append(cast)
+				continue
+
+			lvar_id, offset = utils.get_lvar_ptr_write(arg)
+			if lvar_id != -1:
+				cast = CallCast(CallCast.LOCAL_VAR, lvar_id, offset, CallCast.PTR_CAST, arg_id, fc)
+				self.current_ast_analysis.call_casts.append(cast)
+				continue
+
+			obj_ea, offset = utils.get_gvar_offset(arg)
+			if obj_ea != -1:
+				if utils.is_func_start(obj_ea):
+					continue
+
+				cast = CallCast(CallCast.GLOBAL_VAR, obj_ea, offset, CallCast.VAR_CAST, arg_id, fc)
+				self.current_ast_analysis.call_casts.append(cast)
+				continue
+
+			obj_ea, offset = utils.get_gvar_ptr_write(arg)
+			if obj_ea != -1:
+				if utils.is_func_start(obj_ea):
+					continue
+
+				cast = CallCast(CallCast.GLOBAL_VAR, obj_ea, offset, CallCast.PTR_CAST, arg_id, fc)
+				self.current_ast_analysis.call_casts.append(cast)
+				continue
+
+			self.current_ast_analysis.unknown_casts.append(arg)
 		return True
 
 	def handle_assignment(self, expr: idaapi.cexpr_t) -> bool:

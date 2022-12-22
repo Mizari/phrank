@@ -8,7 +8,7 @@ from phrank.ast_parts import *
 class ASTAnalysis():
 	def __init__(self):
 		self.returns : list[ReturnWrapper] = []
-		self.calls : list[FuncCall] = []
+		self.call_casts : list[CallCast] = []
 
 		self.lvar_assigns : list[VarAssign] = []
 		self.lvar_writes  : list[VarWrite]  = []
@@ -18,6 +18,7 @@ class ASTAnalysis():
 		self.gvar_writes  : list[VarWrite]  = []
 		self.gvar_reads   : list[VarRead]   = []
 
+		self.unknown_casts = []
 		self.unknown_asgs = []
 
 	def get_returned_lvars(self) -> set[int]:

@@ -49,6 +49,18 @@ class FuncCall:
 			self.name = self.call_expr.helper
 
 
+class CallCast(VarUse):
+	VAR_CAST = 0  #  v ; v + N
+	REF_CAST = 1  # &v ; &v.f ; &(v + N)
+	PTR_CAST = 2  # *v ; v->f ; *(v + N)
+	def __init__(self, vartype:int, varid:int, offset:int, cast_type:int, arg_id:int, func_call:FuncCall):
+		super().__init__(vartype, varid)
+		self.offset = offset
+		self.cast_type = cast_type
+		self.func_call = func_call
+		self.arg_id = arg_id
+
+
 class ReturnWrapper:
 	def __init__(self, insn) -> None:
 		self.insn = insn

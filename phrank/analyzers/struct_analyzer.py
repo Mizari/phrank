@@ -80,28 +80,13 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def get_lvar_call_arg_casts(self, func_ea:int, lvar_id:int):
 		func_aa = self.get_ast_analysis(func_ea)
-		for func_call in func_aa.calls:
-			call_ea = func_call.address
-			for arg_id, arg in enumerate(func_call.args):
-				varid, offset = utils.get_lvar_offset(arg)
-				if varid != lvar_id:
-					continue
+		for call_cast in func_aa.call_casts:
+			address = call_cast.func_call.address
+			if address == -1 or call_cast.vartype != call_cast.LOCAL_VAR or call_cast.varid != lvar_id:
+				continue
 
-				# if helper function, then skip
-				if call_ea == -1:
-					yield offset, utils.UNKNOWN_TYPE
-					continue
-
-				arg_tinfo = self.analyze_lvar(call_ea, arg_id)
-				if arg_tinfo is utils.UNKNOWN_TYPE:
-					yield offset, utils.UNKNOWN_TYPE
-					continue
-
-				# TODO remove when proper type analysis by uses is implemented
-				if arg_tinfo.is_ptr():
-					arg_tinfo = arg_tinfo.get_pointed_object()
-
-				yield offset, arg_tinfo
+			arg_tinfo = self.analyze_lvar(address, call_cast.arg_id)
+			yield call_cast.offset, arg_tinfo
 
 	def analyze_existing_lvar_type_by_writes(self, func_ea:int, lvar_id:int) -> idaapi.tinfo_t:
 		writes = [w for w in self.get_lvar_writes(func_ea, lvar_id)]
@@ -394,6 +379,26 @@ class StructAnalyzer(TypeAnalyzer):
 
 		propagated_lvars = {}
 		aa = self.get_ast_analysis(func_ea)
+		for call_cast in aa.call_casts:
+			call_ea = call_cast.func_call.address
+			arg_id = call_cast.arg_id
+			if call_ea == -1 or call_cast.varid != lvar_id or call_cast.offset != 0 or call_cast.cast_type != call_cast.VAR_CAST:
+				continue
+
+			current_type = self.lvar2tinfo.get((call_ea, arg_id))
+			if current_type is None:
+				current_type = propagated_lvars.get((call_ea, arg_id))
+
+			if current_type == lvar_type:
+				continue
+
+			if current_type is None or current_type is utils.UNKNOWN_TYPE:
+				propagated_lvars[(call_ea, arg_id)] = lvar_type
+				upd = self.propagate_lvar_down(call_ea, arg_id)
+				propagated_lvars.update(upd)
+				continue
+		return propagated_lvars
+
 		for func_call in aa.calls:
 			call_ea = func_call.address
 			if call_ea == -1:
@@ -427,34 +432,31 @@ class StructAnalyzer(TypeAnalyzer):
 		funcs = set(utils.get_func_calls_to(gvar_ea))
 		for func_ea in funcs:
 			aa = self.get_ast_analysis(func_ea)
-			for func_call in aa.calls:
-				call_ea = func_call.address
-				if call_ea == -1:
+			for call_cast in aa.call_casts:
+				call_ea = call_cast.func_call.address
+				if call_ea == -1 or call_cast.offset != 0 or call_cast.varid != gvar_ea or call_cast.cast_type != call_cast.VAR_CAST or call_cast.vartype != call_cast.GLOBAL_VAR:
 					continue
-				for arg_id, arg in enumerate(func_call.args):
-					arg_gvar_id, offset = utils.get_gvar_offset(arg)
-					if arg_gvar_id != gvar_ea or offset != 0:
-						continue
+				arg_id = call_cast.arg_id
 
-					current_type = self.lvar2tinfo.get((call_ea, arg_id))
-					if current_type is None:
-						current_type = propagated_lvars.get((call_ea, arg_id))
+				current_type = self.lvar2tinfo.get((call_ea, arg_id))
+				if current_type is None:
+					current_type = propagated_lvars.get((call_ea, arg_id))
 
-					if current_type == gvar_type:
-						continue
+				if current_type == gvar_type:
+					continue
 
-					if current_type is None or current_type is utils.UNKNOWN_TYPE:
-						propagated_lvars[(call_ea, arg_id)] = gvar_type
-						upd = self.propagate_lvar_down(call_ea, arg_id)
-						propagated_lvars.update(upd)
-						continue 
+				if current_type is None or current_type is utils.UNKNOWN_TYPE:
+					propagated_lvars[(call_ea, arg_id)] = gvar_type
+					upd = self.propagate_lvar_down(call_ea, arg_id)
+					propagated_lvars.update(upd)
+					continue 
 
-					print(
-						"Error in gvar propagation of", hex(gvar_ea),
-						"in", idaapi.get_name(func_ea),
-						"to", idaapi.get_name(call_ea),
-						"-- arg", arg_id, "has different type", current_type,
-						"from gvar type", str(gvar_type),
-						"\n",
-					)
+				print(
+					"Error in gvar propagation of", hex(gvar_ea),
+					"in", idaapi.get_name(func_ea),
+					"to", idaapi.get_name(call_ea),
+					"-- arg", arg_id, "has different type", current_type,
+					"from gvar type", str(gvar_type),
+					"\n",
+				)
 		return propagated_lvars
