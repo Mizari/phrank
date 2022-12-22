@@ -5,13 +5,13 @@ class VarUse:
 	LOCAL_VAR  = 0
 	GLOBAL_VAR = 1
 
-	def __init__(self, vartype, varid):
+	def __init__(self, vartype:int, varid:int):
 		self.vartype = vartype
 		self.varid = varid
 
 
 class VarRead(VarUse):
-	def __init__(self, vartype, varid, offset):
+	def __init__(self, vartype:int, varid:int, offset:int):
 		super().__init__(vartype, varid)
 		self.offset = offset
 
