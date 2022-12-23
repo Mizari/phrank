@@ -9,6 +9,18 @@ class VarUse:
 		self.vartype = vartype
 		self.varid = varid
 
+	def is_lvar(self, lvar_id):
+		return self.is_local() and self.varid == lvar_id
+
+	def is_gvar(self, gvar_id):
+		return self.is_global() and self.varid == gvar_id
+
+	def is_local(self):
+		return self.vartype == self.LOCAL_VAR
+
+	def is_global(self):
+		return self.vartype == self.GLOBAL_VAR
+
 
 class VarRead(VarUse):
 	def __init__(self, vartype:int, varid:int, offset:int):
