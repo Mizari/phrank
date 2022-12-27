@@ -210,8 +210,13 @@ class StructAnalyzer(TypeAnalyzer):
 			return write_type
 
 		# single cast at offset 0 might be existing type
-		if len(casts) == 1 and casts[0].offset == 0 and casts[0].arg_type is not utils.UNKNOWN_TYPE:
+		if len(casts) == 1 and casts[0].offset == 0:
 			cast_offset, arg_type = casts[0].offset, casts[0].arg_type
+
+			# casting to something unknown yield unknown
+			if arg_type is utils.UNKNOWN_TYPE:
+				return utils.UNKNOWN_TYPE
+
 			# simple variable passing does not create new type
 			if len(writes) == 0:
 				return arg_type
