@@ -29,6 +29,10 @@ class StructAnalyzer(TypeAnalyzer):
 
 		lvar_struct = Structure(strucid)
 
+		# use of the member exists, thus there should be the field
+		if not lvar_struct.member_exists(offset):
+			lvar_struct.add_member(offset)
+
 		next_offset = lvar_struct.get_next_member_offset(offset)
 		if next_offset != -1 and offset + member_type.get_size() > next_offset:
 			# TODO remove when struct sizes are remembered
@@ -43,11 +47,6 @@ class StructAnalyzer(TypeAnalyzer):
 					hex(next_offset), "skipping member type change",
 				)
 				return
-
-		if not lvar_struct.member_exists(offset):
-			lvar_struct.add_member(offset)
-			lvar_struct.set_member_type(offset, member_type)
-			return
 
 		member_offset = lvar_struct.get_member_start(offset)
 		current_type = lvar_struct.get_member_tinfo(offset)
