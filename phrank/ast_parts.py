@@ -71,6 +71,7 @@ class CallCast(VarUse):
 		self.cast_type = cast_type
 		self.func_call = func_call
 		self.arg_id = arg_id
+		self.arg_type = None
 
 
 class ReturnWrapper:

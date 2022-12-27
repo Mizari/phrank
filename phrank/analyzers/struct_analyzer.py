@@ -109,8 +109,11 @@ class StructAnalyzer(TypeAnalyzer):
 			if address == -1:
 				continue
 
-			arg_tinfo = self.analyze_lvar(address, call_cast.arg_id)
-			yield call_cast.offset, arg_tinfo
+			cast_type = call_cast.arg_type
+			if cast_type is None or cast_type is utils.UNKNOWN_TYPE:
+				cast_type = self.analyze_lvar(address, call_cast.arg_id)
+				call_cast.arg_type = cast_type
+			yield call_cast
 
 	def analyze_gvar_type_by_assigns(self, gvar_ea:int) -> idaapi.tinfo_t:
 		# analyzing gvar type by assigns to it
@@ -207,18 +210,18 @@ class StructAnalyzer(TypeAnalyzer):
 			return write_type
 
 		# single cast at offset 0 might be existing type
-		if len(casts) == 1 and casts[0][0] == 0 and casts[0][1] is not utils.UNKNOWN_TYPE:
-			cast_offset, cast_type = casts[0]
+		if len(casts) == 1 and casts[0].offset == 0 and casts[0].arg_type is not utils.UNKNOWN_TYPE:
+			cast_offset, arg_type = casts[0].offset, casts[0].arg_type
 			# simple variable passing does not create new type
 			if len(writes) == 0:
-				return cast_type
+				return arg_type
 
 			# single cast and writes into casted type
-			if cast_type.is_ptr():
-				cast_type = cast_type.get_pointed_object()
+			if arg_type.is_ptr():
+				arg_type = arg_type.get_pointed_object()
 
 			# checking that writes do not go outside of casted value
-			cast_end = cast_offset + cast_type.get_size()
+			cast_end = cast_offset + arg_type.get_size()
 			for w in writes:
 				write_start = w.offset
 				write_end = w.value_type.get_size()
@@ -226,8 +229,8 @@ class StructAnalyzer(TypeAnalyzer):
 				if write_start < cast_offset or write_end > cast_end:
 					return utils.UNKNOWN_TYPE
 
-			cast_type.create_ptr(cast_type)
-			return cast_type
+			arg_type.create_ptr(arg_type)
+			return arg_type
 
 		# TODO writes into array of one type casts, that start at offset 0
 		# TODO check if all writes are to the same offset
@@ -258,15 +261,16 @@ class StructAnalyzer(TypeAnalyzer):
 		for lvar_write in writes:
 			self.add_member_type(lvar_struct.strucid, lvar_write.offset, lvar_write.value_type)
 
-		for offset, arg_tinfo in casts:
+		for cast in casts:
+			arg_type = cast.arg_type
 			# cast exists, just type is unknown. will use simple int instead
-			if arg_tinfo is utils.UNKNOWN_TYPE:
-				arg_tinfo = utils.get_int_tinfo(1)
+			if arg_type is utils.UNKNOWN_TYPE:
+				arg_type = utils.get_int_tinfo(1)
 
-			if arg_tinfo.is_ptr():
-				arg_tinfo = arg_tinfo.get_pointed_object()
+			if arg_type.is_ptr():
+				arg_type = arg_type.get_pointed_object()
 
-			self.add_member_type(lvar_struct.strucid, offset, arg_tinfo)
+			self.add_member_type(lvar_struct.strucid, cast.offset, arg_type)
 
 		return lvar_tinfo
 
