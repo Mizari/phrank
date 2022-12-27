@@ -60,13 +60,23 @@ class StructAnalyzer(TypeAnalyzer):
 			lvar_struct.set_member_type(offset, member_type)
 
 	def apply_analysis(self):
+		lvars_to_propagate = []
 		for (func_ea, lvar_id), new_type_tif in self.lvar2tinfo.items():
-			upd = self.propagate_lvar_down(func_ea, lvar_id)
-		self.lvar2tinfo.update(upd)
+			if new_type_tif is not utils.UNKNOWN_TYPE:
+				lvars_to_propagate.append((func_ea, lvar_id))
 
+		for func_ea, lvar_id in lvars_to_propagate:
+			upd = self.propagate_lvar_down(func_ea, lvar_id)
+			self.lvar2tinfo.update(upd)
+
+		gvars_to_propagate = []
 		for obj_ea, new_type_tif in self.gvar2tinfo.items():
+			if new_type_tif is not utils.UNKNOWN_TYPE:
+				gvars_to_propagate.append(obj_ea)
+
+		for obj_ea in gvars_to_propagate:
 			upd = self.propagate_gvar_down(obj_ea)
-		self.lvar2tinfo.update(upd)
+			self.lvar2tinfo.update(upd)
 
 		super().apply_analysis()
 		self.vtable_analyzer.apply_analysis()
