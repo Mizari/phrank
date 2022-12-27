@@ -36,11 +36,11 @@ class StructAnalyzer(TypeAnalyzer):
 			# if that is the case, then allow member type setting
 			if lvar_struct.get_member_size(next_offset) != 1 or lvar_struct.size != next_offset + 1:
 				print(
-					"WARNING:", "changing type overwrites next field, skipping",
-					lvar_struct.name,
-					hex(offset),
-					str(member_type),
-					member_type.get_size()
+					"WARNING: failed to change type of",
+					lvar_struct.name, "at", hex(offset),
+					"to", str(member_type),
+					"because it overwrites next field at",
+					hex(next_offset), "skipping member type change",
 				)
 				return
 
