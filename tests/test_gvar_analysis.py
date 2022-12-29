@@ -10,10 +10,12 @@ for fea in phrank_api.iterate_all_functions():
 	if cfunc is None:
 		continue
 	aa = analyzer.get_ast_analysis(fea)
-	for gvar_write in aa.gvar_writes:
-		all_gvars.add(gvar_write.varid)
-	for gvar_assign in aa.gvar_assigns:
-		all_gvars.add(gvar_assign.varid)
+	for gvar_write in aa.var_writes:
+		if gvar_write.var.is_global():
+			all_gvars.add(gvar_write.var.varid)
+	for gvar_assign in aa.var_assigns:
+		if gvar_assign.var.is_global():
+			all_gvars.add(gvar_assign.var.varid)
 
 failed_gvars = []
 analyzed_gvars = {}

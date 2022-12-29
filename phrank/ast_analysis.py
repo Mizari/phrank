@@ -10,13 +10,9 @@ class ASTAnalysis():
 		self.returns : list[ReturnWrapper] = []
 		self.call_casts : list[CallCast] = []
 
-		self.lvar_assigns : list[VarAssign] = []
-		self.lvar_writes  : list[VarWrite]  = []
+		self.var_assigns : list[VarAssign] = []
+		self.var_writes  : list[VarWrite]  = []
 		self.lvar_reads   : list[VarRead]   = []
-
-		self.gvar_assigns : list[VarAssign] = []
-		self.gvar_writes  : list[VarWrite]  = []
-		self.gvar_reads   : list[VarRead]   = []
 
 		self.unknown_casts = []
 		self.unknown_asgs = []
@@ -34,15 +30,14 @@ class ASTAnalysis():
 		return self.get_returned_lvars() == {lvar_id}
 
 	def iterate_lvar_writes(self, lvar_id:int):
-		for w in self.lvar_writes:
-			if w.var.varid != lvar_id: continue
+		for w in self.var_writes:
+			if not w.var.is_lvar(lvar_id): continue
 			yield w
 
-	def iterat_gvar_writes(self, gvar_id:int):
-		for w in self.gvar_writes:
-			if w.var.varid != gvar_id: continue
+	def iterate_gvar_writes(self, gvar_id:int):
+		for w in self.var_writes:
+			if not w.var.is_gvar(gvar_id): continue
 			yield w
-		return
 
 	def iterate_lvar_call_casts(self, lvar_id:int):
 		for c in self.call_casts:
