@@ -51,13 +51,15 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 
 			lvar_id, offset = utils.get_lvar_offset(arg)
 			if lvar_id != -1:
-				cast = CallCast(CallCast.LOCAL_VAR, lvar_id, offset, CallCast.VAR_CAST, arg_id, fc)
+				var = Var(Var.LOCAL_VAR, lvar_id)
+				cast = CallCast(var, offset, CallCast.VAR_CAST, arg_id, fc)
 				self.current_ast_analysis.call_casts.append(cast)
 				continue
 
 			lvar_id, offset = utils.get_lvar_ptr_write(arg)
 			if lvar_id != -1:
-				cast = CallCast(CallCast.LOCAL_VAR, lvar_id, offset, CallCast.PTR_CAST, arg_id, fc)
+				var = Var(Var.LOCAL_VAR, lvar_id)
+				cast = CallCast(var, offset, CallCast.PTR_CAST, arg_id, fc)
 				self.current_ast_analysis.call_casts.append(cast)
 				continue
 
@@ -66,7 +68,8 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 				if utils.is_func_start(obj_ea):
 					continue
 
-				cast = CallCast(CallCast.GLOBAL_VAR, obj_ea, offset, CallCast.VAR_CAST, arg_id, fc)
+				var = Var(Var.GLOBAL_VAR, obj_ea)
+				cast = CallCast(var, offset, CallCast.VAR_CAST, arg_id, fc)
 				self.current_ast_analysis.call_casts.append(cast)
 				continue
 
@@ -75,7 +78,8 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 				if utils.is_func_start(obj_ea):
 					continue
 
-				cast = CallCast(CallCast.GLOBAL_VAR, obj_ea, offset, CallCast.PTR_CAST, arg_id, fc)
+				var = Var(Var.GLOBAL_VAR, obj_ea)
+				cast = CallCast(var, offset, CallCast.PTR_CAST, arg_id, fc)
 				self.current_ast_analysis.call_casts.append(cast)
 				continue
 
@@ -87,37 +91,43 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 
 		lvarid, offset = utils.get_lvar_ptr_write(expr.x)
 		if lvarid != -1:
-			w = VarWrite(VarUse.LOCAL_VAR, lvarid, expr.y, offset, VarWrite.PTR_WRITE)
+			var = Var(Var.LOCAL_VAR, lvarid)
+			w = VarWrite(var, expr.y, offset, VarWrite.PTR_WRITE)
 			self.current_ast_analysis.lvar_writes.append(w)
 			return True
 
 		lvarid, offset = utils.get_lvar_struct_write(expr.x)
 		if lvarid != -1:
-			w = VarWrite(VarUse.LOCAL_VAR, lvarid, expr.y, offset, VarWrite.STRUCT_WRITE)
+			var = Var(Var.LOCAL_VAR, lvarid)
+			w = VarWrite(var, expr.y, offset, VarWrite.STRUCT_WRITE)
 			self.current_ast_analysis.lvar_writes.append(w)
 			return True
 
 		lvarid = utils.get_lvar_assign(expr.x)
 		if lvarid != -1:
-			w = VarAssign(VarUse.LOCAL_VAR, lvarid, expr.y)
+			var = Var(Var.LOCAL_VAR, lvarid)
+			w = VarAssign(var, expr.y)
 			self.current_ast_analysis.lvar_assigns.append(w)
 			return True
 
 		gvarid = utils.get_gvar_assign(expr.x)
 		if gvarid != -1:
-			w = VarAssign(VarUse.GLOBAL_VAR, gvarid, expr.y)
+			var = Var(Var.GLOBAL_VAR, gvarid)
+			w = VarAssign(var, expr.y)
 			self.current_ast_analysis.gvar_assigns.append(w)
 			return True
 
 		gvarid, offset = utils.get_gvar_ptr_write(expr.x)
 		if gvarid != -1:
-			w = VarWrite(VarUse.GLOBAL_VAR, gvarid, expr.y, offset, VarWrite.PTR_WRITE)
+			var = Var(Var.GLOBAL_VAR, gvarid)
+			w = VarWrite(var, expr.y, offset, VarWrite.PTR_WRITE)
 			self.current_ast_analysis.gvar_writes.append(w)
 			return True
 
 		gvarid, offset = utils.get_gvar_struct_write(expr.x)
 		if gvarid != -1:
-			w = VarWrite(VarUse.GLOBAL_VAR, gvarid, expr.y, offset, VarWrite.STRUCT_WRITE)
+			var = Var(Var.GLOBAL_VAR, gvarid)
+			w = VarWrite(var, expr.y, offset, VarWrite.STRUCT_WRITE)
 			self.current_ast_analysis.gvar_writes.append(w)
 			return True
 
@@ -126,9 +136,10 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		return True
 
 	def handle_expr(self, expr:idaapi.cexpr_t) -> bool:
-		varid, offset = utils.get_lvar_read(expr)
-		if varid != -1:
-			w = VarRead(VarRead.LOCAL_VAR, varid, offset)
+		lvarid, offset = utils.get_lvar_read(expr)
+		if lvarid != -1:
+			var = Var(Var.LOCAL_VAR, lvarid)
+			w = VarRead(var, offset)
 			self.current_ast_analysis.lvar_reads.append(w)
 			return True
 

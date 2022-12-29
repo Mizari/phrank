@@ -89,7 +89,7 @@ class StructAnalyzer(TypeAnalyzer):
 		var_uses = VarUses()
 		func_aa = self.get_ast_analysis(func_ea)
 		for wr in func_aa.lvar_assigns:
-			if wr.varid != lvar_id: continue
+			if wr.var.varid != lvar_id: continue
 			atype = self.analyze_cexpr(func_ea, wr.value)
 			if atype is not utils.UNKNOWN_TYPE:
 				var_uses.assigns.append(atype)
@@ -131,7 +131,7 @@ class StructAnalyzer(TypeAnalyzer):
 		for func_ea in funcs:
 			aa = self.get_ast_analysis(func_ea)
 			for ga in aa.gvar_assigns:
-				if ga.varid == gvar_ea:
+				if ga.var.varid == gvar_ea:
 					assigns.append((func_ea, ga))
 
 		if len(assigns) != 1:

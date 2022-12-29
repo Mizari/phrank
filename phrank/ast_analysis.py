@@ -35,23 +35,23 @@ class ASTAnalysis():
 
 	def iterate_lvar_writes(self, lvar_id:int):
 		for w in self.lvar_writes:
-			if w.varid != lvar_id: continue
+			if w.var.varid != lvar_id: continue
 			yield w
 
 	def iterat_gvar_writes(self, gvar_id:int):
 		for w in self.gvar_writes:
-			if w.varid != gvar_id: continue
+			if w.var.varid != gvar_id: continue
 			yield w
 		return
 
 	def iterate_lvar_call_casts(self, lvar_id:int):
 		for c in self.call_casts:
-			if not c.is_lvar(lvar_id):
+			if not c.var.is_lvar(lvar_id):
 				continue
 			yield c
 
 	def iterate_gvar_call_casts(self, gvar_id:int):
 		for c in self.call_casts:
-			if not c.is_gvar(gvar_id):
+			if not c.var.is_gvar(gvar_id):
 				continue
 			yield c

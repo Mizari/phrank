@@ -1,7 +1,7 @@
 import idaapi
 
 
-class VarUse:
+class Var:
 	LOCAL_VAR  = 0
 	GLOBAL_VAR = 1
 
@@ -22,28 +22,28 @@ class VarUse:
 		return self.vartype == self.GLOBAL_VAR
 
 
-class VarRead(VarUse):
-	def __init__(self, vartype:int, varid:int, offset:int):
-		super().__init__(vartype, varid)
+class VarRead():
+	def __init__(self, var:Var, offset:int):
+		self.var = var
 		self.offset = offset
 
 
-class VarWrite(VarUse):
+class VarWrite():
 	# write types
 	PTR_WRITE = 0
 	STRUCT_WRITE = 1
 
-	def __init__(self, vartype:int, varid:int, value:idaapi.cexpr_t, offset:int, write_type:int):
-		super().__init__(vartype, varid)
+	def __init__(self, var:Var, value:idaapi.cexpr_t, offset:int, write_type:int):
+		self.var = var
 		self.value = value
 		self.value_type = None
 		self.offset = offset
 		self.write_type = write_type
 
 
-class VarAssign(VarUse):
-	def __init__(self, vartype:int, varid:int, value:idaapi.cexpr_t):
-		super().__init__(vartype, varid)
+class VarAssign():
+	def __init__(self, var:Var, value:idaapi.cexpr_t):
+		self.var = var
 		self.value = value
 
 
@@ -61,12 +61,12 @@ class FuncCall:
 			self.name = self.call_expr.helper
 
 
-class CallCast(VarUse):
+class CallCast():
 	VAR_CAST = 0  #  v ; v + N
 	REF_CAST = 1  # &v ; &v.f ; &(v + N)
 	PTR_CAST = 2  # *v ; v->f ; *(v + N)
-	def __init__(self, vartype:int, varid:int, offset:int, cast_type:int, arg_id:int, func_call:FuncCall):
-		super().__init__(vartype, varid)
+	def __init__(self, var:Var, offset:int, cast_type:int, arg_id:int, func_call:FuncCall):
+		self.var = var
 		self.offset = offset
 		self.cast_type = cast_type
 		self.func_call = func_call
