@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import idaapi
 
+from phrank.ast_parts import *
+
 ARRAY_FUNCS = {"qmemcpy", "memcpy", "strncpy", "memset", "memmove", "strncat", "strncmp"}
 ARRAY_FUNCS.update(['_' + s for s in ARRAY_FUNCS])
 
@@ -26,22 +28,28 @@ def _strip_casts(func):
 		return func(expr)
 	return wrapper
 
-def get_lvar_assign(expr:idaapi.cexpr_t) -> int:
+def get_var(expr:idaapi.cexpr_t) -> Var|None:
 	if expr.op == idaapi.cot_var:
-		return expr.v.idx
+		return Var(Var.LOCAL_VAR, expr.v.idx)
+	if expr.op == idaapi.cot_obj:
+		return Var(Var.GLOBAL_VAR, expr.obj_ea)
+	return None
+
+@_strip_casts
+def get_var_assign(expr:idaapi.cexpr_t) -> Var|None:
+	var = get_var(expr)
+	if var is not None:
+		return var
 
 	if expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
 		func = expr.x.helper
 		if func in HELPER_FUNCS:
-			arg0 = expr.a[0]
-			if arg0.op == idaapi.cot_var:
-				return arg0.v.idx
+			return get_var(expr.a[0])
 
-	if expr.op == idaapi.cot_ptr and expr.x.op == idaapi.cot_cast:
-		if expr.x.x.op == idaapi.cot_ref and expr.x.x.x.op == idaapi.cot_var:
-			return expr.x.x.x.v.idx
+	if expr.op == idaapi.cot_ptr and expr.x.op == idaapi.cot_cast and expr.x.x.op == idaapi.cot_ref:
+		return get_var(expr.x.x.x)
 
-	return -1
+	return None
 
 @_strip_casts
 def get_lvar_read(expr:idaapi.cexpr_t) -> tuple[int,int]:
@@ -58,24 +66,6 @@ def get_lvar_read(expr:idaapi.cexpr_t) -> tuple[int,int]:
 		return get_lvar_offset(expr.x)
 
 	return -1, -1
-
-@_strip_casts
-def get_gvar_assign(expr:idaapi.cexpr_t) -> int:
-	if expr.op == idaapi.cot_obj:
-		return expr.obj_ea
-
-	if expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
-		func = expr.x.helper
-		if func in HELPER_FUNCS:
-			arg0 = expr.a[0]
-			if arg0.op == idaapi.cot_obj:
-				return expr.obj_ea
-
-	if expr.op == idaapi.cot_ptr and expr.x.op == idaapi.cot_cast:
-		if expr.x.x.op == idaapi.cot_ref and expr.x.x.x.op == idaapi.cot_obj:
-			return expr.x.x.x.obj_ea
-
-	return -1
 
 def get_gvar_ptr_write(expr:idaapi.cexpr_t) -> tuple[int,int]:
 	if expr.op == idaapi.cot_idx:

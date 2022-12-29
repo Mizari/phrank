@@ -103,18 +103,13 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			self.current_ast_analysis.lvar_writes.append(w)
 			return True
 
-		lvarid = utils.get_lvar_assign(expr.x)
-		if lvarid != -1:
-			var = Var(Var.LOCAL_VAR, lvarid)
+		var = utils.get_var_assign(expr.x)
+		if var is not None:
 			w = VarAssign(var, expr.y)
-			self.current_ast_analysis.lvar_assigns.append(w)
-			return True
-
-		gvarid = utils.get_gvar_assign(expr.x)
-		if gvarid != -1:
-			var = Var(Var.GLOBAL_VAR, gvarid)
-			w = VarAssign(var, expr.y)
-			self.current_ast_analysis.gvar_assigns.append(w)
+			if var.is_local():
+				self.current_ast_analysis.lvar_assigns.append(w)
+			else:
+				self.current_ast_analysis.gvar_assigns.append(w)
 			return True
 
 		gvarid, offset = utils.get_gvar_ptr_write(expr.x)
