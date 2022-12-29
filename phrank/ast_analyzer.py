@@ -49,36 +49,14 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			if op in [idaapi.cot_num, idaapi.cot_sizeof, idaapi.cot_call]:
 				continue
 
-			lvar_id, offset = utils.get_lvar_offset(arg)
-			if lvar_id != -1:
-				var = Var(Var.LOCAL_VAR, lvar_id)
+			var, offset = utils.get_var_offset(arg)
+			if var is not None:
 				cast = CallCast(var, offset, CallCast.VAR_CAST, arg_id, fc)
 				self.current_ast_analysis.call_casts.append(cast)
 				continue
 
-			lvar_id, offset = utils.get_lvar_ptr_write(arg)
-			if lvar_id != -1:
-				var = Var(Var.LOCAL_VAR, lvar_id)
-				cast = CallCast(var, offset, CallCast.PTR_CAST, arg_id, fc)
-				self.current_ast_analysis.call_casts.append(cast)
-				continue
-
-			obj_ea, offset = utils.get_gvar_offset(arg)
-			if obj_ea != -1:
-				if utils.is_func_start(obj_ea):
-					continue
-
-				var = Var(Var.GLOBAL_VAR, obj_ea)
-				cast = CallCast(var, offset, CallCast.VAR_CAST, arg_id, fc)
-				self.current_ast_analysis.call_casts.append(cast)
-				continue
-
-			obj_ea, offset = utils.get_gvar_ptr_write(arg)
-			if obj_ea != -1:
-				if utils.is_func_start(obj_ea):
-					continue
-
-				var = Var(Var.GLOBAL_VAR, obj_ea)
+			var, offset = utils.get_var_ptr_write(arg)
+			if var is not None:
 				cast = CallCast(var, offset, CallCast.PTR_CAST, arg_id, fc)
 				self.current_ast_analysis.call_casts.append(cast)
 				continue
@@ -89,18 +67,22 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 	def handle_assignment(self, expr: idaapi.cexpr_t) -> bool:
 		self.apply_to(expr.y, None)
 
-		lvarid, offset = utils.get_lvar_ptr_write(expr.x)
-		if lvarid != -1:
-			var = Var(Var.LOCAL_VAR, lvarid)
+		var, offset = utils.get_var_ptr_write(expr.x)
+		if var is not None:
 			w = VarWrite(var, expr.y, offset, VarWrite.PTR_WRITE)
-			self.current_ast_analysis.lvar_writes.append(w)
+			if var.is_local():
+				self.current_ast_analysis.lvar_writes.append(w)
+			else:
+				self.current_ast_analysis.gvar_writes.append(w)
 			return True
 
-		lvarid, offset = utils.get_lvar_struct_write(expr.x)
-		if lvarid != -1:
-			var = Var(Var.LOCAL_VAR, lvarid)
+		var, offset = utils.get_var_struct_write(expr.x)
+		if var is not None:
 			w = VarWrite(var, expr.y, offset, VarWrite.STRUCT_WRITE)
-			self.current_ast_analysis.lvar_writes.append(w)
+			if var.is_local():
+				self.current_ast_analysis.lvar_writes.append(w)
+			else:
+				self.current_ast_analysis.gvar_writes.append(w)
 			return True
 
 		var = utils.get_var_assign(expr.x)
@@ -112,28 +94,13 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 				self.current_ast_analysis.gvar_assigns.append(w)
 			return True
 
-		gvarid, offset = utils.get_gvar_ptr_write(expr.x)
-		if gvarid != -1:
-			var = Var(Var.GLOBAL_VAR, gvarid)
-			w = VarWrite(var, expr.y, offset, VarWrite.PTR_WRITE)
-			self.current_ast_analysis.gvar_writes.append(w)
-			return True
-
-		gvarid, offset = utils.get_gvar_struct_write(expr.x)
-		if gvarid != -1:
-			var = Var(Var.GLOBAL_VAR, gvarid)
-			w = VarWrite(var, expr.y, offset, VarWrite.STRUCT_WRITE)
-			self.current_ast_analysis.gvar_writes.append(w)
-			return True
-
 		self.current_ast_analysis.unknown_asgs.append(expr.x)
 		self.apply_to(expr.x, None)
 		return True
 
 	def handle_expr(self, expr:idaapi.cexpr_t) -> bool:
-		lvarid, offset = utils.get_lvar_read(expr)
-		if lvarid != -1:
-			var = Var(Var.LOCAL_VAR, lvarid)
+		var, offset = utils.get_var_read(expr)
+		if var is not None:
 			w = VarRead(var, offset)
 			self.current_ast_analysis.lvar_reads.append(w)
 			return True

@@ -128,7 +128,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 				continue
 
 			for arg in func_call._call_expr.a:
-				argid, arg_offset = utils.get_lvar_offset(arg)
+				argid, arg_offset = utils.get_var_offset(arg)
 				if argid != lvar_id:
 					continue
 

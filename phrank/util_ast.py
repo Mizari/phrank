@@ -28,6 +28,7 @@ def _strip_casts(func):
 		return func(expr)
 	return wrapper
 
+@_strip_casts
 def get_var(expr:idaapi.cexpr_t) -> Var|None:
 	if expr.op == idaapi.cot_var:
 		return Var(Var.LOCAL_VAR, expr.v.idx)
@@ -52,106 +53,58 @@ def get_var_assign(expr:idaapi.cexpr_t) -> Var|None:
 	return None
 
 @_strip_casts
-def get_lvar_read(expr:idaapi.cexpr_t) -> tuple[int,int]:
-	if expr.op == idaapi.cot_memptr and expr.x.op == idaapi.cot_var:
-		return expr.x.v.idx, expr.m + expr.x.type.get_size()
+def get_var_read(expr:idaapi.cexpr_t) -> tuple[Var|None,int]:
+	if expr.op == idaapi.cot_memptr:
+		return get_var(expr.x), expr.m + expr.x.type.get_size()
 
-	if expr.op == idaapi.cot_idx:
-		if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
-			return -1, -1
-
-		return expr.x.v.idx, (expr.y.n._value + 1) * expr.x.type.get_size()
+	if expr.op == idaapi.cot_idx and expr.y.op == idaapi.cot_num:
+		var = get_var(expr.x)
+		return var, (expr.y.n._value + 1) * expr.x.type.get_size()
 
 	if expr.op == idaapi.cot_ptr:
-		return get_lvar_offset(expr.x)
+		return get_var_offset(expr.x)
 
-	return -1, -1
+	return None, -1
 
-def get_gvar_ptr_write(expr:idaapi.cexpr_t) -> tuple[int,int]:
-	if expr.op == idaapi.cot_idx:
-		if expr.x.op != idaapi.cot_obj or expr.y.op != idaapi.cot_num:
-			return -1, -1
-
-		return expr.x.obj_ea, expr.y.n._value * expr.x.type.get_size()
+# not found is (None, any_int)
+def get_var_ptr_write(expr:idaapi.cexpr_t) -> tuple[Var|None,int]:
+	if expr.op == idaapi.cot_idx and expr.y.op == idaapi.cot_num:
+		return get_var(expr.x), expr.y.n._value * expr.x.type.get_size()
 
 	if expr.op == idaapi.cot_ptr:
-		return get_gvar_offset(expr.x)
+		return get_var_offset(expr.x)
 
-	if expr.op == idaapi.cot_memptr and expr.x.op == idaapi.cot_obj:
-		return expr.x.obj_ea, expr.m
+	if expr.op == idaapi.cot_memptr:
+		return get_var(expr.x), expr.m
 
-	return -1, -1
+	return None, -1
 
-def get_gvar_struct_write(expr:idaapi.cexpr_t) -> tuple[int,int]:
+def get_var_struct_write(expr:idaapi.cexpr_t) -> tuple[Var|None,int]:
 	if expr.op != idaapi.cot_memref:
-		return -1, -1
+		return None, -1
 
 	offset = 0
 	while expr.op == idaapi.cot_memref:
 		offset += expr.m
 		expr = expr.x
-	if expr.op == idaapi.cot_obj:
-		return expr.obj_ea, offset
-	return -1, -1
+	return get_var(expr), offset
 
 # trying to get various forms of "var + X", where X is int
-
-def get_gvar_read(expr):
-	return -1, None
-
-# not found is (-1, None) since there are no such local variables
-# with negative id, and there CAN be negative offset
-def get_lvar_ptr_write(expr:idaapi.cexpr_t) -> tuple[int,int]:
-	if expr.op == idaapi.cot_idx:
-		if expr.x.op != idaapi.cot_var or expr.y.op != idaapi.cot_num:
-			return -1, -1
-
-		return expr.x.v.idx, expr.y.n._value * expr.x.type.get_size()
-
-	if expr.op == idaapi.cot_ptr:
-		return get_lvar_offset(expr.x)
-
-	if expr.op == idaapi.cot_memptr and expr.x.op == idaapi.cot_var:
-		return expr.x.v.idx, expr.m
-
-	return -1, -1
-
-def get_lvar_struct_write(expr:idaapi.cexpr_t) -> tuple[int,int]:
-	if expr.op != idaapi.cot_memref:
-		return -1, -1
-
-	offset = 0
-	while expr.op == idaapi.cot_memref:
-		offset += expr.m
-		expr = expr.x
-	if expr.op == idaapi.cot_var:
-		return expr.v.idx, offset
-	return -1, -1
-
-# trying to get various forms of "var + X", where X is int
-# not found is (-1, -1)
+# not found is (None, any_int)
 @_strip_casts
-def get_lvar_offset(expr:idaapi.cexpr_t) -> tuple[int, int]:
-	if expr.op == idaapi.cot_var:
-		return expr.v.idx, 0
+def get_var_offset(expr:idaapi.cexpr_t) -> tuple[Var|None, int]:
+	var = get_var(expr)
+	if var is not None:
+		return var, 0
 
 	# form ((CASTTYPE*)var) + N
-	elif expr.op in [idaapi.cot_add, idaapi.cot_sub]:
-		if expr.y.op != idaapi.cot_num:
-			return -1, -1
+	elif expr.op in [idaapi.cot_add, idaapi.cot_sub] and expr.y.op == idaapi.cot_num:
 		offset = expr.y.n._value
 		if expr.op == idaapi.cot_sub:
 			offset = - offset
 
 		op_x = expr.x
-		if op_x.op == idaapi.cot_var:
-			var = op_x.v
-
-		elif op_x.op == idaapi.cot_cast and op_x.x.op == idaapi.cot_var:
-			var = op_x.x.v
-
-		else:
-			return -1, -1
+		var = get_var(op_x)
 
 		if op_x.type.is_ptr():
 			sz = op_x.type.get_pointed_object().get_size()
@@ -159,44 +112,10 @@ def get_lvar_offset(expr:idaapi.cexpr_t) -> tuple[int, int]:
 				raise BaseException("Failed to get object's size")
 			offset = offset * sz
 
-		return var.idx, offset
+		return var, offset
 
 	else:
-		return -1, -1
-
-@_strip_casts
-def get_gvar_offset(expr:idaapi.cexpr_t) -> tuple[int,int]:
-	if expr.op == idaapi.cot_obj:
-		return expr.obj_ea, 0
-
-	# form ((CASTTYPE*)var) + N
-	elif expr.op in [idaapi.cot_add, idaapi.cot_sub]:
-		if expr.y.op != idaapi.cot_num:
-			return -1, -1
-		offset = expr.y.n._value
-		if expr.op == idaapi.cot_sub:
-			offset = - offset
-
-		op_x = expr.x
-		if op_x.op == idaapi.cot_obj:
-			obj_ea = op_x.obj_ea
-
-		elif op_x.op == idaapi.cot_cast and op_x.x.op == idaapi.cot_obj:
-			obj_ea = op_x.x.obj_ea
-
-		else:
-			return -1, -1
-
-		if op_x.type.is_ptr():
-			sz = op_x.type.get_pointed_object().get_size()
-			if sz == idaapi.BADSIZE: 
-				raise BaseException("Failed to get object's size")
-			offset = offset * sz
-
-		return obj_ea, offset
-
-	else:
-		return -1, -1
+		return None, -1
 
 @_strip_casts
 def get_int(expr:idaapi.cexpr_t) -> int|None:
