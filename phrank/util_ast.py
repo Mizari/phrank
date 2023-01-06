@@ -129,3 +129,43 @@ def get_int(expr:idaapi.cexpr_t) -> int|None:
 		return expr.n._value
 
 	return None
+
+def expr2str(expr:idaapi.cexpr_t):
+	op2getter = {
+		idaapi.cot_var: lambda e: "LVAR(" + str(e.v.idx) + ")",
+		idaapi.cot_ptr: lambda e: "*(" + expr2str(e.x) + ")",
+		idaapi.cot_idx: lambda e: expr2str(e.x) + "[" + expr2str(e.y) + "]",
+		idaapi.cot_memref: lambda e: "MEMREF(" + expr2str(e.x) + "," + str(e.m) + ")",
+		idaapi.cot_memptr: lambda e: "MEMPTR(" + expr2str(e.x) + "," + str(e.m) + ")",
+		idaapi.cot_num: lambda e: str(e.n._value),
+		idaapi.cot_cast: lambda e: "(" + str(e.type) + ")" + expr2str(e.x),
+		idaapi.cot_add: lambda e: expr2str(e.x) + "+" + expr2str(e.y),
+		idaapi.cot_sub: lambda e: expr2str(e.x) + "-" + expr2str(e.y),
+		idaapi.cot_mul: lambda e: expr2str(e.x) + "*" + expr2str(e.y),
+		idaapi.cot_postinc: lambda e: expr2str(e.x) + "++",
+		idaapi.cot_preinc: lambda e: "++" + expr2str(e.x),
+		idaapi.cot_ref: lambda e: "&" + expr2str(e.x),
+		idaapi.cot_obj: lambda e: idaapi.get_name(e.obj_ea),
+		idaapi.cot_sizeof: lambda e: "sizeof(" + expr2str(e.x) + ")",
+		idaapi.cot_neg: lambda e: "-" + expr2str(e.x),
+		idaapi.cot_helper: lambda e: e.helper + "(" + expr2str(e.x) + ")",
+		idaapi.cot_tern: lambda e: expr2str(e.x) + ":" + expr2str(e.y) + "?" + expr2str(e.z),
+		idaapi.cot_ne: lambda e: expr2str(e.x) + "!=" + expr2str(e.y),
+		idaapi.cot_band: lambda e: expr2str(e.x) + "&" + expr2str(e.y),
+	}
+	if expr.op == idaapi.cot_call:
+		c = expr.x
+		if c.op == idaapi.cot_helper:
+			call = c.helper
+		elif c.op == idaapi.cot_obj:
+			call = idaapi.get_name(c.obj_ea)
+		else:
+			call = expr2str(c)
+		args = [expr2str(a) for a in expr.a]
+		return call + "(" + ",".join(args) + ")"
+
+	getter = op2getter.get(expr.op)
+	if getter is None:
+		print("unknown op in expr2str", expr.opname)
+		return "UNKNOWN"
+	return getter(expr)
