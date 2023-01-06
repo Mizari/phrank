@@ -17,7 +17,11 @@ def split_list(l:list, cond) -> tuple[list,list]:
 def get_next_available_strucname(strucname:str) -> str:
 	while idaapi.get_struc_id(strucname) != idaapi.BADADDR:
 		prefix, ctr = strucname.rsplit('_', 1)
-		strucname = prefix + '_' + str(int(ctr) + 1)
+		try:
+			ctr = int(ctr)
+			strucname = prefix + '_' + str(ctr + 1)
+		except ValueError:
+			pass
 	return strucname
 
 def size2dataflags(sz:int) -> int:
