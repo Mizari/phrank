@@ -3,6 +3,7 @@ from __future__ import annotations
 import idaapi
 
 from phrank.ast_parts import *
+from phrank.util_func import is_func_start
 
 ARRAY_FUNCS = {"qmemcpy", "memcpy", "strncpy", "memset", "memmove", "strncat", "strncmp"}
 ARRAY_FUNCS.update(['_' + s for s in ARRAY_FUNCS])
@@ -32,7 +33,7 @@ def _strip_casts(func):
 def get_var(expr:idaapi.cexpr_t) -> Var|None:
 	if expr.op == idaapi.cot_var:
 		return Var(Var.LOCAL_VAR, expr.v.idx)
-	if expr.op == idaapi.cot_obj:
+	if expr.op == idaapi.cot_obj and not is_func_start(expr.obj_ea):
 		return Var(Var.GLOBAL_VAR, expr.obj_ea)
 	return None
 
