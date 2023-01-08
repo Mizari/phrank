@@ -169,3 +169,21 @@ def expr2str(expr:idaapi.cexpr_t):
 		print("unknown op in expr2str", expr.opname)
 		return "UNKNOWN"
 	return getter(expr)
+
+def extract_vars(expr:idaapi.cexpr_t):
+	v = get_var(expr)
+	if v is not None:
+		return {v}
+	vars = set()
+	if expr.x is not None:
+		vars.update(extract_vars(expr.x))
+	if expr.y is not None:
+		vars.update(extract_vars(expr.y))
+	if expr.z is not None:
+		vars.update(extract_vars(expr.z))
+	if expr.op == idaapi.cot_call:
+		for a in expr.a:
+			vars.update(extract_vars(a))
+	vars_dict = {(v.vartype, v.varid): v for v in vars}
+	vars = set(vars_dict.values())
+	return vars
