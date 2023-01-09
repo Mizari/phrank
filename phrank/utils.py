@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import idc, idaapi
+
 from phrank.util_ast import *
 from phrank.util_tif import *
 from phrank.util_func import *
@@ -39,3 +41,8 @@ def get_pointer_size() -> int:
 		return 4
 	else:
 		return 2
+
+def str2addr(s:str) -> int:
+	rv = idc.get_name_ea_simple(s)
+	if rv == idaapi.BADADDR: rv = -1
+	return rv
