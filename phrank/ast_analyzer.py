@@ -42,6 +42,12 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 
 	def handle_call(self, expr:idaapi.cexpr_t) -> bool:
 		fc = FuncCall(expr)
+		if fc.is_implicit():
+			if len(utils.extract_vars(expr.x)) == 1:
+				fc.implicit_var_use_chain = utils.get_var_use_chain(expr.x)
+			else:
+				print("Failed to get var use chain of implicit call for", utils.expr2str(expr.x))
+
 		for arg_id, arg in enumerate(expr.a):
 			self.apply_to_exprs(arg, None)
 			arg = utils.strip_casts(arg)

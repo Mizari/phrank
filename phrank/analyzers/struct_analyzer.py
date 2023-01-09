@@ -8,6 +8,47 @@ from phrank.containers.structure import Structure
 from phrank.ast_parts import *
 
 
+def calculate_type_implicit_call_address(tif:idaapi.tinfo_t, use_chain:list[VarUse]) -> int:
+	if len(use_chain) == 0:
+		return -1
+
+	use0 = use_chain[0]
+	if use0.is_ptr():
+		ptif = tif.get_pointed_object()
+		if ptif.is_struct() and (s := Structure.get(ptif)) is not None:
+			if s.member_exists(use0.offset):
+				if len(use_chain) == 1:
+					pass
+				else:
+					mtif = s.get_member_tinfo(use0.offset)
+					return calculate_type_implicit_call_address(mtif, use_chain[1:])
+
+	if use0.is_add():
+		if len(use_chain) == 2 and use_chain[1].is_ptr() and use_chain[1].offset == 0:
+			if tif.is_ptr():
+				tif = tif.get_pointed_object()
+				if tif.is_struct() and (s := Structure.get(tif)) is not None:
+					if s.member_exists(use0.offset):
+						mname = s.get_member_name(use0.offset)
+						x = utils.str2addr(mname)
+						if utils.is_func_start(x):
+							return x
+
+						mcmt = s.get_member_comment(use0.offset)
+						if mcmt is not None:
+							base = 10
+							if mcmt.startswith("0x"): base = 16
+							try:
+								x = int(mcmt, base)
+							except:
+								x = -1
+							if utils.is_func_start(x):
+								return x
+
+	print("unknown implicit call", str(tif), len(use_chain), use0.use_type, use0.offset)
+	return -1
+
+
 class VarUses:
 	def __init__(self):
 		self.assigns:list[VarAssign] = []
@@ -337,6 +378,21 @@ class StructAnalyzer(TypeAnalyzer):
 			return False
 		return True
 
+	def calculate_var_implicit_call_address(self, var:Var, use_chain) -> int:
+		if var is None:
+			return -1
+
+		if var.is_local():
+			# TODO
+			var_tif = None
+		else:
+			var_tif = self.gvar2tinfo.get(var.varid)
+
+		if var_tif is None or var_tif is utils.UNKNOWN_TYPE:
+			return -1
+
+		return calculate_type_implicit_call_address(var_tif, use_chain)
+
 	def propagate_lvar_down(self, func_ea:int, lvar_id:int):
 		lvar_type = self.lvar2tinfo.get((func_ea, lvar_id))
 		if not self.is_ok_propagation_type(lvar_type):
@@ -345,11 +401,26 @@ class StructAnalyzer(TypeAnalyzer):
 		propagated_lvars = {}
 		aa = self.get_ast_analysis(func_ea)
 		for call_cast in aa.iterate_lvar_call_casts(lvar_id):
-			call_ea = call_cast.func_call.address
-			arg_id = call_cast.arg_id
-			if call_ea == -1 or call_cast.offset != 0 or call_cast.cast_type != call_cast.VAR_CAST:
+			func_call = call_cast.func_call
+			if func_call.is_explicit():
+				call_ea = func_call.address
+			elif func_call.is_implicit():
+				if func_call.implicit_var_use_chain is not None:
+					v, ch = func_call.implicit_var_use_chain
+					call_ea = self.calculate_var_implicit_call_address(v, ch)
+				else:
+					call_ea = -1
+				
+				if call_ea == -1:
+					continue
+			else:
+				# helpers do not propagate types
 				continue
 
+			if call_cast.offset != 0 or call_cast.cast_type != call_cast.VAR_CAST:
+				continue
+
+			arg_id = call_cast.arg_id
 			current_type = self.lvar2tinfo.get((call_ea, arg_id))
 			if current_type is None:
 				current_type = propagated_lvars.get((call_ea, arg_id))
@@ -374,11 +445,26 @@ class StructAnalyzer(TypeAnalyzer):
 		for func_ea in funcs:
 			aa = self.get_ast_analysis(func_ea)
 			for call_cast in aa.iterate_gvar_call_casts(gvar_ea):
-				call_ea = call_cast.func_call.address
-				if call_ea == -1 or call_cast.offset != 0 or call_cast.cast_type != call_cast.VAR_CAST:
-					continue
-				arg_id = call_cast.arg_id
+				func_call = call_cast.func_call
+				if func_call.is_explicit():
+					call_ea = func_call.address
+				elif func_call.is_implicit():
+					if func_call.implicit_var_use_chain is not None:
+						v, ch = func_call.implicit_var_use_chain
+						call_ea = self.calculate_var_implicit_call_address(v, ch)
+					else:
+						call_ea = -1
 
+					if call_ea == -1:
+						continue
+				else:
+					# helpers do not propagate types
+					continue
+
+				if call_cast.offset != 0 or call_cast.cast_type != call_cast.VAR_CAST:
+					continue
+
+				arg_id = call_cast.arg_id
 				current_type = self.lvar2tinfo.get((call_ea, arg_id))
 				if current_type is None:
 					current_type = propagated_lvars.get((call_ea, arg_id))

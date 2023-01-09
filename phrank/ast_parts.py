@@ -83,6 +83,7 @@ class VarAssign():
 class FuncCall:
 	def __init__(self, call_expr:idaapi.cexpr_t):
 		self.call_expr = call_expr.x
+		self.implicit_var_use_chain = None
 		self.args = call_expr.a
 		self.address : int = -1
 		self.name : str = ""
@@ -92,6 +93,15 @@ class FuncCall:
 			self.name = idaapi.get_func_name(self.address)
 		elif self.call_expr.op == idaapi.cot_helper:
 			self.name = self.call_expr.helper
+
+	def is_explicit(self):
+		return self.call_expr.op == idaapi.cot_obj
+
+	def is_helper(self):
+		return self.call_expr.op == idaapi.cot_helper
+
+	def is_implicit(self):
+		return not self.is_explicit() and not self.is_helper()
 
 
 class CallCast():
