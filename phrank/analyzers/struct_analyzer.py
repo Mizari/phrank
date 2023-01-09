@@ -22,6 +22,28 @@ class StructAnalyzer(TypeAnalyzer):
 		self.analyzed_functions = set()
 		self.vtable_analyzer = VtableAnalyzer(func_factory)
 
+	def add_type_uses(self, var_uses:VarUses, var_type:idaapi.tinfo_t):
+		assigns = var_uses.assigns
+		casts = var_uses.casts
+		writes = var_uses.writes
+
+		strucid = utils.tif2strucid(var_type)
+		var_struct = Structure(strucid)
+
+		for lvar_write in writes:
+			self.add_member_type(var_struct.strucid, lvar_write.get_ptr_write_offset(), lvar_write.value_type)
+
+		for cast in casts:
+			arg_type = cast.arg_type
+			# cast exists, just type is unknown. will use simple int instead
+			if arg_type is utils.UNKNOWN_TYPE:
+				arg_type = utils.get_int_tinfo(1)
+
+			if arg_type.is_ptr():
+				arg_type = arg_type.get_pointed_object()
+
+			self.add_member_type(var_struct.strucid, cast.offset, arg_type)
+
 	def add_member_type(self, strucid:int, offset:int, member_type:idaapi.tinfo_t):
 		# do not modificate existing types
 		if strucid not in self.new_types:
@@ -257,21 +279,6 @@ class StructAnalyzer(TypeAnalyzer):
 		lvar_struct = Structure.create()
 		self.new_types.add(lvar_struct.strucid)
 		lvar_tinfo = lvar_struct.ptr_tinfo
-
-		for lvar_write in writes:
-			self.add_member_type(lvar_struct.strucid, lvar_write.get_ptr_write_offset(), lvar_write.value_type)
-
-		for cast in casts:
-			arg_type = cast.arg_type
-			# cast exists, just type is unknown. will use simple int instead
-			if arg_type is utils.UNKNOWN_TYPE:
-				arg_type = utils.get_int_tinfo(1)
-
-			if arg_type.is_ptr():
-				arg_type = arg_type.get_pointed_object()
-
-			self.add_member_type(lvar_struct.strucid, cast.offset, arg_type)
-
 		return lvar_tinfo
 
 	def analyze_lvar(self, func_ea:int, lvar_id:int) -> idaapi.tinfo_t:
@@ -288,6 +295,8 @@ class StructAnalyzer(TypeAnalyzer):
 		# TODO check that var uses are compatible
 		lvar_uses = self.get_lvar_uses(func_ea, lvar_id)
 		lvar_tinfo = self.calculate_var_type_by_uses(lvar_uses)
+		if lvar_tinfo is not utils.UNKNOWN_TYPE:
+			self.add_type_uses(lvar_uses, lvar_tinfo)
 		self.lvar2tinfo[(func_ea, lvar_id)] = lvar_tinfo
 		return lvar_tinfo
 
