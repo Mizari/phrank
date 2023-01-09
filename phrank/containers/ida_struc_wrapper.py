@@ -93,7 +93,7 @@ class IdaStrucWrapper(object):
 		return rv
 
 	def get_member_comment(self, offset:int):
-		return idc.get_member_cmt(self.strucid, offset)
+		return idc.get_member_cmt(self.strucid, offset, 0)
 
 	def get_next_available_name(self, member_name:str, delimiter="___") -> str:
 		o = idc.get_member_offset(self.strucid, member_name)
