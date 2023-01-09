@@ -92,6 +92,9 @@ class IdaStrucWrapper(object):
 			print("Failed to set member comment")
 		return rv
 
+	def get_member_comment(self, offset:int):
+		return idc.get_member_cmt(self.strucid, offset)
+
 	def get_next_available_name(self, member_name:str, delimiter="___") -> str:
 		o = idc.get_member_offset(self.strucid, member_name)
 		if o == -1 or o == idaapi.BADADDR:
