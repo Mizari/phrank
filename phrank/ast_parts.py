@@ -1,6 +1,19 @@
 import idaapi
 
 
+class ASTCtx:
+	def __init__(self, addr):
+		self.addr = addr
+
+	@classmethod
+	def empty(cls):
+		return cls(-1)
+
+	@classmethod
+	def from_cfunc(cls, cfunc:idaapi.cfunc_t):
+		return cls(cfunc.entry_ea)
+
+
 class Var:
 	LOCAL_VAR  = 0
 	GLOBAL_VAR = 1

@@ -6,6 +6,7 @@ import phrank.utils as utils
 
 from phrank.ast_analyzer import ASTAnalyzer, ASTAnalysis
 from phrank.cfunction_factory import CFunctionFactory
+from phrank.ast_parts import ASTCtx
 
 def get_funcname(func_ea: int) -> str:
 	return idaapi.get_name(func_ea)
@@ -26,7 +27,8 @@ class FunctionManager:
 
 		cfunc = self.get_cfunc(func_ea)
 		if cfunc is None:
-			analysis = ASTAnalysis()
+			actx = ASTCtx.empty()
+			analysis = ASTAnalysis(actx)
 		else:
 			analysis = self.ast_analyzer.analyze_cfunc(cfunc)
 		self.ast_analysis_cache[func_ea] = analysis

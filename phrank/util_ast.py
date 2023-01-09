@@ -24,13 +24,13 @@ def strip_casts(expr:idaapi.cexpr_t) -> idaapi.cexpr_t:
 	return expr
 
 def _strip_casts(func):
-	def wrapper(expr):
+	def wrapper(expr, *args, **kwargs):
 		expr = strip_casts(expr)
-		return func(expr)
+		return func(expr, *args, **kwargs)
 	return wrapper
 
 @_strip_casts
-def get_var(expr:idaapi.cexpr_t) -> Var|None:
+def get_var(expr:idaapi.cexpr_t, actx:ASTCtx) -> Var|None:
 	if expr.op == idaapi.cot_var:
 		return Var(Var.LOCAL_VAR, expr.v.idx)
 	if expr.op == idaapi.cot_obj and not is_func_start(expr.obj_ea):
@@ -38,49 +38,49 @@ def get_var(expr:idaapi.cexpr_t) -> Var|None:
 	return None
 
 @_strip_casts
-def get_var_assign(expr:idaapi.cexpr_t) -> Var|None:
-	var = get_var(expr)
+def get_var_assign(expr:idaapi.cexpr_t, actx:ASTCtx) -> Var|None:
+	var = get_var(expr, actx)
 	if var is not None:
 		return var
 
 	if expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
 		func = expr.x.helper
 		if func in HELPER_FUNCS:
-			return get_var(expr.a[0])
+			return get_var(expr.a[0], actx)
 
 	if expr.op == idaapi.cot_ptr and expr.x.op == idaapi.cot_cast and expr.x.x.op == idaapi.cot_ref:
-		return get_var(expr.x.x.x)
+		return get_var(expr.x.x.x, actx)
 
 	return None
 
 @_strip_casts
-def get_var_read(expr:idaapi.cexpr_t) -> tuple[Var|None,int]:
+def get_var_read(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,int]:
 	if expr.op == idaapi.cot_memptr:
-		return get_var(expr.x), expr.m + expr.x.type.get_size()
+		return get_var(expr.x, actx), expr.m + expr.x.type.get_size()
 
 	if expr.op == idaapi.cot_idx and expr.y.op == idaapi.cot_num:
-		var = get_var(expr.x)
+		var = get_var(expr.x, actx)
 		return var, (expr.y.n._value + 1) * expr.x.type.get_size()
 
 	if expr.op == idaapi.cot_ptr:
-		return get_var_offset(expr.x)
+		return get_var_offset(expr.x, actx)
 
 	return None, -1
 
 # not found is (None, any_int)
-def get_var_ptr_write(expr:idaapi.cexpr_t) -> tuple[Var|None,int]:
+def get_var_ptr_write(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,int]:
 	if expr.op == idaapi.cot_idx and expr.y.op == idaapi.cot_num:
-		return get_var(expr.x), expr.y.n._value * expr.x.type.get_size()
+		return get_var(expr.x, actx), expr.y.n._value * expr.x.type.get_size()
 
 	if expr.op == idaapi.cot_ptr:
-		return get_var_offset(expr.x)
+		return get_var_offset(expr.x, actx)
 
 	if expr.op == idaapi.cot_memptr:
-		return get_var(expr.x), expr.m
+		return get_var(expr.x, actx), expr.m
 
 	return None, -1
 
-def get_var_struct_write(expr:idaapi.cexpr_t) -> tuple[Var|None,int]:
+def get_var_struct_write(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,int]:
 	if expr.op != idaapi.cot_memref:
 		return None, -1
 
@@ -88,13 +88,13 @@ def get_var_struct_write(expr:idaapi.cexpr_t) -> tuple[Var|None,int]:
 	while expr.op == idaapi.cot_memref:
 		offset += expr.m
 		expr = expr.x
-	return get_var(expr), offset
+	return get_var(expr, actx), offset
 
 # trying to get various forms of "var + X", where X is int
 # not found is (None, any_int)
 @_strip_casts
-def get_var_offset(expr:idaapi.cexpr_t) -> tuple[Var|None, int]:
-	var = get_var(expr)
+def get_var_offset(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None, int]:
+	var = get_var(expr, actx)
 	if var is not None:
 		return var, 0
 
@@ -105,7 +105,7 @@ def get_var_offset(expr:idaapi.cexpr_t) -> tuple[Var|None, int]:
 			offset = - offset
 
 		op_x = expr.x
-		var = get_var(op_x)
+		var = get_var(op_x, actx)
 
 		if op_x.type.is_ptr():
 			sz = op_x.type.get_pointed_object().get_size()
@@ -171,26 +171,26 @@ def expr2str(expr:idaapi.cexpr_t):
 		return "UNKNOWN"
 	return getter(expr)
 
-def extract_vars(expr:idaapi.cexpr_t):
-	v = get_var(expr)
+def extract_vars(expr:idaapi.cexpr_t, actx:ASTCtx):
+	v = get_var(expr, actx)
 	if v is not None:
 		return {v}
 	vars = set()
 	if expr.x is not None:
-		vars.update(extract_vars(expr.x))
+		vars.update(extract_vars(expr.x, actx))
 	if expr.y is not None:
-		vars.update(extract_vars(expr.y))
+		vars.update(extract_vars(expr.y, actx))
 	if expr.z is not None:
-		vars.update(extract_vars(expr.z))
+		vars.update(extract_vars(expr.z, actx))
 	if expr.op == idaapi.cot_call:
 		for a in expr.a:
-			vars.update(extract_vars(a))
+			vars.update(extract_vars(a, actx))
 	vars_dict = {(v.vartype, v.varid): v for v in vars}
 	vars = set(vars_dict.values())
 	return vars
 
-def get_var_use_chain(expr:idaapi.cexpr_t):
-	var = get_var(expr)
+def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx):
+	var = get_var(expr, actx)
 	if var is not None:
 		return var, []
 
@@ -210,7 +210,7 @@ def get_var_use_chain(expr:idaapi.cexpr_t):
 		print("unknown chain var use expression operand", expr.opname, expr2str(expr))
 		return None, []
 
-	var, use_chain = get_var_use_chain(expr.x)
+	var, use_chain = get_var_use_chain(expr.x, actx)
 	if var is None:
 		return var, use_chain
 
@@ -231,7 +231,7 @@ def get_var_use_chain(expr:idaapi.cexpr_t):
 
 	# this should not happen at all, since expr op is check when use_type gets got
 	else:
-		0/0
+		raise Exception("Wut")
 
 	if expr.op == idaapi.cot_sub: offset = -offset
 

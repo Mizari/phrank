@@ -6,7 +6,9 @@ from phrank.ast_parts import *
 
 
 class ASTAnalysis():
-	def __init__(self):
+	def __init__(self, actx:ASTCtx):
+		self.actx = actx
+
 		self.returns : list[ReturnWrapper] = []
 		self.call_casts : list[CallCast] = []
 

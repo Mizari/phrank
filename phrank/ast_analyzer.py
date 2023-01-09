@@ -9,13 +9,14 @@ from phrank.ast_analysis import *
 class ASTAnalyzer(idaapi.ctree_visitor_t):
 	def __init__(self):
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
-		self.current_ast_analysis: ASTAnalysis = ASTAnalysis()
+		self.current_ast_analysis: ASTAnalysis|None = None
 
 	def analyze_cfunc(self, cfunc: idaapi.cfunc_t) -> ASTAnalysis:
-		self.current_func_ea = cfunc.entry_ea
+		actx = ASTCtx.from_cfunc(cfunc)
+		self.current_ast_analysis = ASTAnalysis(actx)
 		self.apply_to(cfunc.body, None)
 
-		rv, self.current_ast_analysis = self.current_ast_analysis, ASTAnalysis()
+		rv, self.current_ast_analysis = self.current_ast_analysis, None
 		return rv
 
 	def visit_insn(self, insn: idaapi.cinsn_t) -> int:
@@ -41,10 +42,12 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		return False
 
 	def handle_call(self, expr:idaapi.cexpr_t) -> bool:
+		actx = self.current_ast_analysis.actx
+
 		fc = FuncCall(expr)
 		if fc.is_implicit():
-			if len(utils.extract_vars(expr.x)) == 1:
-				fc.implicit_var_use_chain = utils.get_var_use_chain(expr.x)
+			if len(utils.extract_vars(expr.x, actx)) == 1:
+				fc.implicit_var_use_chain = utils.get_var_use_chain(expr.x, actx)
 			else:
 				print("Failed to get var use chain of implicit call for", utils.expr2str(expr.x))
 
@@ -55,13 +58,13 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			if op in [idaapi.cot_num, idaapi.cot_sizeof, idaapi.cot_call]:
 				continue
 
-			var, offset = utils.get_var_offset(arg)
+			var, offset = utils.get_var_offset(arg, actx)
 			if var is not None:
 				cast = CallCast(var, offset, CallCast.VAR_CAST, arg_id, fc)
 				self.current_ast_analysis.call_casts.append(cast)
 				continue
 
-			var, offset = utils.get_var_ptr_write(arg)
+			var, offset = utils.get_var_ptr_write(arg, actx)
 			if var is not None:
 				cast = CallCast(var, offset, CallCast.PTR_CAST, arg_id, fc)
 				self.current_ast_analysis.call_casts.append(cast)
@@ -71,13 +74,15 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		return True
 
 	def handle_assignment(self, expr: idaapi.cexpr_t) -> bool:
+		actx = self.current_ast_analysis.actx
+
 		self.apply_to(expr.y, None)
 
-		if len(utils.extract_vars(expr.x)) > 1:
+		if len(utils.extract_vars(expr.x, actx)) > 1:
 			print("Found multiple variables in write target", utils.expr2str(expr.x))
 			return True
 
-		v, ch = utils.get_var_use_chain(expr.x)
+		v, ch = utils.get_var_use_chain(expr.x, actx)
 		if v is None:
 			print("Failed to calculate write target chain", utils.expr2str(expr.x))
 			return True
@@ -92,7 +97,9 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		return True
 
 	def handle_expr(self, expr:idaapi.cexpr_t) -> bool:
-		var, offset = utils.get_var_read(expr)
+		actx = self.current_ast_analysis.actx
+
+		var, offset = utils.get_var_read(expr, actx)
 		if var is not None:
 			w = VarRead(var, offset)
 			self.current_ast_analysis.lvar_reads.append(w)
