@@ -223,6 +223,9 @@ def get_var_use_chain(expr:idaapi.cexpr_t):
 		if offset is None:
 			print("unknown expression add operand", expr2str(expr.y))
 			return None, []
+		if expr.x.type.is_ptr():
+			pointed = expr.x.type.get_pointed_object()
+			offset *= pointed.get_size()
 
 	# this should not happen at all, since expr op is check when use_type gets got
 	else:
