@@ -194,6 +194,8 @@ def get_var_use_chain(expr:idaapi.cexpr_t):
 	if var is not None:
 		return var, []
 
+	expr = strip_casts(expr)
+
 	op2use_type = {
 		idaapi.cot_ptr: VarUse.VAR_PTR,
 		idaapi.cot_memptr: VarUse.VAR_PTR,
