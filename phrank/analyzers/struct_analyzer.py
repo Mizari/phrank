@@ -213,7 +213,7 @@ class StructAnalyzer(TypeAnalyzer):
 				return utils.UNKNOWN_TYPE
 
 		# single write at offset 0 does not create new type
-		if len(casts) == 0 and len(writes) == 1 and writes[0].offset == 0:
+		if len(casts) == 0 and len(writes) == 1 and writes[0].is_ptr_write() and writes[0].get_ptr_write_offset() == 0:
 			write_type = writes[0].value_type.copy()
 			write_type.create_ptr(write_type)
 			return write_type
@@ -237,7 +237,7 @@ class StructAnalyzer(TypeAnalyzer):
 			# checking that writes do not go outside of casted value
 			cast_end = cast_offset + arg_type.get_size()
 			for w in writes:
-				write_start = w.offset
+				write_start = w.get_ptr_write_offset()
 				write_end = w.value_type.get_size()
 				# write_start, write_end = w[0], w[1].get_size()
 				if write_start < cast_offset or write_end > cast_end:
@@ -250,30 +250,16 @@ class StructAnalyzer(TypeAnalyzer):
 		# TODO check if all writes are to the same offset
 		# TODO check if all writes are actually array writes at various offsets
 
-		write_types = set()
-		for w in writes:
-			write_types.add(w.write_type)
-
-		if len(write_types) > 1:
+		if len(writes) > 0 and any(not w.is_ptr_write() for w in writes):
+			print("non-pointer writes are not suppoerted for now")
 			return utils.UNKNOWN_TYPE
 
 		lvar_struct = Structure.create()
 		self.new_types.add(lvar_struct.strucid)
-
-		# only casts not implemented for now
-		if len(write_types) == 0:
-			lvar_tinfo = lvar_struct.ptr_tinfo
-
-		else:
-			write = write_types.pop()
-			if write == VarWrite.PTR_WRITE:
-				lvar_tinfo = lvar_struct.ptr_tinfo
-
-			else: # struct write
-				lvar_tinfo = lvar_struct.tinfo
+		lvar_tinfo = lvar_struct.ptr_tinfo
 
 		for lvar_write in writes:
-			self.add_member_type(lvar_struct.strucid, lvar_write.offset, lvar_write.value_type)
+			self.add_member_type(lvar_struct.strucid, lvar_write.get_ptr_write_offset(), lvar_write.value_type)
 
 		for cast in casts:
 			arg_type = cast.arg_type

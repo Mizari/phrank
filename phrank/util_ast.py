@@ -188,3 +188,48 @@ def extract_vars(expr:idaapi.cexpr_t):
 	vars_dict = {(v.vartype, v.varid): v for v in vars}
 	vars = set(vars_dict.values())
 	return vars
+
+def get_var_use_chain(expr:idaapi.cexpr_t):
+	var = get_var(expr)
+	if var is not None:
+		return var, []
+
+	op2use_type = {
+		idaapi.cot_ptr: VarUse.VAR_PTR,
+		idaapi.cot_memptr: VarUse.VAR_PTR,
+		idaapi.cot_memref: VarUse.VAR_REF,
+		idaapi.cot_ref: VarUse.VAR_REF,
+		idaapi.cot_idx: VarUse.VAR_PTR,
+		idaapi.cot_add: VarUse.VAR_ADD,
+		idaapi.cot_sub: VarUse.VAR_ADD,
+	}
+	use_type = op2use_type.get(expr.op)
+	if use_type is None:
+		print("unknown chain var use expression operand", expr.opname, expr2str(expr))
+		return None, []
+
+	var, use_chain = get_var_use_chain(expr.x)
+	if var is None:
+		return var, use_chain
+
+	if expr.op in [idaapi.cot_ptr, idaapi.cot_ref]:
+		offset = 0
+
+	elif expr.op in [idaapi.cot_memptr, idaapi.cot_memref]:
+		offset = expr.m
+
+	elif expr.op in [idaapi.cot_idx, idaapi.cot_add, idaapi.cot_sub]:
+		offset = get_int(expr.y)
+		if offset is None:
+			print("unknown expression add operand", expr2str(expr.y))
+			return None, []
+
+	# this should not happen at all, since expr op is check when use_type gets got
+	else:
+		0/0
+
+	if expr.op == idaapi.cot_sub: offset = -offset
+
+	var_use = VarUse(var, offset, use_type)
+	use_chain.append(var_use)
+	return var, use_chain

@@ -67,26 +67,22 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 	def handle_assignment(self, expr: idaapi.cexpr_t) -> bool:
 		self.apply_to(expr.y, None)
 
-		var, offset = utils.get_var_ptr_write(expr.x)
-		if var is not None:
-			w = VarWrite(var, expr.y, offset, VarWrite.PTR_WRITE)
-			self.current_ast_analysis.var_writes.append(w)
+		if len(utils.extract_vars(expr.x)) > 1:
+			print("Found multiple variables in write target", utils.expr2str(expr.x))
 			return True
 
-		var, offset = utils.get_var_struct_write(expr.x)
-		if var is not None:
-			w = VarWrite(var, expr.y, offset, VarWrite.STRUCT_WRITE)
-			self.current_ast_analysis.var_writes.append(w)
+		v, ch = utils.get_var_use_chain(expr.x)
+		if v is None:
+			print("Failed to calculate write target chain", utils.expr2str(expr.x))
 			return True
 
-		var = utils.get_var_assign(expr.x)
-		if var is not None:
-			w = VarAssign(var, expr.y)
+		if len(ch) == 0:
+			w = VarAssign(v, expr.y)
 			self.current_ast_analysis.var_assigns.append(w)
 			return True
-
-		self.current_ast_analysis.unknown_asgs.append(expr.x)
-		self.apply_to(expr.x, None)
+		
+		w = VarWrite(v, expr.y, ch)
+		self.current_ast_analysis.var_writes.append(w)
 		return True
 
 	def handle_expr(self, expr:idaapi.cexpr_t) -> bool:

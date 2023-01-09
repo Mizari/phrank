@@ -22,6 +22,26 @@ class Var:
 		return self.vartype == self.GLOBAL_VAR
 
 
+class VarUse:
+	VAR_ADD = 0
+	VAR_PTR = 1
+	VAR_REF = 2
+
+	def __init__(self, var: Var, offset:int, use_type:int):
+		self.var = var
+		self.offset = offset
+		self.use_type = use_type
+
+	def is_ptr(self):
+		return self.use_type == self.VAR_PTR
+
+	def is_ref(self):
+		return self.use_type == self.VAR_REF
+
+	def is_add(self):
+		return self.use_type == self.VAR_ADD
+
+
 class VarRead():
 	def __init__(self, var:Var, offset:int):
 		self.var = var
@@ -29,16 +49,29 @@ class VarRead():
 
 
 class VarWrite():
-	# write types
-	PTR_WRITE = 0
-	STRUCT_WRITE = 1
-
-	def __init__(self, var:Var, value:idaapi.cexpr_t, offset:int, write_type:int):
+	def __init__(self, var:Var, value:idaapi.cexpr_t, chain):
 		self.var = var
 		self.value = value
 		self.value_type = None
-		self.offset = offset
-		self.write_type = write_type
+		self.chain:list[VarUse] = chain
+
+	def is_ptr_write(self):
+		if len(self.chain) > 0 and self.chain[0].is_ptr():
+			return True
+		if len(self.chain) > 1 and self.chain[0].is_add() and self.chain[1].is_ptr():
+			return True
+		return False
+
+	def get_ptr_write_offset(self):
+		if len(self.chain) == 0:
+			0/0
+		if self.chain[0].is_ptr():
+			return 0
+		if len(self.chain) == 1:
+			0/0
+		if self.chain[0].is_add() and self.chain[1].is_ptr():
+			return self.chain[0].offset
+		0/0
 
 
 class VarAssign():
