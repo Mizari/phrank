@@ -32,9 +32,9 @@ def _strip_casts(func):
 @_strip_casts
 def get_var(expr:idaapi.cexpr_t, actx:ASTCtx) -> Var|None:
 	if expr.op == idaapi.cot_var:
-		return Var(Var.LOCAL_VAR, expr.v.idx)
+		return Var(actx.addr, expr.v.idx)
 	if expr.op == idaapi.cot_obj and not is_func_start(expr.obj_ea):
-		return Var(Var.GLOBAL_VAR, expr.obj_ea)
+		return Var(expr.obj_ea)
 	return None
 
 @_strip_casts
@@ -185,7 +185,7 @@ def extract_vars(expr:idaapi.cexpr_t, actx:ASTCtx):
 	if expr.op == idaapi.cot_call:
 		for a in expr.a:
 			vars.update(extract_vars(a, actx))
-	vars_dict = {(v.vartype, v.varid): v for v in vars}
+	vars_dict = {v.varid: v for v in vars}
 	vars = set(vars_dict.values())
 	return vars
 

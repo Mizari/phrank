@@ -15,24 +15,21 @@ class ASTCtx:
 
 
 class Var:
-	LOCAL_VAR  = 0
-	GLOBAL_VAR = 1
+	def __init__(self, *varid):
+		self.varid = tuple(varid)
+		assert len(self.varid) in [1,2]
 
-	def __init__(self, vartype:int, varid:int):
-		self.vartype = vartype
-		self.varid = varid
-
-	def is_lvar(self, lvar_id):
-		return self.is_local() and self.varid == lvar_id
+	def is_lvar(self, func_ea, lvar_id):
+		return self.is_local() and self.varid == (func_ea, lvar_id)
 
 	def is_gvar(self, gvar_id):
-		return self.is_global() and self.varid == gvar_id
+		return self.is_global() and self.varid == (gvar_id,)
 
 	def is_local(self):
-		return self.vartype == self.LOCAL_VAR
+		return len(self.varid) == 2
 
 	def is_global(self):
-		return self.vartype == self.GLOBAL_VAR
+		return len(self.varid) == 1
 
 
 class VarUse:

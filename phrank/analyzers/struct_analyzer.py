@@ -152,7 +152,7 @@ class StructAnalyzer(TypeAnalyzer):
 		var_uses = VarUses()
 		func_aa = self.get_ast_analysis(func_ea)
 		for wr in func_aa.var_assigns:
-			if wr.var.varid != lvar_id: continue
+			if wr.var.varid != (func_ea, lvar_id): continue
 			atype = self.analyze_cexpr(func_ea, wr.value)
 			if atype is not utils.UNKNOWN_TYPE:
 				var_uses.assigns.append(atype)
@@ -166,7 +166,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def get_lvar_writes(self, func_ea:int, lvar_id:int):
 		func_aa = self.get_ast_analysis(func_ea)
-		for var_write in func_aa.iterate_lvar_writes(lvar_id):
+		for var_write in func_aa.iterate_lvar_writes(func_ea, lvar_id):
 			write_type = self.analyze_cexpr(func_ea, var_write.value)
 			# write exists, just type is unknown. will use simple int instead
 			if write_type is utils.UNKNOWN_TYPE:
@@ -176,7 +176,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def get_lvar_call_arg_casts(self, func_ea:int, lvar_id:int):
 		func_aa = self.get_ast_analysis(func_ea)
-		for call_cast in func_aa.iterate_lvar_call_casts(lvar_id):
+		for call_cast in func_aa.iterate_lvar_call_casts(func_ea, lvar_id):
 			address = call_cast.func_call.address
 			if address == -1:
 				continue
@@ -194,7 +194,7 @@ class StructAnalyzer(TypeAnalyzer):
 		for func_ea in funcs:
 			aa = self.get_ast_analysis(func_ea)
 			for ga in aa.var_assigns:
-				if ga.var.varid == gvar_ea:
+				if ga.var.is_gvar(gvar_ea):
 					assigns.append((func_ea, ga))
 
 		if len(assigns) != 1:
@@ -400,7 +400,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 		propagated_lvars = {}
 		aa = self.get_ast_analysis(func_ea)
-		for call_cast in aa.iterate_lvar_call_casts(lvar_id):
+		for call_cast in aa.iterate_lvar_call_casts(func_ea, lvar_id):
 			func_call = call_cast.func_call
 			if func_call.is_explicit():
 				call_ea = func_call.address
