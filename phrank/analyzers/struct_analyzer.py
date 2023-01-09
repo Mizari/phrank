@@ -383,8 +383,7 @@ class StructAnalyzer(TypeAnalyzer):
 			return -1
 
 		if var.is_local():
-			# TODO
-			var_tif = None
+			var_tif = self.lvar2tinfo.get(var.varid)
 		else:
 			var_tif = self.gvar2tinfo.get(var.varid)
 
