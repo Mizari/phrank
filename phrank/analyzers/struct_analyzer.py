@@ -128,18 +128,16 @@ class StructAnalyzer(TypeAnalyzer):
 			if new_type_tif is not utils.UNKNOWN_TYPE:
 				lvars_to_propagate.append((func_ea, lvar_id))
 
-		for func_ea, lvar_id in lvars_to_propagate:
-			upd = self.propagate_lvar_down(func_ea, lvar_id)
-			self.lvar2tinfo.update(upd)
-
 		gvars_to_propagate = []
 		for obj_ea, new_type_tif in self.gvar2tinfo.items():
 			if new_type_tif is not utils.UNKNOWN_TYPE:
 				gvars_to_propagate.append(obj_ea)
 
+		for func_ea, lvar_id in lvars_to_propagate:
+			self.propagate_lvar_down(func_ea, lvar_id)
+
 		for obj_ea in gvars_to_propagate:
-			upd = self.propagate_gvar_down(obj_ea)
-			self.lvar2tinfo.update(upd)
+			self.propagate_gvar_down(obj_ea)
 
 		super().apply_analysis()
 		self.vtable_analyzer.apply_analysis()
@@ -397,7 +395,6 @@ class StructAnalyzer(TypeAnalyzer):
 		if not self.is_ok_propagation_type(lvar_type):
 			return {}
 
-		propagated_lvars = {}
 		aa = self.get_ast_analysis(func_ea)
 		for call_cast in aa.iterate_lvar_call_casts(func_ea, lvar_id):
 			func_call = call_cast.func_call
@@ -421,25 +418,20 @@ class StructAnalyzer(TypeAnalyzer):
 
 			arg_id = call_cast.arg_id
 			current_type = self.lvar2tinfo.get((call_ea, arg_id))
-			if current_type is None:
-				current_type = propagated_lvars.get((call_ea, arg_id))
 
 			if current_type == lvar_type:
 				continue
 
 			if current_type is None or current_type is utils.UNKNOWN_TYPE:
-				propagated_lvars[(call_ea, arg_id)] = lvar_type
-				upd = self.propagate_lvar_down(call_ea, arg_id)
-				propagated_lvars.update(upd)
+				self.lvar2tinfo[(call_ea, arg_id)] = lvar_type
+				self.propagate_lvar_down(call_ea, arg_id)
 				continue
-		return propagated_lvars
 
 	def propagate_gvar_down(self, gvar_ea:int):
 		gvar_type = self.gvar2tinfo.get(gvar_ea)
 		if not self.is_ok_propagation_type(gvar_type):
 			return {}
 
-		propagated_lvars = {}
 		funcs = set(utils.get_func_calls_to(gvar_ea))
 		for func_ea in funcs:
 			aa = self.get_ast_analysis(func_ea)
@@ -465,16 +457,13 @@ class StructAnalyzer(TypeAnalyzer):
 
 				arg_id = call_cast.arg_id
 				current_type = self.lvar2tinfo.get((call_ea, arg_id))
-				if current_type is None:
-					current_type = propagated_lvars.get((call_ea, arg_id))
 
 				if current_type == gvar_type:
 					continue
 
 				if current_type is None or current_type is utils.UNKNOWN_TYPE:
-					propagated_lvars[(call_ea, arg_id)] = gvar_type
-					upd = self.propagate_lvar_down(call_ea, arg_id)
-					propagated_lvars.update(upd)
+					self.lvar2tinfo[(call_ea, arg_id)] = gvar_type
+					self.propagate_lvar_down(call_ea, arg_id)
 					continue 
 
 				print(
@@ -485,4 +474,3 @@ class StructAnalyzer(TypeAnalyzer):
 					"from gvar type", str(gvar_type),
 					"\n",
 				)
-		return propagated_lvars
