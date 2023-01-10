@@ -35,6 +35,12 @@ class Var:
 	def is_global(self):
 		return isinstance(self.varid, int)
 
+	def __str__(self) -> str:
+		if self.is_local():
+			return "Lvar(" + idaapi.get_name(self.varid[0]) + "," + str(self.varid[1]) + ")"
+		else:
+			return idaapi.get_name(self.varid)
+
 
 class VarUse:
 	VAR_ADD = 0
@@ -54,6 +60,14 @@ class VarUse:
 
 	def is_add(self):
 		return self.use_type == self.VAR_ADD
+
+	def __str__(self) -> str:
+		use_type_str = {
+			self.VAR_ADD: "ADD",
+			self.VAR_PTR: "PTR",
+			self.VAR_REF: "REF",
+		}.get(self.use_type)
+		return "VarUse(" + str(self.var) + "," + use_type_str + "," + str(self.offset) + ")"
 
 
 class VarRead():
