@@ -16,20 +16,24 @@ class ASTCtx:
 
 class Var:
 	def __init__(self, *varid):
-		self.varid = tuple(varid)
-		assert len(self.varid) in [1,2]
+		if len(varid) == 1:  # global
+			self.varid = varid[0]
+		elif len(varid) == 2:
+			self.varid = tuple(varid)
+		else:
+			raise ValueError("Invalid length of variable identifier")
 
 	def is_lvar(self, func_ea, lvar_id):
 		return self.is_local() and self.varid == (func_ea, lvar_id)
 
 	def is_gvar(self, gvar_id):
-		return self.is_global() and self.varid == (gvar_id,)
+		return self.is_global() and self.varid == gvar_id
 
 	def is_local(self):
-		return len(self.varid) == 2
+		return isinstance(self.varid, tuple)
 
 	def is_global(self):
-		return len(self.varid) == 1
+		return isinstance(self.varid, int)
 
 
 class VarUse:
