@@ -78,3 +78,9 @@ def make_shifted_ptr(outer:idaapi.tinfo_t, inner:idaapi.tinfo_t, offset:int) -> 
 	pi.obj_type = inner
 	shifted_tif.create_ptr(pi)
 	return shifted_tif
+
+def get_tif_member_name(tif, offset):
+	udt_member = idaapi.udt_member_t()
+	udt_member.offset = offset
+	tif.find_udt_member(udt_member, idaapi.STRMEM_OFFSET)
+	return udt_member.name

@@ -4,6 +4,7 @@ import idaapi
 
 from phrank.ast_parts import *
 from phrank.util_func import is_func_start
+from phrank.util_tif import get_tif_member_name
 
 ARRAY_FUNCS = {"qmemcpy", "memcpy", "strncpy", "memset", "memmove", "strncat", "strncmp"}
 ARRAY_FUNCS.update(['_' + s for s in ARRAY_FUNCS])
@@ -136,8 +137,8 @@ def expr2str(expr:idaapi.cexpr_t):
 		idaapi.cot_var: lambda e: "LVAR(" + str(e.v.idx) + ")",
 		idaapi.cot_ptr: lambda e: "*(" + expr2str(e.x) + ")",
 		idaapi.cot_idx: lambda e: expr2str(e.x) + "[" + expr2str(e.y) + "]",
-		idaapi.cot_memref: lambda e: "MEMREF(" + expr2str(e.x) + "," + str(e.m) + ")",
-		idaapi.cot_memptr: lambda e: "MEMPTR(" + expr2str(e.x) + "," + str(e.m) + ")",
+		idaapi.cot_memref: lambda e: expr2str(e.x) + "." + get_tif_member_name(e.x.type, e.m),
+		idaapi.cot_memptr: lambda e: expr2str(e.x) + "->" + get_tif_member_name(e.x.type.get_pointed_object(), e.m),
 		idaapi.cot_num: lambda e: str(e.n._value),
 		idaapi.cot_cast: lambda e: "(" + str(e.type) + ")(" + expr2str(e.x) + ")",
 		idaapi.cot_add: lambda e: expr2str(e.x) + "+" + expr2str(e.y),
