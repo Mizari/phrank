@@ -154,6 +154,7 @@ def expr2str(expr:idaapi.cexpr_t):
 		idaapi.cot_tern: lambda e: expr2str(e.x) + ":" + expr2str(e.y) + "?" + expr2str(e.z),
 		idaapi.cot_ne: lambda e: expr2str(e.x) + "!=" + expr2str(e.y),
 		idaapi.cot_band: lambda e: expr2str(e.x) + "&" + expr2str(e.y),
+		idaapi.cot_asg: lambda e: expr2str(e.x) + "=" + expr2str(e.y),
 	}
 	if expr.op == idaapi.cot_call:
 		c = expr.x
