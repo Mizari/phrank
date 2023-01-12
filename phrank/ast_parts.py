@@ -94,7 +94,7 @@ class VarWrite():
 		if len(self.chain) == 0:
 			0/0
 		if self.chain[0].is_ptr():
-			return 0
+			return self.chain[0].offset
 		if len(self.chain) == 1:
 			0/0
 		if self.chain[0].is_add() and self.chain[1].is_ptr():
