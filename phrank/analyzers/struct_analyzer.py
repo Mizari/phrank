@@ -413,6 +413,9 @@ class StructAnalyzer(TypeAnalyzer):
 				# helpers do not propagate types
 				continue
 
+			if utils.is_func_import(call_ea):
+				continue
+
 			if call_cast.offset != 0 or call_cast.cast_type != call_cast.VAR_CAST:
 				continue
 
@@ -450,6 +453,9 @@ class StructAnalyzer(TypeAnalyzer):
 						continue
 				else:
 					# helpers do not propagate types
+					continue
+
+				if utils.is_func_import(call_ea):
 					continue
 
 				if call_cast.offset != 0 or call_cast.cast_type != call_cast.VAR_CAST:
