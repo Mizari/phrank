@@ -433,8 +433,14 @@ class StructAnalyzer(TypeAnalyzer):
 				continue
 
 			if current_type is None or current_type is utils.UNKNOWN_TYPE:
+				lvar_uses = self.get_lvar_uses(call_ea, arg_id)
+				func_aa = self.get_ast_analysis(arg_id)
+				if len([a for a in func_aa.iterate_lvar_assigns(call_ea, arg_id)]) != 0:
+					continue
+
 				self.lvar2tinfo[(call_ea, arg_id)] = lvar_type
 				self.propagate_lvar_down(call_ea, arg_id)
+				self.add_type_uses(lvar_uses, lvar_type)
 				continue
 
 	def propagate_gvar_down(self, gvar_ea:int):
@@ -475,8 +481,14 @@ class StructAnalyzer(TypeAnalyzer):
 					continue
 
 				if current_type is None or current_type is utils.UNKNOWN_TYPE:
+					lvar_uses = self.get_lvar_uses(call_ea, arg_id)
+					func_aa = self.get_ast_analysis(arg_id)
+					if len([a for a in func_aa.iterate_lvar_assigns(call_ea, arg_id)]) != 0:
+						continue
+
 					self.lvar2tinfo[(call_ea, arg_id)] = gvar_type
 					self.propagate_lvar_down(call_ea, arg_id)
+					self.add_type_uses(lvar_uses, gvar_type)
 					continue 
 
 				print(
