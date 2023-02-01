@@ -48,6 +48,30 @@ def get_single_block_func_instructions(func_ea:int) -> list[int]:
 			rv.append(h)
 	return rv
 
+def get_trampoline_func_target(func_ea:int) -> int:
+	instrs = get_single_block_func_instructions(func_ea)
+	if len(instrs) != 1:
+		return -1
+
+	insn = idaapi.insn_t()
+	idaapi.decode_insn(insn, instrs[0])
+	if insn.itype in (idaapi.NN_jmp, idaapi.NN_jmpni):
+		val = insn.ops[0].value
+		if val not in (0, idaapi.BADADDR):
+			return val
+
+	if idaapi.is_indirect_jump_insn(insn):
+		dis_str = idc.GetDisasm(instrs[0])
+		dis_words = dis_str.split()
+		if len(dis_words) == 2 and dis_words[0] == "jmp":
+			target = dis_words[1]
+			if target.startswith("ds:"): target = target[3:]
+			val = idc.get_name_ea_simple(target)
+			if val not in (0, idaapi.BADADDR):
+				return val
+
+	return -1
+
 def is_func_import(func_ea:int) -> bool:
 	for segea in idautils.Segments():
 		if idc.get_segm_name(segea) != ".idata":
@@ -56,6 +80,10 @@ def is_func_import(func_ea:int) -> bool:
 		segstart, segend = idc.get_segm_start(segea), idc.get_segm_end(segea)
 		if func_ea >= segstart and func_ea < segend:
 			return True
+
+	tramp_target = get_trampoline_func_target(func_ea)
+	if tramp_target != -1:
+		return is_func_import(tramp_target)
 
 	return False
 
