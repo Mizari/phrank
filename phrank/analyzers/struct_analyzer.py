@@ -149,11 +149,11 @@ class StructAnalyzer(TypeAnalyzer):
 	def get_lvar_uses(self, func_ea:int, lvar_id:int):
 		var_uses = VarUses()
 		func_aa = self.get_ast_analysis(func_ea)
-		for wr in func_aa.var_assigns:
-			if wr.var.varid != (func_ea, lvar_id): continue
-			atype = self.analyze_cexpr(func_ea, wr.value)
-			if atype is not utils.UNKNOWN_TYPE:
-				var_uses.assigns.append(atype)
+		for a in func_aa.var_assigns:
+			if a.var.varid != (func_ea, lvar_id): continue
+			if a.value_type is None:
+				a.value_type = self.analyze_cexpr(func_ea, a.value)
+			var_uses.assigns.append(a)
 
 		for w in self.get_lvar_writes(func_ea, lvar_id):
 			var_uses.writes.append(w)
@@ -261,14 +261,21 @@ class StructAnalyzer(TypeAnalyzer):
 
 		# signle assign can only be one type
 		if len(assigns) == 1:
-			return assigns[0]
+			return assigns[0].value_type
 
 		# try to resolve multiple assigns
 		if len(assigns) > 1:
 			# prefer types over non-types
-			strucid_assigns = [a for a in assigns if utils.tif2strucid(a) != idaapi.BADADDR]
-			if len(strucid_assigns) == 1:
-				return strucid_assigns[0]
+			strucid_assign_types = []
+			for a in assigns:
+				if a.value_type in (None, utils.UNKNOWN_TYPE):
+					continue
+				strucid = utils.tif2strucid(a.value_type)
+				if strucid != idaapi.BADADDR:
+					strucid_assign_types.append(a.value_type)
+
+			if len(strucid_assign_types) == 1:
+				return strucid_assign_types[0]
 			# multiple different assignments is unknown
 			else:
 				return utils.UNKNOWN_TYPE

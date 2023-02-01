@@ -106,6 +106,7 @@ class VarAssign():
 	def __init__(self, var:Var, value:idaapi.cexpr_t):
 		self.var = var
 		self.value = value
+		self.value_type = None
 
 
 class FuncCall:
