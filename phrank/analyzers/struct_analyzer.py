@@ -75,6 +75,10 @@ class StructAnalyzer(TypeAnalyzer):
 			self.add_member_type(var_struct.strucid, lvar_write.get_ptr_write_offset(), lvar_write.value_type)
 
 		for cast in casts:
+			# FIXME kostyl
+			if cast.cast_type == cast.VAR_CAST and cast.offset == 0:
+				continue
+
 			arg_type = cast.arg_type
 			# cast exists, just type is unknown. will use simple int instead
 			if arg_type is utils.UNKNOWN_TYPE:
