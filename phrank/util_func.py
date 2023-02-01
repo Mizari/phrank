@@ -35,6 +35,19 @@ def got_path(fea:int, funcs) -> bool:
 	calls_from_to.update(get_func_calls_from(fea))
 	return len(_funcs & calls_from_to) != 0
 
+def get_single_block_func_instructions(func_ea:int) -> list[int]:
+	block_count = 0
+	for b in idautils.Chunks(func_ea):
+		block_count += 1
+	if block_count > 1:
+		return []
+
+	rv = []
+	for b in idautils.Chunks(func_ea):
+		for h in idautils.Heads(b[0], b[1]):
+			rv.append(h)
+	return rv
+
 def is_func_import(func_ea:int) -> bool:
 	for segea in idautils.Segments():
 		if idc.get_segm_name(segea) != ".idata":
@@ -52,14 +65,7 @@ def iterate_all_functions():
 			yield funcea
 
 def is_movrax_ret(func_ea:int) -> bool:
-	# count blocks
-	blocks = [b for b in idautils.Chunks(func_ea)]
-	if len(blocks) > 1:
-		return False
-	block = blocks[0]
-
-	# count instructions
-	instrs = [h for h in idautils.Heads(block[0], block[1])]
+	instrs = get_single_block_func_instructions(func_ea)
 	if len(instrs) != 2:
 		return False
 
