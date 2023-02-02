@@ -80,11 +80,13 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 
 		if len(utils.extract_vars(expr.x, actx)) > 1:
 			print("Found multiple variables in write target", utils.expr2str(expr.x))
+			self.current_ast_analysis.unknown_asgs.append(expr.x)
 			return True
 
 		v, ch = utils.get_var_use_chain(expr.x, actx)
 		if v is None:
 			print("Failed to calculate write target chain", utils.expr2str(expr.x))
+			self.current_ast_analysis.unknown_asgs.append(expr.x)
 			return True
 
 		if len(ch) == 0:
