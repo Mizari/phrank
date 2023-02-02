@@ -163,7 +163,6 @@ class StructAnalyzer(TypeAnalyzer):
 			var_uses.writes.append(w)
 		for c in self.get_lvar_call_arg_casts(func_ea, lvar_id):
 			var_uses.casts.append(c)
-		var_uses.casts = [c for c in self.get_lvar_call_arg_casts(func_ea, lvar_id)]
 		return var_uses
 
 	def get_lvar_writes(self, func_ea:int, lvar_id:int):
