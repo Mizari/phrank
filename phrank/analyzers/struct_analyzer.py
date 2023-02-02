@@ -401,13 +401,8 @@ class StructAnalyzer(TypeAnalyzer):
 
 		return calculate_type_implicit_call_address(var_tif, use_chain)
 
-	def propagate_lvar_down(self, func_ea:int, lvar_id:int):
-		lvar_type = self.lvar2tinfo.get((func_ea, lvar_id))
-		if not self.is_ok_propagation_type(lvar_type):
-			return {}
-
-		aa = self.get_ast_analysis(func_ea)
-		for call_cast in aa.iterate_lvar_call_casts(func_ea, lvar_id):
+	def propagate_var_type_in_casts(self, var_type:idaapi.tinfo_t, casts:list[CallCast]):
+		for call_cast in casts:
 			func_call = call_cast.func_call
 			if func_call.is_explicit():
 				call_ea = func_call.address
@@ -433,7 +428,7 @@ class StructAnalyzer(TypeAnalyzer):
 			arg_id = call_cast.arg_id
 			current_type = self.lvar2tinfo.get((call_ea, arg_id))
 
-			if current_type == lvar_type:
+			if current_type == var_type:
 				continue
 
 			if current_type is None or current_type is utils.UNKNOWN_TYPE:
@@ -442,10 +437,25 @@ class StructAnalyzer(TypeAnalyzer):
 				if len([a for a in func_aa.iterate_lvar_assigns(call_ea, arg_id)]) != 0:
 					continue
 
-				self.lvar2tinfo[(call_ea, arg_id)] = lvar_type
+				self.lvar2tinfo[(call_ea, arg_id)] = var_type
 				self.propagate_lvar_down(call_ea, arg_id)
-				self.add_type_uses(lvar_uses, lvar_type)
+				self.add_type_uses(lvar_uses, var_type)
 				continue
+
+			print(
+				"Error in var propagation of", str(var_type),
+				"to", idaapi.get_name(call_ea),
+				"-- arg", arg_id, "has different type", current_type,
+			)
+
+	def propagate_lvar_down(self, func_ea:int, lvar_id:int):
+		lvar_type = self.lvar2tinfo.get((func_ea, lvar_id))
+		if not self.is_ok_propagation_type(lvar_type):
+			return {}
+
+		aa = self.get_ast_analysis(func_ea)
+		casts = [c for c in aa.iterate_lvar_call_casts(func_ea, lvar_id)]
+		self.propagate_var_type_in_casts(lvar_type, casts)
 
 	def propagate_gvar_down(self, gvar_ea:int):
 		gvar_type = self.gvar2tinfo.get(gvar_ea)
@@ -453,53 +463,9 @@ class StructAnalyzer(TypeAnalyzer):
 			return {}
 
 		funcs = set(utils.get_func_calls_to(gvar_ea))
+		casts = []
 		for func_ea in funcs:
 			aa = self.get_ast_analysis(func_ea)
 			for call_cast in aa.iterate_gvar_call_casts(gvar_ea):
-				func_call = call_cast.func_call
-				if func_call.is_explicit():
-					call_ea = func_call.address
-				elif func_call.is_implicit():
-					if func_call.implicit_var_use_chain is not None:
-						v, ch = func_call.implicit_var_use_chain
-						call_ea = self.calculate_var_implicit_call_address(v, ch)
-					else:
-						call_ea = -1
-
-					if call_ea == -1:
-						continue
-				else:
-					# helpers do not propagate types
-					continue
-
-				if utils.is_func_import(call_ea):
-					continue
-
-				if call_cast.offset != 0 or call_cast.cast_type != call_cast.VAR_CAST:
-					continue
-
-				arg_id = call_cast.arg_id
-				current_type = self.lvar2tinfo.get((call_ea, arg_id))
-
-				if current_type == gvar_type:
-					continue
-
-				if current_type is None or current_type is utils.UNKNOWN_TYPE:
-					lvar_uses = self.get_lvar_uses(call_ea, arg_id)
-					func_aa = self.get_ast_analysis(arg_id)
-					if len([a for a in func_aa.iterate_lvar_assigns(call_ea, arg_id)]) != 0:
-						continue
-
-					self.lvar2tinfo[(call_ea, arg_id)] = gvar_type
-					self.propagate_lvar_down(call_ea, arg_id)
-					self.add_type_uses(lvar_uses, gvar_type)
-					continue 
-
-				print(
-					"Error in gvar propagation of", hex(gvar_ea),
-					"in", idaapi.get_name(func_ea),
-					"to", idaapi.get_name(call_ea),
-					"-- arg", arg_id, "has different type", current_type,
-					"from gvar type", str(gvar_type),
-					"\n",
-				)
+				casts.append(call_cast)
+		self.propagate_var_type_in_casts(gvar_type, casts)
