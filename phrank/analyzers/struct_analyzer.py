@@ -64,17 +64,17 @@ class StructAnalyzer(TypeAnalyzer):
 		self.vtable_analyzer = VtableAnalyzer(func_factory)
 
 	def add_type_uses(self, var_uses:VarUses, var_type:idaapi.tinfo_t):
-		assigns = var_uses.assigns
-		casts = var_uses.casts
-		writes = var_uses.writes
-
 		strucid = utils.tif2strucid(var_type)
 		var_struct = Structure(strucid)
 
-		for lvar_write in writes:
+		for lvar_write in var_uses.writes:
 			self.add_member_type(var_struct.strucid, lvar_write.get_ptr_write_offset(), lvar_write.value_type)
 
-		for cast in casts:
+		for lvar_read in var_uses.reads:
+			if not var_struct.member_exists(lvar_read.offset):
+				var_struct.add_member(lvar_read.offset)
+
+		for cast in var_uses.casts:
 			# FIXME kostyl
 			if cast.cast_type == cast.VAR_CAST and cast.offset == 0:
 				continue
