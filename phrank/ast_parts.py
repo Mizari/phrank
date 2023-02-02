@@ -77,11 +77,11 @@ class VarRead():
 
 
 class VarWrite():
-	def __init__(self, var:Var, value:idaapi.cexpr_t, chain):
+	def __init__(self, var:Var, value:idaapi.cexpr_t, chain:list[VarUse]):
 		self.var = var
 		self.value = value
 		self.value_type = None
-		self.chain:list[VarUse] = chain
+		self.chain = chain
 
 	def is_ptr_write(self):
 		if len(self.chain) > 0 and self.chain[0].is_ptr():
@@ -134,16 +134,24 @@ class FuncCall:
 
 
 class CallCast():
-	VAR_CAST = 0  #  v ; v + N
-	REF_CAST = 1  # &v ; &v.f ; &(v + N)
-	PTR_CAST = 2  # *v ; v->f ; *(v + N)
-	def __init__(self, var:Var, offset:int, cast_type:int, arg_id:int, func_call:FuncCall):
+	def __init__(self, var:Var, chain:list[VarUse], arg_id:int, func_call:FuncCall):
 		self.var = var
-		self.offset = offset
-		self.cast_type = cast_type
+		self.chain:list[VarUse] = chain
 		self.func_call = func_call
 		self.arg_id = arg_id
 		self.arg_type = None
+
+	def is_var_arg(self):
+		return len(self.chain) == 0
+
+	def get_ptr_chain_offset(self):
+		if len(self.chain) == 0:
+			return 0
+		if len(self.chain) == 1 and self.chain[0].is_ptr():
+			return self.chain[0].offset
+		if len(self.chain) == 2 and self.chain[0].is_add() and self.chain[1].is_ptr():
+			return self.chain[0].offset
+		return None
 
 
 class ReturnWrapper:

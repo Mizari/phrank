@@ -54,23 +54,22 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		for arg_id, arg in enumerate(expr.a):
 			self.apply_to_exprs(arg, None)
 			arg = utils.strip_casts(arg)
-			op = arg.op
-			if op in [idaapi.cot_num, idaapi.cot_sizeof, idaapi.cot_call]:
+			if arg.op in [idaapi.cot_num, idaapi.cot_sizeof, idaapi.cot_call]:
 				continue
 
-			var, offset = utils.get_var_offset(arg, actx)
-			if var is not None:
-				cast = CallCast(var, offset, CallCast.VAR_CAST, arg_id, fc)
-				self.current_ast_analysis.call_casts.append(cast)
+			if len(utils.extract_vars(arg, actx)) > 1:
+				print("Found multiple variables in call argument", utils.expr2str(arg))
+				self.current_ast_analysis.unknown_casts.append(arg)
 				continue
 
-			var, offset = utils.get_var_ptr_write(arg, actx)
-			if var is not None:
-				cast = CallCast(var, offset, CallCast.PTR_CAST, arg_id, fc)
-				self.current_ast_analysis.call_casts.append(cast)
+			v, ch = utils.get_var_use_chain(arg, actx)
+			if v is None:
+				print("Failed to calculate call arguement chain", utils.expr2str(arg))
+				self.current_ast_analysis.unknown_casts.append(arg)
 				continue
 
-			self.current_ast_analysis.unknown_casts.append(arg)
+			cast = CallCast(v, ch, arg_id, fc)
+			self.current_ast_analysis.call_casts.append(cast)
 		return True
 
 	def handle_assignment(self, expr: idaapi.cexpr_t) -> bool:

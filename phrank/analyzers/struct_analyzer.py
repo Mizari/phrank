@@ -76,7 +76,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 		for cast in var_uses.casts:
 			# FIXME kostyl
-			if cast.cast_type == cast.VAR_CAST and cast.offset == 0:
+			if cast.is_var_arg():
 				continue
 
 			arg_type = cast.arg_type
@@ -87,7 +87,9 @@ class StructAnalyzer(TypeAnalyzer):
 			if arg_type.is_ptr():
 				arg_type = arg_type.get_pointed_object()
 
-			self.add_member_type(var_struct.strucid, cast.offset, arg_type)
+			offset = cast.get_ptr_chain_offset()
+			if offset is not None:
+				self.add_member_type(var_struct.strucid, offset, arg_type)
 
 	def add_member_type(self, strucid:int, offset:int, member_type:idaapi.tinfo_t):
 		# do not modificate existing types
@@ -290,8 +292,8 @@ class StructAnalyzer(TypeAnalyzer):
 			return write_type
 
 		# single cast at offset 0 might be existing type
-		if len(casts) == 1 and casts[0].offset == 0:
-			cast_offset, arg_type = casts[0].offset, casts[0].arg_type
+		if len(casts) == 1 and casts[0].is_var_arg():
+			arg_type = casts[0].arg_type
 
 			# casting to something unknown yield unknown
 			if arg_type is utils.UNKNOWN_TYPE:
@@ -306,12 +308,12 @@ class StructAnalyzer(TypeAnalyzer):
 				arg_type = arg_type.get_pointed_object()
 
 			# checking that writes do not go outside of casted value
-			cast_end = cast_offset + arg_type.get_size()
+			cast_end = arg_type.get_size()
 			for w in writes:
 				write_start = w.get_ptr_write_offset()
 				write_end = w.value_type.get_size()
 				# write_start, write_end = w[0], w[1].get_size()
-				if write_start < cast_offset or write_end > cast_end:
+				if write_start < 0 or write_end > cast_end:
 					return utils.UNKNOWN_TYPE
 
 			arg_type.create_ptr(arg_type)
@@ -421,7 +423,7 @@ class StructAnalyzer(TypeAnalyzer):
 			if utils.is_func_import(call_ea):
 				continue
 
-			if call_cast.offset != 0 or call_cast.cast_type != call_cast.VAR_CAST:
+			if not call_cast.is_var_arg():
 				continue
 
 			arg_id = call_cast.arg_id
