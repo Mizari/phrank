@@ -319,6 +319,10 @@ class StructAnalyzer(TypeAnalyzer):
 			arg_type.create_ptr(arg_type)
 			return arg_type
 
+		for i, c in enumerate(casts):
+			if c.get_ptr_chain_offset() is None:
+				return utils.UNKNOWN_TYPE
+
 		# TODO writes into array of one type casts, that start at offset 0
 		# TODO check if all writes are to the same offset
 		# TODO check if all writes are actually array writes at various offsets
