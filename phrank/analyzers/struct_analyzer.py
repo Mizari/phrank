@@ -364,15 +364,35 @@ class StructAnalyzer(TypeAnalyzer):
 			return rv
 
 		aa = self.get_ast_analysis(func_ea)
-		lvs = aa.get_returned_lvars()
-		if len(lvs) == 1:
-			retval_lvar_id = lvs.pop()
-			retval = self.analyze_lvar(func_ea, retval_lvar_id)
-		else:
-			retval = utils.UNKNOWN_TYPE
+		r_types = []
+		for r in aa.returns:
+			r_type = self.analyze_cexpr(func_ea, r.retval)
+			r_types.append(r_type)
 
-		self.retval2tinfo[func_ea] = retval
-		return retval
+		if len(r_types) == 1:
+			retval_type = r_types[0]
+		elif len(r_types) == 0:
+			print(
+				"WARNING: trying to get retval of functions without returns",
+				"in", hex(func_ea), idaapi.get_name(func_ea)
+			)
+			# 0/0
+			retval_type = utils.UNKNOWN_TYPE
+		else:
+			rv0 = r_types[0]
+			for i in range(1, len(r_types)):
+				if r_types[i] != rv0:
+					print(
+						"WARNING: multiple retval types are not supported",
+						hex(func_ea), idaapi.get_name(func_ea)
+					)
+					retval_type = utils.UNKNOWN_TYPE
+					break
+			else:
+				retval_type = rv0
+
+		self.retval2tinfo[func_ea] = retval_type
+		return retval_type
 
 	def analyze_function(self, func_ea:int):
 		if func_ea in self.analyzed_functions:

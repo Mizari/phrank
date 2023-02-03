@@ -153,5 +153,5 @@ class CallCast():
 
 
 class ReturnWrapper:
-	def __init__(self, insn) -> None:
-		self.insn = insn
+	def __init__(self, retval) -> None:
+		self.retval = retval

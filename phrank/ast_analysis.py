@@ -19,18 +19,6 @@ class ASTAnalysis():
 		self.unknown_casts = []
 		self.unknown_asgs = []
 
-	def get_returned_lvars(self) -> set[int]:
-		returned_lvars = set()
-		for r in self.returns:
-			ri = r.insn.creturn.expr
-			if ri.op == idaapi.cot_cast: ri = ri.x
-			if ri.op != idaapi.cot_var: continue
-			returned_lvars.add(ri.v.idx)
-		return returned_lvars
-
-	def returns_lvar(self, lvar_id: int) -> bool:
-		return self.get_returned_lvars() == {lvar_id}
-
 	def iterate_lvar_assigns(self, func_ea:int, lvar_id:int):
 		for a in self.var_assigns:
 			if not a.var.is_lvar(func_ea, lvar_id): continue

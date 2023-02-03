@@ -38,7 +38,8 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		return 0
 
 	def handle_return(self, insn:idaapi.cinsn_t) -> bool:
-		self.current_ast_analysis.returns.append(ReturnWrapper(insn))
+		rv = insn.creturn.expr
+		self.current_ast_analysis.returns.append(ReturnWrapper(rv))
 		return False
 
 	def handle_call(self, expr:idaapi.cexpr_t) -> bool:
