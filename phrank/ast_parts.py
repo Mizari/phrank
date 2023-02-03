@@ -147,9 +147,7 @@ class CallCast():
 	def get_ptr_chain_offset(self):
 		if len(self.chain) == 0:
 			return 0
-		if len(self.chain) == 1 and self.chain[0].is_ptr():
-			return self.chain[0].offset
-		if len(self.chain) == 2 and self.chain[0].is_add() and self.chain[1].is_ptr():
+		if len(self.chain) == 1 and self.chain[0].is_add():
 			return self.chain[0].offset
 		return None
 
