@@ -73,13 +73,8 @@ def get_trampoline_func_target(func_ea:int) -> int:
 	return -1
 
 def is_func_import(func_ea:int) -> bool:
-	for segea in idautils.Segments():
-		if idc.get_segm_name(segea) != ".idata":
-			continue
-
-		segstart, segend = idc.get_segm_start(segea), idc.get_segm_end(segea)
-		if func_ea >= segstart and func_ea < segend:
-			return True
+	if idc.get_segm_name(func_ea) in (".idata", ".plt"):
+		return True
 
 	tramp_target = get_trampoline_func_target(func_ea)
 	if tramp_target != -1:

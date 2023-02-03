@@ -342,6 +342,9 @@ class StructAnalyzer(TypeAnalyzer):
 			return current_lvar_tinfo
 
 		lvar_tinfo = self.get_var_type(func_ea, lvar_id)
+		if utils.is_func_import(func_ea):
+			return lvar_tinfo
+
 		if lvar_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(lvar_tinfo) != idaapi.BADADDR:
 			# TODO check correctness of writes, read, casts
 			return lvar_tinfo

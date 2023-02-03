@@ -49,14 +49,26 @@ class FunctionManager:
 			return None
 		return func_details
 
-	def get_var_type(self, func_ea:int, var_id:int):
+	def get_var_type(self, func_ea:int, var_id:int) -> idaapi.tinfo_t:
+		func_tif = self.get_tinfo(func_ea)
+		if func_tif is not None and var_id > func_tif.get_nargs():
+			return func_tif.get_nth_arg(var_id)
+
+		arg_type = self.get_arg_type(func_ea, var_id)
+		if arg_type is not utils.UNKNOWN_TYPE:
+			return arg_type
+
 		cfunc = self.get_cfunc(func_ea)
 		if cfunc is None:
 			print("Failed to get variable type, because of decompilation failure in", get_funcname(func_ea))
 			return utils.UNKNOWN_TYPE
 
+		if len(cfunc.lvars) <= var_id:
+			print("ERROR:", "var id is too big.")
+			return utils.UNKNOWN_TYPE
+
 		var = cfunc.lvars[var_id]
-		return var.type()
+		return var.type().copy()
 
 	def set_var_type(self, func_ea:int, var_id:int, var_type:idaapi.tinfo_t):
 		cfunc = self.get_cfunc(func_ea)
@@ -83,14 +95,16 @@ class FunctionManager:
 			return None
 		return cfunc.lvars[lvar_id]
 
-	def get_arg_type(self, func_ea:int, arg_id:int):
+	def get_arg_type(self, func_ea:int, arg_id:int) -> idaapi.tinfo_t:
 		# XXX do not refactor this into one liner, 
 		# XXX because ida will lose arg type somewhere along the way
 		fdet = self.get_func_details(func_ea)
 		if fdet is None:
 			print("Failed to get func details in", get_funcname(func_ea))
-			return
+			return utils.UNKNOWN_TYPE
 
+		if len(fdet) <= arg_id:
+			return utils.UNKNOWN_TYPE
 		return fdet[arg_id].type.copy()
 
 	def set_arg_type(self, func_ea:int, arg_id:int, arg_type:idaapi.tinfo_t):
@@ -115,15 +129,14 @@ class FunctionManager:
 
 	def get_tinfo(self, func_ea:int) -> idaapi.tinfo_t|None:
 		tif = idaapi.tinfo_t()
+		if idaapi.get_tinfo(tif, func_ea) and tif.is_correct():
+			return tif
 
 		cfunc = self.get_cfunc(func_ea)
 		if cfunc is not None:
 			cfunc.get_func_type(tif)
 			if tif.is_correct():
 				return tif
-
-		if idaapi.get_tinfo(tif, func_ea) and tif.is_correct():
-			return tif
 
 		if utils.is_movrax_ret(func_ea):
 			rv = utils.str2tif("__int64 (*)()")
