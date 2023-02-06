@@ -372,11 +372,6 @@ class StructAnalyzer(TypeAnalyzer):
 		if len(r_types) == 1:
 			retval_type = r_types[0]
 		elif len(r_types) == 0:
-			print(
-				"WARNING: trying to get retval of functions without returns",
-				"in", hex(func_ea), idaapi.get_name(func_ea)
-			)
-			# 0/0
 			retval_type = utils.UNKNOWN_TYPE
 		else:
 			rv0 = r_types[0]

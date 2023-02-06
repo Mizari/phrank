@@ -8,6 +8,22 @@ from functools import cache as _cache
 UNKNOWN_TYPE = idaapi.tinfo_t()
 
 
+def get_final_tif(tif:idaapi.tinfo_t) -> idaapi.tinfo_t:
+	if tif.is_ptr():
+		return get_final_tif(tif.get_pointed_object())
+
+	if tif.is_array():
+		return get_final_tif(tif.get_array_element())
+	return tif
+
+def is_tif_correct(tif:idaapi.tinfo_t) -> bool:
+	if not tif.is_correct():
+		return False
+
+	if str(tif) == "":
+		return False
+	return True
+
 def str2strucid(s:str) -> int:
 	if s.startswith("struct "):
 		s = s[7:]
@@ -22,16 +38,14 @@ def str2strucid(s:str) -> int:
 	return rv
 
 def tif2strucid(tif:idaapi.tinfo_t) -> int:
-	while tif.is_ptr():
-		tif = tif.get_pointed_object()
-
-	if tif.is_array():
-		tif = tif.get_array_element()
+	tif = get_final_tif(tif)
+	if not is_tif_correct(tif):
+		return idaapi.BADADDR
 
 	if tif.is_struct():
 		return str2strucid(str(tif))
 
-	if (not tif.is_correct()) or tif.is_integral() or tif.is_void() or tif.is_func() or tif.is_enum() or tif.is_bool():
+	if tif.is_integral() or tif.is_void() or tif.is_func() or tif.is_enum() or tif.is_bool():
 		return idaapi.BADADDR
 
 	print("WARNING: unknown tinfo2strucid", tif)

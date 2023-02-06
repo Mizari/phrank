@@ -52,9 +52,13 @@ class FunctionManager:
 	def get_var_type(self, func_ea:int, var_id:int) -> idaapi.tinfo_t:
 		func_tif = self.get_tinfo(func_ea)
 		if func_tif is not None and var_id > func_tif.get_nargs():
-			return func_tif.get_nth_arg(var_id)
+			arg_type = func_tif.get_nth_arg(var_id)
+			if not utils.is_tif_correct(arg_type): arg_type = utils.UNKNOWN_TYPE
+			if arg_type is not utils.UNKNOWN_TYPE:
+				return arg_type
 
 		arg_type = self.get_arg_type(func_ea, var_id)
+		if not utils.is_tif_correct(arg_type): arg_type = utils.UNKNOWN_TYPE
 		if arg_type is not utils.UNKNOWN_TYPE:
 			return arg_type
 
@@ -68,7 +72,9 @@ class FunctionManager:
 			return utils.UNKNOWN_TYPE
 
 		var = cfunc.lvars[var_id]
-		return var.type().copy()
+		arg_type = var.type().copy()
+		if not utils.is_tif_correct(arg_type): arg_type = utils.UNKNOWN_TYPE
+		return arg_type
 
 	def set_var_type(self, func_ea:int, var_id:int, var_type:idaapi.tinfo_t):
 		cfunc = self.get_cfunc(func_ea)
