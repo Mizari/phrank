@@ -225,7 +225,7 @@ class StructAnalyzer(TypeAnalyzer):
 		if cexpr.op == idaapi.cot_var:
 			return self.analyze_lvar(func_ea, cexpr.v.idx)
 
-		if cexpr.op == idaapi.cot_call:
+		if cexpr.op == idaapi.cot_call and cexpr.x.op == idaapi.cot_obj and utils.is_func_start(cexpr.x.obj_ea):
 			call_ea = cexpr.x.obj_ea
 			return self.analyze_retval(call_ea)
 
