@@ -45,7 +45,6 @@ def calculate_type_implicit_call_address(tif:idaapi.tinfo_t, use_chain:list[VarU
 							if utils.is_func_start(x):
 								return x
 
-	print("unknown implicit call", str(tif), len(use_chain), use0.use_type, use0.offset)
 	return -1
 
 
@@ -433,6 +432,8 @@ class StructAnalyzer(TypeAnalyzer):
 				if func_call.implicit_var_use_chain is not None:
 					v, ch = func_call.implicit_var_use_chain
 					call_ea = self.calculate_var_implicit_call_address(v, ch)
+					if call_ea == -1:
+						print("WARNING: unknown implicit call", utils.expr2str(func_call.call_expr))
 				else:
 					call_ea = -1
 				
