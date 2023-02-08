@@ -370,7 +370,7 @@ class StructAnalyzer(TypeAnalyzer):
 		# TODO check that var uses are compatible
 		lvar_uses = self.get_lvar_uses(func_ea, lvar_id)
 		lvar_tinfo = self.calculate_var_type_by_uses(lvar_uses)
-		if lvar_tinfo is not utils.UNKNOWN_TYPE:
+		if lvar_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(lvar_tinfo) != idaapi.BADADDR:
 			self.add_type_uses(lvar_uses, lvar_tinfo)
 		self.lvar2tinfo[(func_ea, lvar_id)] = lvar_tinfo
 		return lvar_tinfo
