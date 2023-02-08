@@ -38,8 +38,21 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		return 0
 
 	def handle_return(self, insn:idaapi.cinsn_t) -> bool:
-		rv = insn.creturn.expr
-		self.current_ast_analysis.returns.append(ReturnWrapper(rv))
+		actx = self.current_ast_analysis.actx
+		retval = utils.strip_casts(insn.creturn.expr)
+		if len(utils.extract_vars(retval, actx)) > 1:
+			print("Found multiple variables in return value", utils.expr2str(retval))
+			self.current_ast_analysis.unknown_retvals.append(retval)
+			return False
+
+		v, ch = utils.get_var_use_chain(retval, actx)
+		if v is None:
+			print("Failed to calculate return value use chain", utils.expr2str(retval))
+			self.current_ast_analysis.unknown_casts.append(retval)
+			return False
+
+		rw = ReturnWrapper(retval, v, ch)
+		self.current_ast_analysis.returns.append(rw)
 		return False
 
 	def handle_call(self, expr:idaapi.cexpr_t) -> bool:
@@ -65,7 +78,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 
 			v, ch = utils.get_var_use_chain(arg, actx)
 			if v is None:
-				print("Failed to calculate call arguement chain", utils.expr2str(arg))
+				print("Failed to calculate call argument chain", utils.expr2str(arg))
 				self.current_ast_analysis.unknown_casts.append(arg)
 				continue
 

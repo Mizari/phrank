@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import idaapi
 
 
@@ -136,7 +138,7 @@ class FuncCall:
 class CallCast():
 	def __init__(self, var:Var, chain:list[VarUse], arg_id:int, func_call:FuncCall):
 		self.var = var
-		self.chain:list[VarUse] = chain
+		self.chain = chain
 		self.func_call = func_call
 		self.arg_id = arg_id
 		self.arg_type = None
@@ -153,5 +155,7 @@ class CallCast():
 
 
 class ReturnWrapper:
-	def __init__(self, retval) -> None:
+	def __init__(self, retval, var:Var, chain:list[VarUse]) -> None:
 		self.retval = retval
+		self.var = var
+		self.chain = chain

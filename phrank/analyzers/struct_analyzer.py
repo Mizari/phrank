@@ -218,6 +218,11 @@ class StructAnalyzer(TypeAnalyzer):
 		self.gvar2tinfo[gvar_ea] = gvar_type
 		return gvar_type
 
+	def analyze_tif_use_chain(self, tif:idaapi.tinfo_t, chain:list[VarUse]):
+		if len(chain) == 0:
+			return tif
+		return utils.UNKNOWN_TYPE
+
 	def analyze_cexpr(self, func_ea:int, cexpr:idaapi.cexpr_t) -> idaapi.tinfo_t:
 		cexpr = utils.strip_casts(cexpr)
 
@@ -335,6 +340,12 @@ class StructAnalyzer(TypeAnalyzer):
 		lvar_tinfo = lvar_struct.ptr_tinfo
 		return lvar_tinfo
 
+	def analyze_var(self, var:Var) -> idaapi.tinfo_t:
+		if var.is_local():
+			return self.analyze_lvar(*var.varid)
+		else:
+			return self.analyze_gvar(var.varid)
+
 	def analyze_lvar(self, func_ea:int, lvar_id:int) -> idaapi.tinfo_t:
 		current_lvar_tinfo = self.lvar2tinfo.get((func_ea, lvar_id))
 		if current_lvar_tinfo is not None:
@@ -370,7 +381,14 @@ class StructAnalyzer(TypeAnalyzer):
 		aa = self.get_ast_analysis(func_ea)
 		r_types = []
 		for r in aa.returns:
-			r_type = self.analyze_cexpr(func_ea, r.retval)
+			var_type = self.analyze_var(r.var)
+			if var_type is utils.UNKNOWN_TYPE:
+				r_types.append(utils.UNKNOWN_TYPE)
+				continue
+
+			r_type = self.analyze_tif_use_chain(var_type, r.chain)
+			if r_type is utils.UNKNOWN_TYPE:
+				print("WARNING: failed to analyze retval chain", utils.expr2str(r.retval))
 			r_types.append(r_type)
 
 		if len(r_types) == 1:
