@@ -4,7 +4,7 @@ import idaapi
 
 from phrank.ast_parts import *
 from phrank.util_func import is_func_start
-from phrank.util_tif import get_tif_member_name
+from phrank.util_tif import get_tif_member_name, get_pointer_object
 
 ARRAY_FUNCS = {"qmemcpy", "memcpy", "strncpy", "memset", "memmove", "strncat", "strncmp"}
 ARRAY_FUNCS.update(['_' + s for s in ARRAY_FUNCS])
@@ -61,7 +61,10 @@ def get_var_read(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,int]:
 
 	if expr.op == idaapi.cot_idx and expr.y.op == idaapi.cot_num:
 		var = get_var(expr.x, actx)
-		return var, (expr.y.n._value + 1) * expr.x.type.get_size()
+		obj_type = get_pointer_object(expr.x.type)
+		obj_size = obj_type.get_size()
+		assert obj_size != idaapi.BADSIZE
+		return var, (expr.y.n._value) * obj_size
 
 	if expr.op == idaapi.cot_ptr:
 		return get_var_offset(expr.x, actx)
@@ -71,7 +74,11 @@ def get_var_read(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,int]:
 # not found is (None, any_int)
 def get_var_ptr_write(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,int]:
 	if expr.op == idaapi.cot_idx and expr.y.op == idaapi.cot_num:
-		return get_var(expr.x, actx), expr.y.n._value * expr.x.type.get_size()
+		var = get_var(expr.x, actx)
+		obj_type = get_pointer_object(expr.x.type)
+		obj_size = obj_type.get_size()
+		assert obj_size != idaapi.BADSIZE
+		return var, (expr.y.n._value) * obj_size
 
 	if expr.op == idaapi.cot_ptr:
 		return get_var_offset(expr.x, actx)
