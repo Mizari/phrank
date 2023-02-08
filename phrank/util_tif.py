@@ -8,12 +8,20 @@ from functools import cache as _cache
 UNKNOWN_TYPE = idaapi.tinfo_t()
 
 
-def get_final_tif(tif:idaapi.tinfo_t) -> idaapi.tinfo_t:
-	if tif.is_ptr():
-		return get_final_tif(tif.get_pointed_object())
+def is_tif_pointer(tif:idaapi.tinfo_t) -> bool:
+	return tif.is_ptr() or tif.is_array()
 
-	if tif.is_array():
-		return get_final_tif(tif.get_array_element())
+def get_pointer_object(tif:idaapi.tinfo_t) -> idaapi.tinfo_t:
+	if tif.is_ptr():
+		return tif.get_pointed_object()
+	elif tif.is_array():
+		return tif.get_array_element()
+	else:
+		raise TypeError("Tif is not a pointer " + str(tif))
+
+def get_final_tif(tif:idaapi.tinfo_t) -> idaapi.tinfo_t:
+	while is_tif_pointer(tif):
+		tif = get_pointer_object(tif)
 	return tif
 
 def is_tif_correct(tif:idaapi.tinfo_t) -> bool:
