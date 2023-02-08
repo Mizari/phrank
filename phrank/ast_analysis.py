@@ -11,6 +11,7 @@ class ASTAnalysis():
 
 		self.returns : list[ReturnWrapper] = []
 		self.call_casts : list[CallCast] = []
+		self.calls : list[FuncCall] = []
 
 		self.var_assigns : list[VarAssign] = []
 		self.var_writes  : list[VarWrite]  = []

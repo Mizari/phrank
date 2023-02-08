@@ -59,6 +59,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		actx = self.current_ast_analysis.actx
 
 		fc = FuncCall(expr)
+		self.current_ast_analysis.calls.append(fc)
 		if fc.is_implicit():
 			if len(utils.extract_vars(expr.x, actx)) == 1:
 				fc.implicit_var_use_chain = utils.get_var_use_chain(expr.x, actx)
