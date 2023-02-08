@@ -117,7 +117,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		var, offset = utils.get_var_read(expr, actx)
 		if var is not None:
 			w = VarRead(var, offset)
-			self.current_ast_analysis.lvar_reads.append(w)
+			self.current_ast_analysis.var_reads.append(w)
 			return True
 
 		return False

@@ -66,12 +66,12 @@ class StructAnalyzer(TypeAnalyzer):
 		strucid = utils.tif2strucid(var_type)
 		var_struct = Structure(strucid)
 
-		for lvar_write in var_uses.writes:
-			self.add_member_type(var_struct.strucid, lvar_write.get_ptr_write_offset(), lvar_write.value_type)
+		for var_write in var_uses.writes:
+			self.add_member_type(var_struct.strucid, var_write.get_ptr_write_offset(), var_write.value_type)
 
-		for lvar_read in var_uses.reads:
-			if not var_struct.member_exists(lvar_read.offset):
-				var_struct.add_member(lvar_read.offset)
+		for var_read in var_uses.reads:
+			if not var_struct.member_exists(var_read.offset):
+				var_struct.add_member(var_read.offset)
 
 		for cast in var_uses.casts:
 			# FIXME kostyl
@@ -160,6 +160,8 @@ class StructAnalyzer(TypeAnalyzer):
 				a.value_type = self.analyze_cexpr(func_ea, a.value)
 			var_uses.assigns.append(a)
 
+		for r in func_aa.iterate_lvar_reads(func_ea, lvar_id):
+			var_uses.reads.append(r)
 		for w in self.get_lvar_writes(func_ea, lvar_id):
 			var_uses.writes.append(w)
 		for c in self.get_lvar_call_arg_casts(func_ea, lvar_id):
