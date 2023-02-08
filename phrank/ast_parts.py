@@ -69,7 +69,7 @@ class VarUse:
 			self.VAR_PTR: "PTR",
 			self.VAR_REF: "REF",
 		}.get(self.use_type)
-		return "VarUse(" + str(self.var) + "," + use_type_str + "," + str(self.offset) + ")"
+		return use_type_str + "Use(" + str(self.var) + "," + str(self.offset) + ")"
 
 
 class VarRead():
