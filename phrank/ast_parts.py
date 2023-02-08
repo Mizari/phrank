@@ -73,9 +73,9 @@ class VarUse:
 
 
 class VarRead():
-	def __init__(self, var:Var, offset:int):
+	def __init__(self, var:Var, chain:list[VarUse]):
 		self.var = var
-		self.offset = offset
+		self.chain = chain
 
 
 class VarWrite():

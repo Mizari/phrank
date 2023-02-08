@@ -18,6 +18,7 @@ class ASTAnalysis():
 
 		self.unknown_casts = []
 		self.unknown_asgs = []
+		self.unknown_reads = []
 		self.unknown_retvals = []
 
 	def iterate_lvar_assigns(self, func_ea:int, lvar_id:int):

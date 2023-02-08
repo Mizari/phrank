@@ -114,10 +114,17 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 	def handle_expr(self, expr:idaapi.cexpr_t) -> bool:
 		actx = self.current_ast_analysis.actx
 
-		var, offset = utils.get_var_read(expr, actx)
-		if var is not None:
-			w = VarRead(var, offset)
-			self.current_ast_analysis.var_reads.append(w)
+		if len(utils.extract_vars(expr, actx)) > 1:
+			print("Found multiple variables in read", utils.expr2str(expr))
+			self.current_ast_analysis.unknown_reads.append(expr)
 			return True
 
-		return False
+		v, ch = utils.get_var_use_chain(expr, actx)
+		if v is None:
+			print("Failed to calculate read chain", utils.expr2str(expr))
+			self.current_ast_analysis.unknown_reads.append(expr)
+			return True
+
+		r = VarRead(v, ch)
+		self.current_ast_analysis.var_reads.append(r)
+		return True

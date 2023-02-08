@@ -70,8 +70,12 @@ class StructAnalyzer(TypeAnalyzer):
 			self.add_member_type(var_struct.strucid, var_write.get_ptr_write_offset(), var_write.value_type)
 
 		for var_read in var_uses.reads:
-			if not var_struct.member_exists(var_read.offset):
-				var_struct.add_member(var_read.offset)
+			if len(var_read.chain) == 0:
+				continue
+
+			offset = var_read.chain[0].offset
+			if not var_struct.member_exists(offset):
+				var_struct.add_member(offset)
 
 		for cast in var_uses.casts:
 			# FIXME kostyl
