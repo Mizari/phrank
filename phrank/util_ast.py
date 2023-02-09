@@ -140,6 +140,17 @@ def get_int(expr:idaapi.cexpr_t) -> int|None:
 	return None
 
 def expr2str(expr:idaapi.cexpr_t) -> str:
+	if expr.op == idaapi.cot_call:
+		c = expr.x
+		if c.op == idaapi.cot_helper:
+			call = c.helper
+		elif c.op == idaapi.cot_obj:
+			call = idaapi.get_name(c.obj_ea)
+		else:
+			call = expr2str(c)
+		args = [expr2str(a) for a in expr.a]
+		return call + "(" + ",".join(args) + ")"
+
 	op2getter = {
 		idaapi.cot_var: lambda e: "LVAR(" + str(e.v.idx) + ")",
 		idaapi.cot_ptr: lambda e: "*(" + expr2str(e.x) + ")",
@@ -163,22 +174,17 @@ def expr2str(expr:idaapi.cexpr_t) -> str:
 		idaapi.cot_band: lambda e: expr2str(e.x) + "&" + expr2str(e.y),
 		idaapi.cot_asg: lambda e: expr2str(e.x) + "=" + expr2str(e.y),
 	}
-	if expr.op == idaapi.cot_call:
-		c = expr.x
-		if c.op == idaapi.cot_helper:
-			call = c.helper
-		elif c.op == idaapi.cot_obj:
-			call = idaapi.get_name(c.obj_ea)
-		else:
-			call = expr2str(c)
-		args = [expr2str(a) for a in expr.a]
-		return call + "(" + ",".join(args) + ")"
-
 	getter = op2getter.get(expr.op)
-	if getter is None:
+	if getter is not None:
+		return getter(expr)
+
+	if expr.x is not None and expr.y is not None:
+		return expr.opname + '(' + expr2str(expr.x) + ',' + expr2str(expr.y) + ')'
+	elif expr.x is not None:
+		return expr.opname + '(' + expr2str(expr.x) + ')'
+	else:
 		print("unknown op in expr2str", expr.opname)
 		return "UNKNOWN"
-	return getter(expr)
 
 def extract_vars(expr:idaapi.cexpr_t, actx:ASTCtx) -> set[Var]:
 	v = get_var(expr, actx)
