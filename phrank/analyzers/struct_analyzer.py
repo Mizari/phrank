@@ -148,6 +148,33 @@ class StructAnalyzer(TypeAnalyzer):
 		for obj_ea in gvars_to_propagate:
 			self.propagate_gvar_down(obj_ea)
 
+		touched_functions = set()
+		for func_ea, _ in self.lvar2tinfo.keys():
+			touched_functions.add(func_ea)
+
+		for obj_ea in self.gvar2tinfo.keys():
+			touched_functions.update(utils.get_func_calls_to(obj_ea))
+
+		for func_ea in touched_functions:
+			func_aa = self.get_ast_analysis(func_ea)
+			for func_call in func_aa.calls:
+				if not func_call.is_implicit(): continue
+
+				frm = func_call.call_expr.ea
+				if frm == idaapi.BADADDR:
+					continue
+
+				if func_call.implicit_var_use_chain is None:
+					continue
+
+				v, ch = func_call.implicit_var_use_chain
+				call_ea = self.calculate_var_implicit_call_address(v, ch)
+				if call_ea == -1:
+					print("WARNING: unknown implicit call", utils.expr2str(func_call.call_expr))
+					continue
+
+				self.new_xrefs.append((frm, call_ea))
+
 		super().apply_analysis()
 		self.vtable_analyzer.apply_analysis()
 

@@ -51,6 +51,7 @@ class TypeAnalyzer(FunctionManager):
 			if new_type_tif is utils.UNKNOWN_TYPE:
 				continue
 			self.set_var_type(func_ea, lvar_id, new_type_tif)
+		self.lvar2tinfo.clear()
 
 		for obj_ea, new_type_tif in self.gvar2tinfo.items():
 			if new_type_tif is utils.UNKNOWN_TYPE:
@@ -58,10 +59,14 @@ class TypeAnalyzer(FunctionManager):
 			rv = idc.SetType(obj_ea, str(new_type_tif) + ';')
 			if rv == 0:
 				print("setting", hex(obj_ea), "to", new_type_tif, "failed")
-
-		self.new_xrefs.clear()
-		self.lvar2tinfo.clear()
 		self.gvar2tinfo.clear()
+
+		for frm, to in self.new_xrefs:
+			rv = idaapi.add_cref(frm, to, idaapi.fl_CN)
+			if not rv:
+				print("WARNING: failed to add code reference from", hex(frm), "to", hex(to))
+		self.new_xrefs.clear()
+
 		self.retval2tinfo.clear()
 
 	def analyze_everything(self):
