@@ -210,6 +210,28 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,list[V
 		return var, []
 
 	expr = strip_casts(expr)
+	if expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
+		var, use_chain = get_var_use_chain(expr.a[0], actx)
+		if var is None:
+			print("unknown chain var use expression operand", expr.opname, expr2str(expr))
+			return None, []
+
+		helper2offset = {
+			"HIBYTE": 1,
+			"LOBYTE": 0,
+			"HIWORD": 2,
+			"LOWORD": 0,
+		}
+		offset = helper2offset.get(expr.x.helper)
+		if offset is None:
+			print("WARNING: unknown helper", expr.x.helper)
+			return None, []
+		if len(use_chain) != 0:
+			print("WARNING: helper of non-variable expr", expr2str(expr))
+
+		var_use = VarUse(var, offset, VarUse.VAR_HELPER)
+		use_chain.append(var_use)
+		return var, use_chain
 
 	op2use_type = {
 		idaapi.cot_ptr: VarUse.VAR_PTR,
@@ -219,7 +241,6 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,list[V
 		idaapi.cot_idx: VarUse.VAR_PTR,
 		idaapi.cot_add: VarUse.VAR_ADD,
 		idaapi.cot_sub: VarUse.VAR_ADD,
-		idaapi.cot_helper: VarUse.VAR_HELPER,
 	}
 	use_type = op2use_type.get(expr.op)
 	if use_type is None:
@@ -245,23 +266,6 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,list[V
 		if expr.x.type.is_ptr():
 			pointed = expr.x.type.get_pointed_object()
 			offset *= pointed.get_size()
-
-	elif expr.op == idaapi.cot_helper:
-		if var is None:
-			return var, use_chain
-
-		helper2offset = {
-			"HIBYTE": 1,
-			"LOBYTE": 0,
-			"HIWORD": 2,
-			"LOWORD": 0,
-		}
-		offset = helper2offset.get(expr.helper)
-		if offset is None:
-			print("WARNING: unknown helper", expr.helper)
-			return None, []
-		if len(use_chain) != 0:
-			print("WARNING: helper of non-variable expr", expr2str(expr))
 
 	# this should not happen at all, since expr op is check when use_type gets got
 	else:
