@@ -48,6 +48,7 @@ class VarUse:
 	VAR_ADD = 0
 	VAR_PTR = 1
 	VAR_REF = 2
+	VAR_HELPER = 3
 
 	def __init__(self, var: Var, offset:int, use_type:int):
 		self.var = var
@@ -68,6 +69,7 @@ class VarUse:
 			self.VAR_ADD: "ADD",
 			self.VAR_PTR: "PTR",
 			self.VAR_REF: "REF",
+			self.VAR_HELPER: "HLP",
 		}.get(self.use_type)
 		return use_type_str + "Use(" + str(self.var) + "," + str(self.offset) + ")"
 

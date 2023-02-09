@@ -139,7 +139,7 @@ def get_int(expr:idaapi.cexpr_t) -> int|None:
 
 	return None
 
-def expr2str(expr:idaapi.cexpr_t):
+def expr2str(expr:idaapi.cexpr_t) -> str:
 	op2getter = {
 		idaapi.cot_var: lambda e: "LVAR(" + str(e.v.idx) + ")",
 		idaapi.cot_ptr: lambda e: "*(" + expr2str(e.x) + ")",
@@ -180,7 +180,7 @@ def expr2str(expr:idaapi.cexpr_t):
 		return "UNKNOWN"
 	return getter(expr)
 
-def extract_vars(expr:idaapi.cexpr_t, actx:ASTCtx):
+def extract_vars(expr:idaapi.cexpr_t, actx:ASTCtx) -> set[Var]:
 	v = get_var(expr, actx)
 	if v is not None:
 		return {v}
@@ -198,7 +198,7 @@ def extract_vars(expr:idaapi.cexpr_t, actx:ASTCtx):
 	vars = set(vars_dict.values())
 	return vars
 
-def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx):
+def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,list[VarUse]]:
 	var = get_var(expr, actx)
 	if var is not None:
 		return var, []
@@ -213,6 +213,7 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx):
 		idaapi.cot_idx: VarUse.VAR_PTR,
 		idaapi.cot_add: VarUse.VAR_ADD,
 		idaapi.cot_sub: VarUse.VAR_ADD,
+		idaapi.cot_helper: VarUse.VAR_HELPER,
 	}
 	use_type = op2use_type.get(expr.op)
 	if use_type is None:
@@ -234,15 +235,31 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx):
 		if offset is None:
 			print("unknown expression add operand", expr2str(expr.y))
 			return None, []
+		if expr.op == idaapi.cot_sub: offset = -offset
 		if expr.x.type.is_ptr():
 			pointed = expr.x.type.get_pointed_object()
 			offset *= pointed.get_size()
 
+	elif expr.op == idaapi.cot_helper:
+		if var is None:
+			return var, use_chain
+
+		helper2offset = {
+			"HIBYTE": 1,
+			"LOBYTE": 0,
+			"HIWORD": 2,
+			"LOWORD": 0,
+		}
+		offset = helper2offset.get(expr.helper)
+		if offset is None:
+			print("WARNING: unknown helper", expr.helper)
+			return None, []
+		if len(use_chain) != 0:
+			print("WARNING: helper of non-variable expr", expr2str(expr))
+
 	# this should not happen at all, since expr op is check when use_type gets got
 	else:
 		raise Exception("Wut")
-
-	if expr.op == idaapi.cot_sub: offset = -offset
 
 	var_use = VarUse(var, offset, use_type)
 	use_chain.append(var_use)
