@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import idaapi
 import idc
-from functools import cache as _cache
+from functools import lru_cache as _lru_cache
 
 
 UNKNOWN_TYPE = idaapi.tinfo_t()
@@ -68,7 +68,7 @@ def addr2tif(addr:int) -> idaapi.tinfo_t:
 	return str2tif(addr_type)
 
 
-@_cache
+@_lru_cache
 def str2tif(type_str:str) -> idaapi.tinfo_t|None:
 	if type_str[-1] != ';': type_str = type_str + ';'
 
