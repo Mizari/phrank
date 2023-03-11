@@ -32,6 +32,8 @@ class IdaStrucWrapper(object):
 			strucid = utils.tif2strucid(struc_info)
 		else:
 			raise TypeError("Invalid type for struc info")
+		if strucid == idaapi.BADADDR:
+			return None
 		return cls(strucid)
 
 	@property
