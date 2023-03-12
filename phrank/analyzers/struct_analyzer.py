@@ -10,42 +10,102 @@ from phrank.containers.structure import Structure
 from phrank.ast_parts import *
 
 
+def get_struct_tif_call_address(tif:idaapi.tinfo_t, offset):
+	if not tif.is_struct():
+		print("WARNING:", "trying to get call address of non-structure tinfo", str(tif))
+		return -1
+
+	s = Structure.get(tif)
+	if s is None:
+		print("WARNING:", "failed to get structure from", str(tif))
+		return -1
+
+	if s.member_exists(offset):
+		mname = s.get_member_name(offset)
+		x = utils.str2addr(mname)
+		if utils.is_func_start(x):
+			return x
+
+		mcmt = s.get_member_comment(offset)
+		if mcmt is not None:
+			base = 10
+			if mcmt.startswith("0x"): base = 16
+			try:
+				x = int(mcmt, base)
+			except:
+				x = -1
+			if utils.is_func_start(x):
+				return x
+	return -1
+
+
+def get_struct_tif_member_type(tif:idaapi.tinfo_t, offset):
+	s = Structure.get(tif)
+	if s is None:
+		return utils.UNKNOWN_TYPE
+
+	if not s.member_exists(offset):
+		return utils.UNKNOWN_TYPE
+
+	mtif = s.get_member_tinfo(offset)
+	return mtif
+
+
 def calculate_type_implicit_call_address(tif:idaapi.tinfo_t, use_chain:list[VarUse]) -> int:
 	if len(use_chain) == 0:
+		print("WARNING", "empty chain")
 		return -1
 
 	use0 = use_chain[0]
+	offset0 = use0.offset
+	# print("doing chain", len(use_chain), str(tif), use0)
+
 	if use0.is_ptr():
+		if not tif.is_ptr():
+			print("WARNING:", "using non-pointer type as pointer", str(tif))
+			return -1
+
+		if tif.is_shifted_ptr():
+			if offset0 != 0:
+				print("WARNING:", "adding to shifted ptr isnt implemented")
+				return -1
+
+			tif, offset0 = utils.get_shifted_base(tif)
+			if tif is None:
+				print("WARNING:", "couldnt get base of shifted pointer")
+				return -1
+			# tif = tif.get_pointed_object()
+
 		ptif = tif.get_pointed_object()
-		if ptif.is_struct() and (s := Structure.get(ptif)) is not None:
-			if s.member_exists(use0.offset):
-				if len(use_chain) == 1:
-					pass
-				else:
-					mtif = s.get_member_tinfo(use0.offset)
-					return calculate_type_implicit_call_address(mtif, use_chain[1:])
+		if len(use_chain) == 1:
+			return get_struct_tif_call_address(ptif, offset0)
+
+		mtif = get_struct_tif_member_type(ptif, offset0)
+		if mtif is utils.UNKNOWN_TYPE or mtif.is_integral():
+			print("WARNING:", "unknown member for implicit call address", str(ptif), hex(offset0))
+			return -1
+
+		addr = calculate_type_implicit_call_address(mtif, use_chain[1:])
+		if addr == -1:
+			print("WARNING:", "no addr from member", str(ptif), use0)
+		return addr
 
 	if use0.is_add():
-		if len(use_chain) == 2 and use_chain[1].is_ptr() and use_chain[1].offset == 0:
-			if tif.is_ptr():
-				tif = tif.get_pointed_object()
-				if tif.is_struct() and (s := Structure.get(tif)) is not None:
-					if s.member_exists(use0.offset):
-						mname = s.get_member_name(use0.offset)
-						x = utils.str2addr(mname)
-						if utils.is_func_start(x):
-							return x
+		if len(use_chain) == 1:
+			return get_struct_tif_call_address(tif, offset0)
 
-						mcmt = s.get_member_comment(use0.offset)
-						if mcmt is not None:
-							base = 10
-							if mcmt.startswith("0x"): base = 16
-							try:
-								x = int(mcmt, base)
-							except:
-								x = -1
-							if utils.is_func_start(x):
-								return x
+		if tif.is_ptr():
+			ptif = tif.get_pointed_object()
+			mtif = get_struct_tif_member_type(ptif, offset0)
+			if mtif is utils.UNKNOWN_TYPE:
+				print("WARNING:", "failed to get member tif", str(ptif), hex(offset0))
+				return -1
+			shifted = utils.make_shifted_ptr(tif, mtif, offset0)
+			return calculate_type_implicit_call_address(shifted, use_chain[1:])
+
+		else:
+			print("WARNING", "adding to non-pointers isnt implemented", str(tif))
+			return -1
 
 	return -1
 
@@ -166,13 +226,8 @@ class StructAnalyzer(TypeAnalyzer):
 				if frm == idaapi.BADADDR:
 					continue
 
-				if func_call.implicit_var_use_chain is None:
-					continue
-
-				v, ch = func_call.implicit_var_use_chain
-				call_ea = self.calculate_var_implicit_call_address(v, ch)
+				call_ea = self.calculate_implicit_func_call_address(func_call)
 				if call_ea == -1:
-					print("WARNING: unknown implicit call", utils.expr2str(func_call.call_expr))
 					continue
 
 				self.new_xrefs.append((frm, call_ea))
@@ -467,38 +522,36 @@ class StructAnalyzer(TypeAnalyzer):
 			return False
 		return True
 
-	def calculate_var_implicit_call_address(self, var:Var, use_chain) -> int:
+	def get_var_tinfo(self, var:Var) -> idaapi.tinfo_t:
+		if var.is_local():
+			return self.lvar2tinfo.get(var.varid, utils.UNKNOWN_TYPE)
+		else:
+			return self.gvar2tinfo.get(var.varid, utils.UNKNOWN_TYPE)
+
+	def calculate_implicit_func_call_address(self, func_call:FuncCall) -> int:
+		var, use_chain = func_call.implicit_var_use_chain
 		if var is None:
 			return -1
 
-		if var.is_local():
-			var_tif = self.lvar2tinfo.get(var.varid)
-		else:
-			var_tif = self.gvar2tinfo.get(var.varid)
-
-		if var_tif is None or var_tif is utils.UNKNOWN_TYPE:
+		var_tif = self.get_var_tinfo(var)
+		if var_tif is utils.UNKNOWN_TYPE:
 			return -1
 
-		return calculate_type_implicit_call_address(var_tif, use_chain)
+		addr = calculate_type_implicit_call_address(var_tif, use_chain)
+		if addr == -1:
+			print("WARNING: unknown implicit call", utils.expr2str(func_call.call_expr, hide_casts=True))
+		return addr
 
 	def propagate_var_type_in_casts(self, var_type:idaapi.tinfo_t, casts:list[CallCast]):
 		for call_cast in casts:
 			func_call = call_cast.func_call
+			call_ea = -1
 			if func_call.is_explicit():
 				call_ea = func_call.address
 			elif func_call.is_implicit():
-				if func_call.implicit_var_use_chain is not None:
-					v, ch = func_call.implicit_var_use_chain
-					call_ea = self.calculate_var_implicit_call_address(v, ch)
-					if call_ea == -1:
-						print("WARNING: unknown implicit call", utils.expr2str(func_call.call_expr))
-				else:
-					call_ea = -1
-				
-				if call_ea == -1:
-					continue
-			else:
-				# helpers do not propagate types
+				call_ea = self.calculate_implicit_func_call_address(func_call)
+
+			if call_ea == -1:
 				continue
 
 			if utils.is_func_import(call_ea):
