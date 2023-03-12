@@ -139,7 +139,10 @@ def get_int(expr:idaapi.cexpr_t) -> int|None:
 
 	return None
 
-def expr2str(expr:idaapi.cexpr_t) -> str:
+def expr2str(expr:idaapi.cexpr_t, hide_casts=False) -> str:
+	def e2s(e):
+		return expr2str(e, hide_casts=hide_casts)
+
 	if expr.op == idaapi.cot_call:
 		c = expr.x
 		if c.op == idaapi.cot_helper:
@@ -147,43 +150,45 @@ def expr2str(expr:idaapi.cexpr_t) -> str:
 		elif c.op == idaapi.cot_obj:
 			call = idaapi.get_name(c.obj_ea)
 		else:
-			call = expr2str(c)
-		args = [expr2str(a) for a in expr.a]
+			call = e2s(c)
+		args = [e2s(a) for a in expr.a]
 		return call + "(" + ",".join(args) + ")"
 
 	op2getter = {
 		idaapi.cot_var: lambda e: "LVAR(" + str(e.v.idx) + ")",
-		idaapi.cot_ptr: lambda e: "*(" + expr2str(e.x) + ")",
-		idaapi.cot_idx: lambda e: expr2str(e.x) + "[" + expr2str(e.y) + "]",
-		idaapi.cot_memref: lambda e: expr2str(e.x) + "." + get_tif_member_name(e.x.type, e.m),
-		idaapi.cot_memptr: lambda e: expr2str(e.x) + "->" + get_tif_member_name(e.x.type.get_pointed_object(), e.m),
+		idaapi.cot_ptr: lambda e: "*(" + e2s(e.x) + ")",
+		idaapi.cot_idx: lambda e: e2s(e.x) + "[" + e2s(e.y) + "]",
+		idaapi.cot_memref: lambda e: e2s(e.x) + "." + get_tif_member_name(e.x.type, e.m),
+		idaapi.cot_memptr: lambda e: e2s(e.x) + "->" + get_tif_member_name(e.x.type.get_pointed_object(), e.m),
 		idaapi.cot_num: lambda e: str(e.n._value),
-		idaapi.cot_cast: lambda e: "(" + str(e.type) + ")(" + expr2str(e.x) + ")",
-		idaapi.cot_add: lambda e: expr2str(e.x) + "+" + expr2str(e.y),
-		idaapi.cot_sub: lambda e: expr2str(e.x) + "-" + expr2str(e.y),
-		idaapi.cot_mul: lambda e: expr2str(e.x) + "*" + expr2str(e.y),
-		idaapi.cot_postinc: lambda e: expr2str(e.x) + "++",
-		idaapi.cot_preinc: lambda e: "++" + expr2str(e.x),
-		idaapi.cot_ref: lambda e: "&" + expr2str(e.x),
+		idaapi.cot_cast: lambda e: "(" + str(e.type) + ")(" + e2s(e.x) + ")",
+		idaapi.cot_add: lambda e: e2s(e.x) + "+" + e2s(e.y),
+		idaapi.cot_sub: lambda e: e2s(e.x) + "-" + e2s(e.y),
+		idaapi.cot_mul: lambda e: e2s(e.x) + "*" + e2s(e.y),
+		idaapi.cot_postinc: lambda e: e2s(e.x) + "++",
+		idaapi.cot_preinc: lambda e: "++" + e2s(e.x),
+		idaapi.cot_ref: lambda e: "&" + e2s(e.x),
 		idaapi.cot_obj: lambda e: idaapi.get_name(e.obj_ea),
-		idaapi.cot_sizeof: lambda e: "sizeof(" + expr2str(e.x) + ")",
-		idaapi.cot_neg: lambda e: "-" + expr2str(e.x),
-		idaapi.cot_helper: lambda e: e.helper + "(" + expr2str(e.x) + ")",
-		idaapi.cot_tern: lambda e: expr2str(e.x) + ":" + expr2str(e.y) + "?" + expr2str(e.z),
-		idaapi.cot_ne: lambda e: expr2str(e.x) + "!=" + expr2str(e.y),
-		idaapi.cot_band: lambda e: expr2str(e.x) + "&" + expr2str(e.y),
-		idaapi.cot_asg: lambda e: expr2str(e.x) + "=" + expr2str(e.y),
+		idaapi.cot_sizeof: lambda e: "sizeof(" + e2s(e.x) + ")",
+		idaapi.cot_neg: lambda e: "-" + e2s(e.x),
+		idaapi.cot_helper: lambda e: e.helper + "(" + e2s(e.x) + ")",
+		idaapi.cot_tern: lambda e: e2s(e.x) + ":" + e2s(e.y) + "?" + e2s(e.z),
+		idaapi.cot_ne: lambda e: e2s(e.x) + "!=" + e2s(e.y),
+		idaapi.cot_band: lambda e: e2s(e.x) + "&" + e2s(e.y),
+		idaapi.cot_asg: lambda e: e2s(e.x) + "=" + e2s(e.y),
 	}
+	if hide_casts:
+		op2getter[idaapi.cot_cast] = lambda e: e2s(e.x)
 	getter = op2getter.get(expr.op)
 	if getter is not None:
 		return getter(expr)
 
 	if expr.x is not None and expr.y is not None:
-		return expr.opname + '(' + expr2str(expr.x) + ',' + expr2str(expr.y) + ')'
+		return expr.opname + '(' + e2s(expr.x) + ',' + e2s(expr.y) + ')'
 	elif expr.x is not None:
-		return expr.opname + '(' + expr2str(expr.x) + ')'
+		return expr.opname + '(' + e2s(expr.x) + ')'
 	else:
-		print("unknown op in expr2str", expr.opname)
+		print("unknown op in e2s", expr.opname)
 		return "UNKNOWN"
 
 def extract_vars(expr:idaapi.cexpr_t, actx:ASTCtx) -> set[Var]:
