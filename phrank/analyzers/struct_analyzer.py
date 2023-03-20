@@ -129,7 +129,10 @@ class StructAnalyzer(TypeAnalyzer):
 		var_struct = Structure(strucid)
 
 		for var_write in var_uses.writes:
-			self.add_member_type(var_struct.strucid, var_write.get_ptr_write_offset(), var_write.value_type)
+			member_type = var_write.value_type
+			if member_type is None or member_type is utils.UNKNOWN_TYPE:
+				member_type = utils.get_int_tinfo(1)
+			self.add_member_type(var_struct.strucid, var_write.get_ptr_write_offset(), member_type)
 
 		for var_read in var_uses.reads:
 			if len(var_read.chain) == 0:
@@ -146,7 +149,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 			arg_type = cast.arg_type
 			# cast exists, just type is unknown. will use simple int instead
-			if arg_type is utils.UNKNOWN_TYPE:
+			if arg_type is None or arg_type is utils.UNKNOWN_TYPE:
 				arg_type = utils.get_int_tinfo(1)
 
 			if arg_type.is_ptr():
@@ -236,33 +239,28 @@ class StructAnalyzer(TypeAnalyzer):
 	def get_lvar_uses(self, func_ea:int, lvar_id:int):
 		var_uses = VarUses()
 		func_aa = self.get_ast_analysis(func_ea)
-		for a in func_aa.var_assigns:
-			if a.var.varid != (func_ea, lvar_id): continue
-			if a.value_type is None:
-				a.value_type = self.analyze_cexpr(func_ea, a.value)
-			var_uses.assigns.append(a)
-
-		for r in func_aa.iterate_lvar_reads(func_ea, lvar_id):
-			var_uses.reads.append(r)
-		for w in self.get_lvar_writes(func_ea, lvar_id):
-			var_uses.writes.append(w)
-		for c in self.get_lvar_call_arg_casts(func_ea, lvar_id):
-			var_uses.casts.append(c)
+		for call_cast in func_aa.iterate_lvar_assigns(func_ea, lvar_id):
+			var_uses.assigns.append(call_cast)
+		for var_read in func_aa.iterate_lvar_reads(func_ea, lvar_id):
+			var_uses.reads.append(var_read)
+		for var_write in func_aa.iterate_lvar_writes(func_ea, lvar_id):
+			var_uses.writes.append(var_write)
+		for call_cast in func_aa.iterate_lvar_call_casts(func_ea, lvar_id):
+			var_uses.casts.append(call_cast)
 		return var_uses
 
-	def get_lvar_writes(self, func_ea:int, lvar_id:int):
-		func_aa = self.get_ast_analysis(func_ea)
-		for var_write in func_aa.iterate_lvar_writes(func_ea, lvar_id):
+	def analyze_lvar_uses(self, func_ea:int, lvar_id:int, var_uses:VarUses):
+		for var_assign in var_uses.assigns:
+			var_assign.value_type = self.analyze_cexpr(func_ea, var_assign.value)
+		for var_write in var_uses.writes:
 			write_type = self.analyze_cexpr(func_ea, var_write.value)
 			# write exists, just type is unknown. will use simple int instead
 			if write_type is utils.UNKNOWN_TYPE:
 				write_type = utils.get_int_tinfo(var_write.value.type.get_size())
 			var_write.value_type = write_type
-			yield var_write
-
-	def get_lvar_call_arg_casts(self, func_ea:int, lvar_id:int):
-		func_aa = self.get_ast_analysis(func_ea)
-		for call_cast in func_aa.iterate_lvar_call_casts(func_ea, lvar_id):
+		for var_read in var_uses.reads:
+			pass
+		for call_cast in var_uses.casts:
 			address = call_cast.func_call.address
 			if address == -1:
 				continue
@@ -271,7 +269,6 @@ class StructAnalyzer(TypeAnalyzer):
 			if cast_type is None or cast_type is utils.UNKNOWN_TYPE:
 				cast_type = self.analyze_lvar(address, call_cast.arg_id)
 				call_cast.arg_type = cast_type
-			yield call_cast
 
 	def analyze_gvar_type_by_assigns(self, gvar_ea:int) -> idaapi.tinfo_t:
 		# analyzing gvar type by assigns to it
@@ -451,6 +448,7 @@ class StructAnalyzer(TypeAnalyzer):
 		# TODO check that var is not recursively dependant on itself
 		# TODO check that var uses are compatible
 		lvar_uses = self.get_lvar_uses(func_ea, lvar_id)
+		self.analyze_lvar_uses(func_ea, lvar_id, lvar_uses)
 		lvar_tinfo = self.calculate_var_type_by_uses(lvar_uses)
 		if lvar_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(lvar_tinfo) != idaapi.BADADDR:
 			self.add_type_uses(lvar_uses, lvar_tinfo)
