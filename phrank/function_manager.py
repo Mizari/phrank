@@ -76,7 +76,7 @@ class FunctionManager:
 		if not utils.is_tif_correct(arg_type): arg_type = utils.UNKNOWN_TYPE
 		return arg_type
 
-	def set_var_type(self, func_ea:int, var_id:int, var_type:idaapi.tinfo_t):
+	def set_lvar_tinfo(self, func_ea:int, var_id:int, var_type:idaapi.tinfo_t):
 		cfunc = self.get_cfunc(func_ea)
 		if cfunc is None:
 			print("Failed to change variable type, because of decompilation failure in", get_funcname(func_ea))

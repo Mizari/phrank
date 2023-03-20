@@ -8,3 +8,13 @@ from phrank.cfunction_factory import CFunctionFactory
 import phrank.settings as settings
 
 from phrank.utils import *
+
+
+def propagate_var(var:Var):
+	struct_analyzer = StructAnalyzer()
+	var_type = struct_analyzer.get_current_var_type(var)
+	struct_analyzer.set_var_type(var, var_type)
+	strucid = tif2strucid(var_type)
+	struct_analyzer.new_types.add(strucid)
+	struct_analyzer.propagate_var(var)
+	struct_analyzer.apply_analysis()

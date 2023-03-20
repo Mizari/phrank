@@ -50,7 +50,7 @@ class TypeAnalyzer(FunctionManager):
 		for (func_ea, lvar_id), new_type_tif in self.lvar2tinfo.items():
 			if new_type_tif is utils.UNKNOWN_TYPE:
 				continue
-			self.set_var_type(func_ea, lvar_id, new_type_tif)
+			self.set_lvar_tinfo(func_ea, lvar_id, new_type_tif)
 		self.lvar2tinfo.clear()
 
 		for obj_ea, new_type_tif in self.gvar2tinfo.items():
