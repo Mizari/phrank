@@ -194,21 +194,15 @@ class StructAnalyzer(TypeAnalyzer):
 			lvar_struct.set_member_type(offset, member_type)
 
 	def apply_analysis(self):
-		lvars_to_propagate = []
-		for (func_ea, lvar_id), new_type_tif in self.lvar2tinfo.items():
-			if new_type_tif is not utils.UNKNOWN_TYPE:
-				lvars_to_propagate.append((func_ea, lvar_id))
+		var_to_propagate = []
+		for func_ea, lvar_id in self.lvar2tinfo.keys():
+			var_to_propagate.append(Var(func_ea, lvar_id))
 
-		gvars_to_propagate = []
-		for obj_ea, new_type_tif in self.gvar2tinfo.items():
-			if new_type_tif is not utils.UNKNOWN_TYPE:
-				gvars_to_propagate.append(obj_ea)
+		for obj_ea in self.gvar2tinfo.keys():
+			var_to_propagate.append(Var(obj_ea))
 
-		for func_ea, lvar_id in lvars_to_propagate:
-			self.propagate_lvar_down(func_ea, lvar_id)
-
-		for obj_ea in gvars_to_propagate:
-			self.propagate_gvar_down(obj_ea)
+		for var in var_to_propagate:
+			self.propagate_var(var)
 
 		touched_functions = set()
 		for func_ea, _ in self.lvar2tinfo.keys():
@@ -573,7 +567,7 @@ class StructAnalyzer(TypeAnalyzer):
 					continue
 
 				self.lvar2tinfo[(call_ea, arg_id)] = var_type
-				self.propagate_lvar_down(call_ea, arg_id)
+				self.propagate_var(Var(call_ea, arg_id))
 				self.add_type_uses(lvar_uses, var_type)
 				continue
 
@@ -583,24 +577,26 @@ class StructAnalyzer(TypeAnalyzer):
 				"-- arg", arg_id, "has different type", current_type,
 			)
 
-	def propagate_lvar_down(self, func_ea:int, lvar_id:int):
-		lvar_type = self.lvar2tinfo.get((func_ea, lvar_id))
-		if not self.is_ok_propagation_type(lvar_type):
-			return {}
+	def get_var_call_casts(self, var:Var):
+		if var.is_local():
+			aa = self.get_ast_analysis(var.varid[0])
+			casts = [c for c in aa.iterate_lvar_call_casts(*var.varid)]
+		else:
+			funcs = set(utils.get_func_calls_to(var.varid))
+			casts = []
+			for func_ea in funcs:
+				aa = self.get_ast_analysis(func_ea)
+				for call_cast in aa.iterate_gvar_call_casts(var.varid):
+					casts.append(call_cast)
+		return casts
 
-		aa = self.get_ast_analysis(func_ea)
-		casts = [c for c in aa.iterate_lvar_call_casts(func_ea, lvar_id)]
-		self.propagate_var_type_in_casts(lvar_type, casts)
+	def propagate_var(self, var:Var):
+		var_type = self.get_var_tinfo(var)
+		if var_type is utils.UNKNOWN_TYPE:
+			return
 
-	def propagate_gvar_down(self, gvar_ea:int):
-		gvar_type = self.gvar2tinfo.get(gvar_ea)
-		if not self.is_ok_propagation_type(gvar_type):
-			return {}
+		if utils.tif2strucid(var_type) not in self.new_types:
+			return
 
-		funcs = set(utils.get_func_calls_to(gvar_ea))
-		casts = []
-		for func_ea in funcs:
-			aa = self.get_ast_analysis(func_ea)
-			for call_cast in aa.iterate_gvar_call_casts(gvar_ea):
-				casts.append(call_cast)
-		self.propagate_var_type_in_casts(gvar_type, casts)
+		casts = self.get_var_call_casts(var)
+		self.propagate_var_type_in_casts(var_type, casts)
