@@ -555,12 +555,8 @@ class StructAnalyzer(TypeAnalyzer):
 				continue
 
 			arg_id = call_cast.arg_id
-			current_type = self.lvar2tinfo.get((call_ea, arg_id))
-
-			if current_type == var_type:
-				continue
-
-			if current_type is None or current_type is utils.UNKNOWN_TYPE:
+			current_type = self.lvar2tinfo.get((call_ea, arg_id), utils.UNKNOWN_TYPE)
+			if current_type is utils.UNKNOWN_TYPE:
 				lvar_uses = self.get_lvar_uses(call_ea, arg_id)
 				func_aa = self.get_ast_analysis(arg_id)
 				if len([a for a in func_aa.iterate_lvar_assigns(call_ea, arg_id)]) != 0:
@@ -571,11 +567,13 @@ class StructAnalyzer(TypeAnalyzer):
 				self.add_type_uses(lvar_uses, var_type)
 				continue
 
-			print(
-				"Error in var propagation of", str(var_type),
-				"to", idaapi.get_name(call_ea),
-				"-- arg", arg_id, "has different type", current_type,
-			)
+			if current_type != var_type:
+				print(
+					"Failed to propagate", str(var_type),
+					"to", self.get_lvar_name(call_ea, arg_id),
+					"in", idaapi.get_name(call_ea),
+					"because variable has different type", current_type,
+				)
 
 	def get_var_call_casts(self, var:Var):
 		if var.is_local():
