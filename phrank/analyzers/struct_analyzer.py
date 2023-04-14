@@ -449,7 +449,7 @@ class StructAnalyzer(TypeAnalyzer):
 			return current_lvar_tinfo
 
 		lvar = self.get_lvar(func_ea, lvar_id)
-		if lvar is not None and lvar.is_stk_var():
+		if lvar is not None and lvar.is_stk_var() and not lvar.is_arg_var:
 			print("WARNING: variable", lvar.name, "in", idaapi.get_name(func_ea), "is stack variable, whose analysis is not yet implemented")
 			return utils.UNKNOWN_TYPE
 
