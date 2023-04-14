@@ -48,6 +48,8 @@ def get_struct_tif_member_type(tif:idaapi.tinfo_t, offset):
 		return utils.UNKNOWN_TYPE
 
 	mtif = s.get_member_tinfo(offset)
+	if mtif is None:
+		return utils.UNKNOWN_TYPE
 	return mtif
 
 
@@ -377,6 +379,18 @@ class StructAnalyzer(TypeAnalyzer):
 			else:
 				return utils.UNKNOWN_TYPE
 
+		# weeding out non-pointers
+		for w in writes:
+			if not w.is_ptr_write():
+				print("non-pointer writes are not supported for now", [str(x) for x in writes])
+				return utils.UNKNOWN_TYPE
+
+		# weeding out non-pointers2
+		for c in casts:
+			if c.get_ptr_chain_offset() is None:
+				print("non-pointer casts are not supported for now", [str(x) for x in c.chain])
+				return utils.UNKNOWN_TYPE
+
 		# single write at offset 0 does not create new type
 		if len(var_uses) == 1 and len(writes) == 1 and writes[0].get_ptr_write_offset() == 0:
 			write_type = writes[0].value_type.copy()
@@ -413,18 +427,11 @@ class StructAnalyzer(TypeAnalyzer):
 			arg_type.create_ptr(arg_type)
 			return arg_type
 
-		for i, c in enumerate(casts):
-			if c.get_ptr_chain_offset() is None:
-				return utils.UNKNOWN_TYPE
-
 		# TODO writes into array of one type casts, that start at offset 0
 		# TODO check if all writes are to the same offset
 		# TODO check if all writes are actually array writes at various offsets
 
-		if len(writes) > 0 and any(not w.is_ptr_write() for w in writes):
-			print("non-pointer writes are not suppoerted for now")
-			return utils.UNKNOWN_TYPE
-
+		# all cases ended, assuming new structure pointer
 		lvar_struct = Structure.create()
 		self.new_types.add(lvar_struct.strucid)
 		lvar_tinfo = lvar_struct.ptr_tinfo
