@@ -209,17 +209,19 @@ def extract_vars(expr:idaapi.cexpr_t, actx:ASTCtx) -> set[Var]:
 	vars = set(vars_dict.values())
 	return vars
 
-def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,list[VarUse]]:
+def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 	var = get_var(expr, actx)
 	if var is not None:
-		return var, []
+		return VarUseChain(var)
 
 	expr = strip_casts(expr)
 	if expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
-		var, use_chain = get_var_use_chain(expr.a[0], actx)
-		if var is None:
+		vuc = get_var_use_chain(expr.a[0], actx)
+		if vuc is None:
 			print("unknown chain var use expression operand", expr.opname, expr2str(expr))
-			return None, []
+			return None
+
+		var, use_chain = vuc.var, vuc.uses
 
 		helper2offset = {
 			"HIBYTE": 1,
@@ -230,13 +232,13 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,list[V
 		offset = helper2offset.get(expr.x.helper)
 		if offset is None:
 			print("WARNING: unknown helper", expr.x.helper)
-			return None, []
+			return None
 		if len(use_chain) != 0:
 			print("WARNING: helper of non-variable expr", expr2str(expr))
 
-		var_use = VarUse(var, offset, VarUse.VAR_HELPER)
+		var_use = VarUse(offset, VarUse.VAR_HELPER)
 		use_chain.append(var_use)
-		return var, use_chain
+		return VarUseChain(var, *use_chain)
 
 	op2use_type = {
 		idaapi.cot_ptr: VarUse.VAR_PTR,
@@ -250,11 +252,13 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,list[V
 	use_type = op2use_type.get(expr.op)
 	if use_type is None:
 		print("unknown chain var use expression operand", expr.opname, expr2str(expr))
-		return None, []
+		return None
 
-	var, use_chain = get_var_use_chain(expr.x, actx)
-	if var is None:
-		return var, use_chain
+	vuc = get_var_use_chain(expr.x, actx)
+	if vuc is None:
+		return None
+
+	var, use_chain = vuc.var, vuc.uses
 
 	if expr.op in [idaapi.cot_ptr, idaapi.cot_ref]:
 		offset = 0
@@ -266,7 +270,7 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,list[V
 		offset = get_int(expr.y)
 		if offset is None:
 			print("unknown expression add operand", expr2str(expr.y))
-			return None, []
+			return None
 		if expr.op == idaapi.cot_sub: offset = -offset
 		if expr.x.type.is_ptr():
 			pointed = expr.x.type.get_pointed_object()
@@ -276,6 +280,6 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,list[V
 	else:
 		raise Exception("Wut")
 
-	var_use = VarUse(var, offset, use_type)
+	var_use = VarUse(offset, use_type)
 	use_chain.append(var_use)
-	return var, use_chain
+	return VarUseChain(var, *use_chain)

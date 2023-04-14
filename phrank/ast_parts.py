@@ -47,7 +47,7 @@ class Var:
 class FuncCall:
 	def __init__(self, call_expr:idaapi.cexpr_t):
 		self.call_expr = call_expr.x
-		self.implicit_var_use_chain = None
+		self.implicit_var_use_chain:VarUseChain|None = None
 		self.args = call_expr.a
 		self.address : int = -1
 		self.name : str = ""
@@ -74,8 +74,7 @@ class VarUse:
 	VAR_REF = 2
 	VAR_HELPER = 3
 
-	def __init__(self, var: Var, offset:int, use_type:int):
-		self.var = var
+	def __init__(self, offset:int, use_type:int):
 		self.offset = offset
 		self.use_type = use_type
 
@@ -95,14 +94,17 @@ class VarUse:
 			self.VAR_REF: "REF",
 			self.VAR_HELPER: "HLP",
 		}.get(self.use_type)
-		return use_type_str + "Use(" + str(self.var) + "," + str(self.offset) + ")"
+		if use_type_str is None:
+			raise RuntimeError("Object is initialized incorrectly")
+		return f"{use_type_str}Use({str(self.offset)})"
 
 
-class UseChain:
-	def __init__(self, *uses:VarUse):
-		self.uses = uses
+class VarUseChain:
+	def __init__(self, var:Var, *uses:VarUse):
+		self.var = var
+		self.uses = list(uses)
 
-	def __str__(self) -> str:
+	def uses_str(self) -> str:
 		return "->".join(str(u) for u in self.uses)
 
 	def __len__(self) -> int:
@@ -124,59 +126,46 @@ class UseChain:
 		return None
 
 
-class VarRead():
-	def __init__(self, var:Var, chain:UseChain):
-		self.var = var
-		self.chain = chain
+class VarRead(VarUseChain):
+	def __init__(self, var:Var, *uses:VarUse):
+		super().__init__(var, *uses)
 
-	def is_possible_ptr(self) -> bool:
-		return self.chain.is_possible_ptr()
-
-	def get_ptr_offset(self) -> int|None:
-		return self.chain.get_ptr_offset()
+	def __str__(self) -> str:
+		return f"READ({str(self.var)},{self.uses_str()})"
 
 
-class VarWrite():
-	def __init__(self, var:Var, value:idaapi.cexpr_t, chain:UseChain):
-		self.var = var
+class VarWrite(VarUseChain):
+	def __init__(self, var:Var, value:idaapi.cexpr_t, *uses:VarUse):
+		super().__init__(var, *uses)
 		self.value = value
 		self.value_type = None
-		self.chain = chain
-
-	def is_possible_ptr(self) -> bool:
-		return self.chain.is_possible_ptr()
-
-	def get_ptr_offset(self) -> int|None:
-		return self.chain.get_ptr_offset()
 
 	def is_assign(self):
 		# TODO helpers are assigns too
-		return len(self.chain) == 0
+		return len(self.uses) == 0
+
+	def __str__(self) -> str:
+		return f"WRITE({str(self.var)},{self.uses_str()})"
 
 
-class CallCast():
-	def __init__(self, var:Var, chain:UseChain, arg_id:int, func_call:FuncCall):
-		self.var = var
-		self.chain = chain
+class CallCast(VarUseChain):
+	def __init__(self, var:Var, arg_id:int, func_call:FuncCall, *uses:VarUse):
+		super().__init__(var, *uses)
 		self.func_call = func_call
 		self.arg_id = arg_id
 		self.arg_type = None
 
 	def is_var_arg(self):
-		return len(self.chain) == 0
+		return len(self.uses) == 0
 
-	def get_ptr_offset(self) -> int|None:
-		return self.chain.get_ptr_offset()
-
-	def is_possible_ptr(self) -> bool:
-		return self.chain.is_possible_ptr()
+	def __str__(self) -> str:
+		return f"CAST({str(self.var)},{self.uses_str()})"
 
 
-class ReturnWrapper:
-	def __init__(self, retval, var:Var, chain:list[VarUse]) -> None:
+class ReturnWrapper(VarUseChain):
+	def __init__(self, var:Var, retval, *uses:VarUse) -> None:
+		super().__init__(var, *uses)
 		self.retval = retval
-		self.var = var
-		self.chain = chain
 
 
 class VarUses:

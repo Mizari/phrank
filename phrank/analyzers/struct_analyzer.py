@@ -367,19 +367,19 @@ class StructAnalyzer(TypeAnalyzer):
 		# weeding out non-pointers
 		for w in writes:
 			if not w.is_possible_ptr():
-				print("non-pointer writes are not supported for now", w.chain)
+				print("non-pointer writes are not supported for now", w)
 				return utils.UNKNOWN_TYPE
 
 		# weeding out non-pointers2
 		for c in casts:
 			if c.is_possible_ptr() is None:
-				print("non-pointer casts are not supported for now", c.chain)
+				print("non-pointer casts are not supported for now", c)
 				return utils.UNKNOWN_TYPE
 
 		# weeding out non-pointers3
 		for r in reads:
 			if not r.is_possible_ptr():
-				print("non-pointer reads are not supported for now", r.chain)
+				print("non-pointer reads are not supported for now", r)
 				return utils.UNKNOWN_TYPE
 
 		# single write at offset 0 does not create new type
@@ -540,9 +540,11 @@ class StructAnalyzer(TypeAnalyzer):
 			return self.gvar2tinfo.get(var.varid, utils.UNKNOWN_TYPE)
 
 	def calculate_implicit_func_call_address(self, func_call:FuncCall) -> int:
-		var, use_chain = func_call.implicit_var_use_chain
-		if var is None:
+		vuc = func_call.implicit_var_use_chain
+		if vuc is None:
 			return -1
+
+		var, use_chain = vuc.var, vuc.uses
 
 		var_tif = self.get_var_tinfo(var)
 		if var_tif is utils.UNKNOWN_TYPE:

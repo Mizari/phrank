@@ -50,13 +50,14 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			self.current_ast_analysis.unknown_retvals.append(retval)
 			return True
 
-		v, ch = utils.get_var_use_chain(retval, actx)
-		if v is None:
+		vuc = utils.get_var_use_chain(retval, actx)
+		if vuc is None:
 			print("Failed to calculate return value use chain", utils.expr2str(retval))
 			self.current_ast_analysis.unknown_casts.append(retval)
 			return True
 
-		rw = ReturnWrapper(retval, v, ch)
+		var, uses = vuc.var, vuc.uses
+		rw = ReturnWrapper(var, retval, *uses)
 		self.current_ast_analysis.returns.append(rw)
 		return True
 
@@ -82,13 +83,14 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 				self.current_ast_analysis.unknown_casts.append(arg)
 				continue
 
-			v, ch = utils.get_var_use_chain(arg, actx)
-			if v is None:
+			vuc = utils.get_var_use_chain(arg, actx)
+			if vuc is None:
 				print("Failed to calculate call argument chain", utils.expr2str(arg))
 				self.current_ast_analysis.unknown_casts.append(arg)
 				continue
 
-			cast = CallCast(v, UseChain(*ch), arg_id, fc)
+			var, uses = vuc.var, vuc.uses
+			cast = CallCast(var, arg_id, fc, *uses)
 			self.current_ast_analysis.call_casts.append(cast)
 		return True
 
@@ -102,13 +104,14 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			self.current_ast_analysis.unknown_asgs.append(expr.x)
 			return True
 
-		v, ch = utils.get_var_use_chain(expr.x, actx)
-		if v is None:
+		vuc = utils.get_var_use_chain(expr.x, actx)
+		if vuc is None:
 			print("Failed to calculate write target chain", utils.expr2str(expr.x))
 			self.current_ast_analysis.unknown_asgs.append(expr.x)
 			return True
 
-		w = VarWrite(v, expr.y, UseChain(*ch))
+		var, uses = vuc.var, vuc.uses
+		w = VarWrite(var, expr.y, *uses)
 		self.current_ast_analysis.var_writes.append(w)
 		return True
 
@@ -124,12 +127,13 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			self.current_ast_analysis.unknown_reads.append(expr)
 			return True
 
-		v, ch = utils.get_var_use_chain(expr, actx)
-		if v is None:
+		vuc = utils.get_var_use_chain(expr, actx)
+		if vuc is None:
 			print("Failed to calculate read chain", utils.expr2str(expr))
 			self.current_ast_analysis.unknown_reads.append(expr)
 			return True
 
-		r = VarRead(v, UseChain(*ch))
+		var, uses = vuc.var, vuc.uses
+		r = VarRead(var, *uses)
 		self.current_ast_analysis.var_reads.append(r)
 		return True
