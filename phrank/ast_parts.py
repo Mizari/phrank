@@ -94,16 +94,16 @@ class VarWrite():
 			return True
 		return False
 
-	def get_ptr_write_offset(self):
+	def get_ptr_write_offset(self) -> int|None:
 		if len(self.chain) == 0:
-			0/0
+			return None
 		if self.chain[0].is_ptr():
 			return self.chain[0].offset
 		if len(self.chain) == 1:
-			0/0
+			return None
 		if self.chain[0].is_add() and self.chain[1].is_ptr():
 			return self.chain[0].offset
-		0/0
+		return None
 
 
 class VarAssign():
