@@ -135,7 +135,10 @@ class StructAnalyzer(TypeAnalyzer):
 			member_type = var_write.value_type
 			if member_type is None or member_type is utils.UNKNOWN_TYPE:
 				member_type = utils.get_int_tinfo(1)
-			self.add_member_type(var_struct.strucid, var_write.get_ptr_write_offset(), member_type)
+			offset = var_write.get_ptr_write_offset()
+			if offset is None:
+				continue
+			self.add_member_type(var_struct.strucid, offset, member_type)
 
 		for var_read in var_uses.reads:
 			if len(var_read.chain) == 0:
@@ -375,7 +378,7 @@ class StructAnalyzer(TypeAnalyzer):
 				return utils.UNKNOWN_TYPE
 
 		# single write at offset 0 does not create new type
-		if len(casts) == 0 and len(writes) == 1 and writes[0].is_ptr_write() and writes[0].get_ptr_write_offset() == 0:
+		if len(var_uses) == 1 and len(writes) == 1 and writes[0].get_ptr_write_offset() == 0:
 			write_type = writes[0].value_type.copy()
 			write_type.create_ptr(write_type)
 			return write_type
@@ -400,6 +403,8 @@ class StructAnalyzer(TypeAnalyzer):
 			cast_end = arg_type.get_size()
 			for w in writes:
 				write_start = w.get_ptr_write_offset()
+				if write_start is None:
+					continue
 				write_end = w.value_type.get_size()
 				# write_start, write_end = w[0], w[1].get_size()
 				if write_start < 0 or write_end > cast_end:
