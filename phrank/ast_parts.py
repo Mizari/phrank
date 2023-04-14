@@ -100,6 +100,7 @@ class VarUse:
 
 
 class VarUseChain:
+	USE_STR = ""
 	def __init__(self, var:Var, *uses:VarUse):
 		self.var = var
 		self.uses = list(uses)
@@ -125,16 +126,18 @@ class VarUseChain:
 			return self.uses[0].offset
 		return None
 
+	def __str__(self) -> str:
+		return f"{self.USE_STR}({str(self.var)},{self.uses_str()})"
+
 
 class VarRead(VarUseChain):
+	USE_STR = "READ"
 	def __init__(self, var:Var, *uses:VarUse):
 		super().__init__(var, *uses)
 
-	def __str__(self) -> str:
-		return f"READ({str(self.var)},{self.uses_str()})"
-
 
 class VarWrite(VarUseChain):
+	USE_STR = "WRITE"
 	def __init__(self, var:Var, value:idaapi.cexpr_t, *uses:VarUse):
 		super().__init__(var, *uses)
 		self.value = value
@@ -144,11 +147,9 @@ class VarWrite(VarUseChain):
 		# TODO helpers are assigns too
 		return len(self.uses) == 0
 
-	def __str__(self) -> str:
-		return f"WRITE({str(self.var)},{self.uses_str()})"
-
 
 class CallCast(VarUseChain):
+	USE_STR = "CAST"
 	def __init__(self, var:Var, arg_id:int, func_call:FuncCall, *uses:VarUse):
 		super().__init__(var, *uses)
 		self.func_call = func_call
@@ -158,11 +159,9 @@ class CallCast(VarUseChain):
 	def is_var_arg(self):
 		return len(self.uses) == 0
 
-	def __str__(self) -> str:
-		return f"CAST({str(self.var)},{self.uses_str()})"
-
 
 class ReturnWrapper(VarUseChain):
+	USE_STR = "RETURN"
 	def __init__(self, var:Var, retval, *uses:VarUse) -> None:
 		super().__init__(var, *uses)
 		self.retval = retval
