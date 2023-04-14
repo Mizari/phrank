@@ -345,7 +345,9 @@ class StructAnalyzer(TypeAnalyzer):
 		assigns = [w for w in writes if w.is_assign()]
 		# single assign can only be one type
 		if len(assigns) == 1:
-			return assigns[0].value_type
+			rv = assigns[0].value_type
+			if rv is None: rv = utils.UNKNOWN_TYPE
+			return rv
 
 		# try to resolve multiple assigns
 		if len(assigns) > 1:
@@ -391,6 +393,8 @@ class StructAnalyzer(TypeAnalyzer):
 		# single cast at offset 0 might be existing type
 		if len(casts) == 1 and casts[0].is_var_arg():
 			arg_type = casts[0].arg_type
+			if arg_type is None:
+				arg_type = utils.UNKNOWN_TYPE
 
 			# casting to something unknown yield unknown
 			if arg_type is utils.UNKNOWN_TYPE:
