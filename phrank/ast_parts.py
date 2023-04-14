@@ -79,6 +79,13 @@ class VarRead():
 		self.var = var
 		self.chain = chain
 
+	def is_ptr_read(self):
+		if len(self.chain) > 0 and self.chain[0].is_ptr():
+			return True
+		if len(self.chain) > 1 and self.chain[0].is_add() and self.chain[1].is_ptr():
+			return True
+		return False
+
 
 class VarWrite():
 	def __init__(self, var:Var, value:idaapi.cexpr_t, chain:list[VarUse]):

@@ -351,6 +351,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 		casts = var_uses.casts
 		writes = var_uses.writes
+		reads = var_uses.reads
 
 		assigns = [w for w in writes if w.is_assign()]
 		# single assign can only be one type
@@ -384,6 +385,12 @@ class StructAnalyzer(TypeAnalyzer):
 		for c in casts:
 			if c.get_ptr_chain_offset() is None:
 				print("non-pointer casts are not supported for now", [str(x) for x in c.chain])
+				return utils.UNKNOWN_TYPE
+
+		# weeding out non-pointers3
+		for r in reads:
+			if not r.is_ptr_read():
+				print("non-pointer reads are not supported for now", [str(x) for x in r.chain])
 				return utils.UNKNOWN_TYPE
 
 		# single write at offset 0 does not create new type
