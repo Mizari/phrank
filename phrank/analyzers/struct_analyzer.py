@@ -126,16 +126,15 @@ class StructAnalyzer(TypeAnalyzer):
 			member_type = var_write.value_type
 			if member_type is None or member_type is utils.UNKNOWN_TYPE:
 				member_type = utils.get_int_tinfo(1)
-			offset = var_write.get_ptr_write_offset()
+			offset = var_write.get_ptr_offset()
 			if offset is None:
 				continue
 			self.add_member_type(var_struct.strucid, offset, member_type)
 
 		for var_read in var_uses.reads:
-			if len(var_read.chain) == 0:
+			offset = var_read.get_ptr_offset()
+			if offset is None:
 				continue
-
-			offset = var_read.chain[0].offset
 			if not var_struct.member_exists(offset):
 				var_struct.add_member(offset)
 
@@ -152,7 +151,7 @@ class StructAnalyzer(TypeAnalyzer):
 			if arg_type.is_ptr():
 				arg_type = arg_type.get_pointed_object()
 
-			offset = cast.get_ptr_chain_offset()
+			offset = cast.get_ptr_offset()
 			if offset is not None:
 				self.add_member_type(var_struct.strucid, offset, arg_type)
 
@@ -269,8 +268,8 @@ class StructAnalyzer(TypeAnalyzer):
 		assigns = []
 		for func_ea in funcs:
 			aa = self.get_ast_analysis(func_ea)
-			for ga in aa.var_assigns:
-				if ga.var.is_gvar(gvar_ea):
+			for ga in aa.iterate_gvar_writes(gvar_ea):
+				if ga.is_assign():
 					assigns.append((func_ea, ga))
 
 		if len(assigns) != 1:
@@ -367,24 +366,24 @@ class StructAnalyzer(TypeAnalyzer):
 
 		# weeding out non-pointers
 		for w in writes:
-			if not w.is_ptr_write():
-				print("non-pointer writes are not supported for now", [str(x) for x in writes])
+			if not w.is_possible_ptr():
+				print("non-pointer writes are not supported for now", w.chain)
 				return utils.UNKNOWN_TYPE
 
 		# weeding out non-pointers2
 		for c in casts:
-			if c.get_ptr_chain_offset() is None:
-				print("non-pointer casts are not supported for now", [str(x) for x in c.chain])
+			if c.is_possible_ptr() is None:
+				print("non-pointer casts are not supported for now", c.chain)
 				return utils.UNKNOWN_TYPE
 
 		# weeding out non-pointers3
 		for r in reads:
-			if not r.is_ptr_read():
-				print("non-pointer reads are not supported for now", [str(x) for x in r.chain])
+			if not r.is_possible_ptr():
+				print("non-pointer reads are not supported for now", r.chain)
 				return utils.UNKNOWN_TYPE
 
 		# single write at offset 0 does not create new type
-		if len(var_uses) == 1 and len(writes) == 1 and writes[0].get_ptr_write_offset() == 0:
+		if len(var_uses) == 1 and len(writes) == 1 and writes[0].get_ptr_offset() == 0:
 			write_type = writes[0].value_type.copy()
 			write_type.create_ptr(write_type)
 			return write_type
@@ -408,7 +407,7 @@ class StructAnalyzer(TypeAnalyzer):
 			# checking that writes do not go outside of casted value
 			cast_end = arg_type.get_size()
 			for w in writes:
-				write_start = w.get_ptr_write_offset()
+				write_start = w.get_ptr_offset()
 				if write_start is None:
 					continue
 				write_end = w.value_type.get_size()

@@ -88,7 +88,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 				self.current_ast_analysis.unknown_casts.append(arg)
 				continue
 
-			cast = CallCast(v, ch, arg_id, fc)
+			cast = CallCast(v, UseChain(*ch), arg_id, fc)
 			self.current_ast_analysis.call_casts.append(cast)
 		return True
 
@@ -108,7 +108,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			self.current_ast_analysis.unknown_asgs.append(expr.x)
 			return True
 
-		w = VarWrite(v, expr.y, ch)
+		w = VarWrite(v, expr.y, UseChain(*ch))
 		self.current_ast_analysis.var_writes.append(w)
 		return True
 
@@ -130,6 +130,6 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			self.current_ast_analysis.unknown_reads.append(expr)
 			return True
 
-		r = VarRead(v, ch)
+		r = VarRead(v, UseChain(*ch))
 		self.current_ast_analysis.var_reads.append(r)
 		return True

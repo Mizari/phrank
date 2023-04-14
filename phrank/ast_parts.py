@@ -98,43 +98,56 @@ class VarUse:
 		return use_type_str + "Use(" + str(self.var) + "," + str(self.offset) + ")"
 
 
+class UseChain:
+	def __init__(self, *uses:VarUse):
+		self.uses = uses
+
+	def __str__(self) -> str:
+		return "->".join(str(u) for u in self.uses)
+
+	def __len__(self) -> int:
+		return len(self.uses)
+
+	def is_possible_ptr(self) -> bool:
+		return self.get_ptr_offset() is not None
+
+	def get_ptr_offset(self) -> int|None:
+		if len(self.uses) == 0:
+			return 0
+
+		use0 = self.uses[0]
+		if len(self.uses) == 1 and (use0.is_ptr() or use0.is_add()):
+			return use0.offset
+
+		if len(self.uses) == 2 and self.uses[0].is_add() and self.uses[1].is_ptr():
+			return self.uses[0].offset
+		return None
+
+
 class VarRead():
-	def __init__(self, var:Var, chain:list[VarUse]):
+	def __init__(self, var:Var, chain:UseChain):
 		self.var = var
 		self.chain = chain
 
-	def is_ptr_read(self):
-		if len(self.chain) > 0 and self.chain[0].is_ptr():
-			return True
-		if len(self.chain) > 1 and self.chain[0].is_add() and self.chain[1].is_ptr():
-			return True
-		return False
+	def is_possible_ptr(self) -> bool:
+		return self.chain.is_possible_ptr()
+
+	def get_ptr_offset(self) -> int|None:
+		return self.chain.get_ptr_offset()
 
 
 class VarWrite():
-	def __init__(self, var:Var, value:idaapi.cexpr_t, chain:list[VarUse]):
+	def __init__(self, var:Var, value:idaapi.cexpr_t, chain:UseChain):
 		self.var = var
 		self.value = value
 		self.value_type = None
 		self.chain = chain
 
-	def is_ptr_write(self):
-		if len(self.chain) > 0 and self.chain[0].is_ptr():
-			return True
-		if len(self.chain) > 1 and self.chain[0].is_add() and self.chain[1].is_ptr():
-			return True
-		return False
+	def is_possible_ptr(self) -> bool:
+		return self.chain.is_possible_ptr()
 
-	def get_ptr_write_offset(self) -> int|None:
-		if len(self.chain) == 0:
-			return None
-		if self.chain[0].is_ptr():
-			return self.chain[0].offset
-		if len(self.chain) == 1:
-			return None
-		if self.chain[0].is_add() and self.chain[1].is_ptr():
-			return self.chain[0].offset
-		return None
+	def get_ptr_offset(self) -> int|None:
+		return self.chain.get_ptr_offset()
 
 	def is_assign(self):
 		# TODO helpers are assigns too
@@ -142,7 +155,7 @@ class VarWrite():
 
 
 class CallCast():
-	def __init__(self, var:Var, chain:list[VarUse], arg_id:int, func_call:FuncCall):
+	def __init__(self, var:Var, chain:UseChain, arg_id:int, func_call:FuncCall):
 		self.var = var
 		self.chain = chain
 		self.func_call = func_call
@@ -152,15 +165,11 @@ class CallCast():
 	def is_var_arg(self):
 		return len(self.chain) == 0
 
-	def get_ptr_chain_offset(self):
-		if len(self.chain) == 0:
-			return 0
-		if len(self.chain) == 1 and self.chain[0].is_add():
-			return self.chain[0].offset
+	def get_ptr_offset(self) -> int|None:
+		return self.chain.get_ptr_offset()
 
-		if len(self.chain) == 1 and self.chain[0].is_ptr():
-			return self.chain[0].offset
-		return None
+	def is_possible_ptr(self) -> bool:
+		return self.chain.is_possible_ptr()
 
 
 class ReturnWrapper:
