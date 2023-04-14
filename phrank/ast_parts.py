@@ -105,12 +105,9 @@ class VarWrite():
 			return self.chain[0].offset
 		return None
 
-
-class VarAssign():
-	def __init__(self, var:Var, value:idaapi.cexpr_t):
-		self.var = var
-		self.value = value
-		self.value_type = None
+	def is_assign(self):
+		# TODO helpers are assigns too
+		return len(self.chain) == 0
 
 
 class FuncCall:

@@ -13,7 +13,6 @@ class ASTAnalysis():
 		self.call_casts : list[CallCast] = []
 		self.calls : list[FuncCall] = []
 
-		self.var_assigns : list[VarAssign] = []
 		self.var_writes  : list[VarWrite]  = []
 		self.var_reads   : list[VarRead]   = []
 
@@ -22,24 +21,16 @@ class ASTAnalysis():
 		self.unknown_reads = []
 		self.unknown_retvals = []
 
-	def iterate_lvar_assigns(self, func_ea:int, lvar_id:int):
-		for a in self.var_assigns:
-			if not a.var.is_lvar(func_ea, lvar_id): continue
-			yield a
-
-	def iterate_gvar_assigns(self, gvar_id:int):
-		for a in self.var_assigns:
-			if not a.var.is_gvar(gvar_id): continue
-			yield a
-
 	def iterate_lvar_writes(self, func_ea:int, lvar_id:int):
 		for w in self.var_writes:
 			if not w.var.is_lvar(func_ea, lvar_id): continue
+			if w.is_assign(): continue
 			yield w
 
 	def iterate_gvar_writes(self, gvar_id:int):
 		for w in self.var_writes:
 			if not w.var.is_gvar(gvar_id): continue
+			if w.is_assign(): continue
 			yield w
 
 	def iterate_lvar_reads(self, func_ea:int, lvar_id:int):

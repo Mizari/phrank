@@ -108,11 +108,6 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			self.current_ast_analysis.unknown_asgs.append(expr.x)
 			return True
 
-		if len(ch) == 0:
-			w = VarAssign(v, expr.y)
-			self.current_ast_analysis.var_assigns.append(w)
-			return True
-		
 		w = VarWrite(v, expr.y, ch)
 		self.current_ast_analysis.var_writes.append(w)
 		return True

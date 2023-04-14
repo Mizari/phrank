@@ -114,13 +114,12 @@ def calculate_type_implicit_call_address(tif:idaapi.tinfo_t, use_chain:list[VarU
 
 class VarUses:
 	def __init__(self):
-		self.assigns:list[VarAssign] = []
 		self.writes:list[VarWrite]   = []
 		self.reads:list[VarRead]     = []
 		self.casts:list[CallCast]    = []
 
 	def __len__(self):
-		return len(self.assigns) + len(self.writes) + len(self.reads) + len(self.casts)
+		return len(self.writes) + len(self.reads) + len(self.casts)
 
 
 class StructAnalyzer(TypeAnalyzer):
@@ -247,8 +246,6 @@ class StructAnalyzer(TypeAnalyzer):
 	def get_lvar_uses(self, func_ea:int, lvar_id:int):
 		var_uses = VarUses()
 		func_aa = self.get_ast_analysis(func_ea)
-		for call_cast in func_aa.iterate_lvar_assigns(func_ea, lvar_id):
-			var_uses.assigns.append(call_cast)
 		for var_read in func_aa.iterate_lvar_reads(func_ea, lvar_id):
 			var_uses.reads.append(var_read)
 		for var_write in func_aa.iterate_lvar_writes(func_ea, lvar_id):
@@ -258,8 +255,6 @@ class StructAnalyzer(TypeAnalyzer):
 		return var_uses
 
 	def analyze_lvar_uses(self, func_ea:int, lvar_id:int, var_uses:VarUses):
-		for var_assign in var_uses.assigns:
-			var_assign.value_type = self.analyze_cexpr(func_ea, var_assign.value)
 		for var_write in var_uses.writes:
 			write_type = self.analyze_cexpr(func_ea, var_write.value)
 			# write exists, just type is unknown. will use simple int instead
@@ -354,11 +349,11 @@ class StructAnalyzer(TypeAnalyzer):
 			print("WARNING:", "found no var uses")
 			return utils.UNKNOWN_TYPE
 
-		assigns = var_uses.assigns
 		casts = var_uses.casts
 		writes = var_uses.writes
 
-		# signle assign can only be one type
+		assigns = [w for w in writes if w.is_assign()]
+		# single assign can only be one type
 		if len(assigns) == 1:
 			return assigns[0].value_type
 
@@ -585,7 +580,8 @@ class StructAnalyzer(TypeAnalyzer):
 			if current_type is utils.UNKNOWN_TYPE:
 				lvar_uses = self.get_lvar_uses(call_ea, arg_id)
 				func_aa = self.get_ast_analysis(arg_id)
-				if len([a for a in func_aa.iterate_lvar_assigns(call_ea, arg_id)]) != 0:
+				arg_assigns = [w for w in func_aa.iterate_lvar_writes(call_ea, arg_id) if w.is_assign()]
+				if len(arg_assigns) != 0:
 					continue
 
 				self.lvar2tinfo[(call_ea, arg_id)] = var_type
