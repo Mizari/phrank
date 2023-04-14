@@ -44,6 +44,30 @@ class Var:
 			return idaapi.get_name(self.varid)
 
 
+class FuncCall:
+	def __init__(self, call_expr:idaapi.cexpr_t):
+		self.call_expr = call_expr.x
+		self.implicit_var_use_chain = None
+		self.args = call_expr.a
+		self.address : int = -1
+		self.name : str = ""
+
+		if self.call_expr.op == idaapi.cot_obj:
+			self.address = self.call_expr.obj_ea
+			self.name = idaapi.get_func_name(self.address)
+		elif self.call_expr.op == idaapi.cot_helper:
+			self.name = self.call_expr.helper
+
+	def is_explicit(self):
+		return self.call_expr.op == idaapi.cot_obj
+
+	def is_helper(self):
+		return self.call_expr.op == idaapi.cot_helper
+
+	def is_implicit(self):
+		return not self.is_explicit() and not self.is_helper()
+
+
 class VarUse:
 	VAR_ADD = 0
 	VAR_PTR = 1
@@ -117,30 +141,6 @@ class VarWrite():
 		return len(self.chain) == 0
 
 
-class FuncCall:
-	def __init__(self, call_expr:idaapi.cexpr_t):
-		self.call_expr = call_expr.x
-		self.implicit_var_use_chain = None
-		self.args = call_expr.a
-		self.address : int = -1
-		self.name : str = ""
-
-		if self.call_expr.op == idaapi.cot_obj:
-			self.address = self.call_expr.obj_ea
-			self.name = idaapi.get_func_name(self.address)
-		elif self.call_expr.op == idaapi.cot_helper:
-			self.name = self.call_expr.helper
-
-	def is_explicit(self):
-		return self.call_expr.op == idaapi.cot_obj
-
-	def is_helper(self):
-		return self.call_expr.op == idaapi.cot_helper
-
-	def is_implicit(self):
-		return not self.is_explicit() and not self.is_helper()
-
-
 class CallCast():
 	def __init__(self, var:Var, chain:list[VarUse], arg_id:int, func_call:FuncCall):
 		self.var = var
@@ -168,3 +168,13 @@ class ReturnWrapper:
 		self.retval = retval
 		self.var = var
 		self.chain = chain
+
+
+class VarUses:
+	def __init__(self):
+		self.writes:list[VarWrite]   = []
+		self.reads:list[VarRead]     = []
+		self.casts:list[CallCast]    = []
+
+	def __len__(self):
+		return len(self.writes) + len(self.reads) + len(self.casts)

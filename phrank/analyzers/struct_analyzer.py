@@ -112,16 +112,6 @@ def calculate_type_implicit_call_address(tif:idaapi.tinfo_t, use_chain:list[VarU
 	return -1
 
 
-class VarUses:
-	def __init__(self):
-		self.writes:list[VarWrite]   = []
-		self.reads:list[VarRead]     = []
-		self.casts:list[CallCast]    = []
-
-	def __len__(self):
-		return len(self.writes) + len(self.reads) + len(self.casts)
-
-
 class StructAnalyzer(TypeAnalyzer):
 	def __init__(self, func_factory=None) -> None:
 		super().__init__(func_factory)
