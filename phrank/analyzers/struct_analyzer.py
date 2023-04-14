@@ -117,6 +117,9 @@ class VarUses:
 		self.reads:list[VarRead]     = []
 		self.casts:list[CallCast]    = []
 
+	def __len__(self):
+		return len(self.assigns) + len(self.writes) + len(self.reads) + len(self.casts)
+
 
 class StructAnalyzer(TypeAnalyzer):
 	def __init__(self, func_factory=None) -> None:
@@ -342,12 +345,13 @@ class StructAnalyzer(TypeAnalyzer):
 		return utils.UNKNOWN_TYPE
 
 	def calculate_var_type_by_uses(self, var_uses: VarUses):
+		if len(var_uses) == 0:
+			print("WARNING:", "found no var uses")
+			return utils.UNKNOWN_TYPE
+
 		assigns = var_uses.assigns
 		casts = var_uses.casts
 		writes = var_uses.writes
-
-		if len(writes) == 0 and len(casts) == 0 and len(assigns) == 0:
-			return utils.UNKNOWN_TYPE
 
 		# signle assign can only be one type
 		if len(assigns) == 1:
