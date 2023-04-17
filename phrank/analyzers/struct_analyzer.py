@@ -126,20 +126,16 @@ class StructAnalyzer(TypeAnalyzer):
 			if var_write.is_assign():
 				continue
 
-			member_type = var_write.value_type
-			if member_type is utils.UNKNOWN_TYPE:
-				member_type = utils.get_int_tinfo(1)
 			offset = var_write.get_ptr_offset()
 			if offset is None:
 				continue
-			self.add_member_type(var_struct.strucid, offset, member_type)
+			self.add_member_type(var_struct.strucid, offset, var_write.value_type)
 
 		for var_read in var_uses.reads:
 			offset = var_read.get_ptr_offset()
 			if offset is None:
 				continue
-			if not var_struct.member_exists(offset):
-				var_struct.add_member(offset)
+			self.add_member_type(var_struct.strucid, offset, utils.UNKNOWN_TYPE)
 
 		for cast in var_uses.casts:
 			# FIXME kostyl
@@ -147,10 +143,6 @@ class StructAnalyzer(TypeAnalyzer):
 				continue
 
 			arg_type = cast.arg_type
-			# cast exists, just type is unknown. will use simple int instead
-			if arg_type is utils.UNKNOWN_TYPE:
-				arg_type = utils.get_int_tinfo(1)
-
 			if arg_type.is_ptr():
 				arg_type = arg_type.get_pointed_object()
 
@@ -168,6 +160,10 @@ class StructAnalyzer(TypeAnalyzer):
 		# use of the member exists, thus there should be the field
 		if not lvar_struct.member_exists(offset):
 			lvar_struct.add_member(offset)
+
+		# if unknown, then simply creating new member is enough
+		if member_type is utils.UNKNOWN_TYPE:
+			return
 
 		next_offset = lvar_struct.get_next_member_offset(offset)
 		if next_offset != -1 and offset + member_type.get_size() > next_offset:
