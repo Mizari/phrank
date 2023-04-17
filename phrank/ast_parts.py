@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import idaapi
+import phrank.utils as utils
 
 
 class ASTCtx:
@@ -141,7 +142,7 @@ class VarWrite(VarUseChain):
 	def __init__(self, var:Var, value:idaapi.cexpr_t, *uses:VarUse):
 		super().__init__(var, *uses)
 		self.value = value
-		self.value_type = None
+		self.value_type = utils.UNKNOWN_TYPE
 
 	def is_assign(self):
 		# TODO helpers are assigns too
@@ -154,7 +155,7 @@ class CallCast(VarUseChain):
 		super().__init__(var, *uses)
 		self.func_call = func_call
 		self.arg_id = arg_id
-		self.arg_type = None
+		self.arg_type = utils.UNKNOWN_TYPE
 
 	def is_var_arg(self):
 		return len(self.uses) == 0

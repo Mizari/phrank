@@ -123,8 +123,11 @@ class StructAnalyzer(TypeAnalyzer):
 		var_struct = Structure(strucid)
 
 		for var_write in var_uses.writes:
+			if var_write.is_assign():
+				continue
+
 			member_type = var_write.value_type
-			if member_type is None or member_type is utils.UNKNOWN_TYPE:
+			if member_type is utils.UNKNOWN_TYPE:
 				member_type = utils.get_int_tinfo(1)
 			offset = var_write.get_ptr_offset()
 			if offset is None:
@@ -145,7 +148,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 			arg_type = cast.arg_type
 			# cast exists, just type is unknown. will use simple int instead
-			if arg_type is None or arg_type is utils.UNKNOWN_TYPE:
+			if arg_type is utils.UNKNOWN_TYPE:
 				arg_type = utils.get_int_tinfo(1)
 
 			if arg_type.is_ptr():
@@ -245,22 +248,13 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def analyze_lvar_uses(self, func_ea:int, lvar_id:int, var_uses:VarUses):
 		for var_write in var_uses.writes:
-			write_type = self.analyze_cexpr(func_ea, var_write.value)
-			# write exists, just type is unknown. will use simple int instead
-			if write_type is utils.UNKNOWN_TYPE:
-				write_type = utils.get_int_tinfo(var_write.value.type.get_size())
-			var_write.value_type = write_type
-		for var_read in var_uses.reads:
-			pass
+			var_write.value_type = self.analyze_cexpr(func_ea, var_write.value)
 		for call_cast in var_uses.casts:
 			address = call_cast.func_call.address
 			if address == -1:
 				continue
 
-			cast_type = call_cast.arg_type
-			if cast_type is None or cast_type is utils.UNKNOWN_TYPE:
-				cast_type = self.analyze_lvar(address, call_cast.arg_id)
-				call_cast.arg_type = cast_type
+			call_cast.arg_type = self.analyze_lvar(address, call_cast.arg_id)
 
 	def analyze_gvar_type_by_assigns(self, gvar_ea:int) -> idaapi.tinfo_t:
 		# analyzing gvar type by assigns to it
@@ -345,16 +339,14 @@ class StructAnalyzer(TypeAnalyzer):
 		assigns = [w for w in writes if w.is_assign()]
 		# single assign can only be one type
 		if len(assigns) == 1:
-			rv = assigns[0].value_type
-			if rv is None: rv = utils.UNKNOWN_TYPE
-			return rv
+			return assigns[0].value_type
 
 		# try to resolve multiple assigns
 		if len(assigns) > 1:
 			# prefer types over non-types
 			strucid_assign_types = []
 			for a in assigns:
-				if a.value_type in (None, utils.UNKNOWN_TYPE):
+				if a.value_type is utils.UNKNOWN_TYPE:
 					continue
 				strucid = utils.tif2strucid(a.value_type)
 				if strucid != idaapi.BADADDR:
@@ -393,8 +385,6 @@ class StructAnalyzer(TypeAnalyzer):
 		# single cast at offset 0 might be existing type
 		if len(casts) == 1 and casts[0].is_var_arg():
 			arg_type = casts[0].arg_type
-			if arg_type is None:
-				arg_type = utils.UNKNOWN_TYPE
 
 			# casting to something unknown yield unknown
 			if arg_type is utils.UNKNOWN_TYPE:
@@ -491,7 +481,7 @@ class StructAnalyzer(TypeAnalyzer):
 				r_types.append(utils.UNKNOWN_TYPE)
 				continue
 
-			r_type = self.analyze_tif_use_chain(var_type, r.chain)
+			r_type = self.analyze_tif_use_chain(var_type, r.uses)
 			if r_type is utils.UNKNOWN_TYPE:
 				print("WARNING: failed to analyze retval chain", utils.expr2str(r.retval))
 			r_types.append(r_type)
