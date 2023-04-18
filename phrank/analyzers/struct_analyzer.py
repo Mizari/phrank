@@ -10,108 +10,6 @@ from phrank.containers.structure import Structure
 from phrank.ast_parts import *
 
 
-def get_struct_tif_call_address(tif:idaapi.tinfo_t, offset):
-	if not tif.is_struct():
-		print("WARNING:", "trying to get call address of non-structure tinfo", str(tif))
-		return -1
-
-	s = Structure.get(tif)
-	if s is None:
-		print("WARNING:", "failed to get structure from", str(tif))
-		return -1
-
-	if s.member_exists(offset):
-		mname = s.get_member_name(offset)
-		x = utils.str2addr(mname)
-		if utils.is_func_start(x):
-			return x
-
-		mcmt = s.get_member_comment(offset)
-		if mcmt is not None:
-			base = 10
-			if mcmt.startswith("0x"): base = 16
-			try:
-				x = int(mcmt, base)
-			except:
-				x = -1
-			if utils.is_func_start(x):
-				return x
-	return -1
-
-
-def get_struct_tif_member_type(tif:idaapi.tinfo_t, offset):
-	s = Structure.get(tif)
-	if s is None:
-		return utils.UNKNOWN_TYPE
-
-	if not s.member_exists(offset):
-		return utils.UNKNOWN_TYPE
-
-	mtif = s.get_member_tinfo(offset)
-	if mtif is None:
-		return utils.UNKNOWN_TYPE
-	return mtif
-
-
-def calculate_type_implicit_call_address(tif:idaapi.tinfo_t, use_chain:list[VarUse]) -> int:
-	if len(use_chain) == 0:
-		print("WARNING", "empty chain")
-		return -1
-
-	use0 = use_chain[0]
-	offset0 = use0.offset
-	# print("doing chain", len(use_chain), str(tif), use0)
-
-	if use0.is_ptr():
-		if not tif.is_ptr():
-			print("WARNING:", "using non-pointer type as pointer", str(tif))
-			return -1
-
-		if tif.is_shifted_ptr():
-			if offset0 != 0:
-				print("WARNING:", "adding to shifted ptr isnt implemented")
-				return -1
-
-			tif, offset0 = utils.get_shifted_base(tif)
-			if tif is None:
-				print("WARNING:", "couldnt get base of shifted pointer")
-				return -1
-			# tif = tif.get_pointed_object()
-
-		ptif = tif.get_pointed_object()
-		if len(use_chain) == 1:
-			return get_struct_tif_call_address(ptif, offset0)
-
-		mtif = get_struct_tif_member_type(ptif, offset0)
-		if mtif is utils.UNKNOWN_TYPE or mtif.is_integral():
-			print("WARNING:", "unknown member for implicit call address", str(ptif), hex(offset0))
-			return -1
-
-		addr = calculate_type_implicit_call_address(mtif, use_chain[1:])
-		if addr == -1:
-			print("WARNING:", "no addr from member", str(ptif), use0)
-		return addr
-
-	if use0.is_add():
-		if len(use_chain) == 1:
-			return get_struct_tif_call_address(tif, offset0)
-
-		if tif.is_ptr():
-			ptif = tif.get_pointed_object()
-			mtif = get_struct_tif_member_type(ptif, offset0)
-			if mtif is utils.UNKNOWN_TYPE:
-				print("WARNING:", "failed to get member tif", str(ptif), hex(offset0))
-				return -1
-			shifted = utils.make_shifted_ptr(tif, mtif, offset0)
-			return calculate_type_implicit_call_address(shifted, use_chain[1:])
-
-		else:
-			print("WARNING", "adding to non-pointers isnt implemented", str(tif))
-			return -1
-
-	return -1
-
-
 class StructAnalyzer(TypeAnalyzer):
 	def __init__(self, func_factory=None) -> None:
 		super().__init__(func_factory)
@@ -531,13 +429,19 @@ class StructAnalyzer(TypeAnalyzer):
 		if vuc is None:
 			return -1
 
-		var, use_chain = vuc.var, vuc.uses
-
-		var_tif = self.get_var_tinfo(var)
+		var_tif = self.get_var_tinfo(vuc.var)
 		if var_tif is utils.UNKNOWN_TYPE:
 			return -1
 
-		addr = calculate_type_implicit_call_address(var_tif, use_chain)
+		final = vuc.get_final_tif(var_tif)
+		if isinstance(final, idaapi.udt_member_t):
+			addr = utils.str2addr(final.cmt) # type:ignore
+			if addr == -1:
+				addr = utils.str2addr(final.name) # type:ignore
+		else:
+			addr = -1
+			print("WARNING:", f"failed to get final member from {var_tif} {[str(x) for x in vuc.uses]}")
+
 		if addr == -1:
 			print("WARNING: unknown implicit call", utils.expr2str(func_call.call_expr, hide_casts=True))
 		return addr

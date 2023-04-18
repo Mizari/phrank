@@ -112,6 +112,53 @@ class VarUseChain:
 	def __len__(self) -> int:
 		return len(self.uses)
 
+	def get_final_tif(self, tif:idaapi.tinfo_t) -> idaapi.tinfo_t|idaapi.udt_member_t|None:
+		if len(self.uses) == 0:
+			return tif
+
+		for i, use in enumerate(self.uses):
+			offset = use.offset
+			if use.is_add():
+				if tif.is_struct() and i == len(self.uses) - 1:
+					return utils.get_tif_member(tif, offset)
+
+				elif tif.is_ptr():
+					ptif = tif.get_pointed_object()
+					mtif = utils.get_tif_member_type(ptif, offset)
+					if mtif is utils.UNKNOWN_TYPE:
+						print("WARNING:", "failed to get member tif", str(ptif), hex(offset))
+						return None
+					tif = utils.make_shifted_ptr(tif, mtif, offset)
+
+				else:
+					return None
+
+			elif use.is_ptr():
+				if not tif.is_ptr():
+					print("WARNING:", "using non-pointer type as pointer", str(tif))
+					return None
+
+				if tif.is_shifted_ptr():
+					tif, shift_offset = utils.get_shifted_base(tif)
+					if tif is None:
+						print("WARNING:", "couldnt get base of shifted pointer")
+						return None
+					offset += shift_offset
+
+				ptif = tif.get_pointed_object()
+				if ptif.is_struct() and i == len(self.uses) - 1:
+					return utils.get_tif_member(ptif, offset)
+
+				mtif = utils.get_tif_member_type(ptif, offset)
+				if mtif is utils.UNKNOWN_TYPE:
+					print("WARNING:", "unknown struct member", str(ptif), hex(offset))
+					return None
+
+				tif = mtif
+
+			else:
+				return None
+
 	def is_possible_ptr(self) -> bool:
 		return self.get_ptr_offset() is not None
 
