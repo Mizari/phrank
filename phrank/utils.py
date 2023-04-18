@@ -43,6 +43,15 @@ def get_pointer_size() -> int:
 		return 2
 
 def str2addr(s:str) -> int:
+	base = 10
+	if s.startswith("0x"): base = 16
+	try:
+		x = int(s, base)
+	except:
+		x = -1
+	if idaapi.is_mapped(x):
+		return x
+
 	rv = idc.get_name_ea_simple(s)
 	if rv == idaapi.BADADDR: rv = -1
 	return rv
