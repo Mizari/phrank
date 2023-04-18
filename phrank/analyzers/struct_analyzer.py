@@ -468,7 +468,7 @@ class StructAnalyzer(TypeAnalyzer):
 			current_type = self.lvar2tinfo.get((call_ea, arg_id), utils.UNKNOWN_TYPE)
 			if current_type is utils.UNKNOWN_TYPE:
 				lvar_uses = self.get_lvar_uses(call_ea, arg_id)
-				func_aa = self.get_ast_analysis(arg_id)
+				func_aa = self.get_ast_analysis(call_ea)
 				arg_assigns = [w for w in func_aa.iterate_lvar_writes(call_ea, arg_id) if w.is_assign()]
 				if len(arg_assigns) != 0:
 					continue

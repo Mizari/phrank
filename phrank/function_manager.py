@@ -21,6 +21,9 @@ class FunctionManager:
 		self.ast_analysis_cache = {}
 
 	def get_ast_analysis(self, func_ea:int) -> ASTAnalysis:
+		if not utils.is_func_start(func_ea):
+			print("WARNING:", f"{hex(func_ea)} is not a function")
+
 		cached = self.ast_analysis_cache.get(func_ea)
 		if cached is not None:
 			return cached
