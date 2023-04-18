@@ -107,13 +107,13 @@ class StructAnalyzer(TypeAnalyzer):
 		for func_ea in touched_functions:
 			func_aa = self.get_ast_analysis(func_ea)
 			for func_call in func_aa.calls:
-				if not func_call.is_implicit(): continue
+				if func_call.is_explicit(): continue
 
 				frm = func_call.call_expr.ea
 				if frm == idaapi.BADADDR:
 					continue
 
-				call_ea = self.calculate_implicit_func_call_address(func_call)
+				call_ea = self.get_call_address(func_call)
 				if call_ea == -1:
 					continue
 
@@ -424,7 +424,10 @@ class StructAnalyzer(TypeAnalyzer):
 		else:
 			return self.gvar2tinfo.get(var.varid, utils.UNKNOWN_TYPE)
 
-	def calculate_implicit_func_call_address(self, func_call:FuncCall) -> int:
+	def get_call_address(self, func_call:FuncCall) -> int:
+		if func_call.is_explicit():
+			return func_call.address
+
 		vuc = func_call.implicit_var_use_chain
 		if vuc is None:
 			return -1
@@ -448,13 +451,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def propagate_var_type_in_casts(self, var_type:idaapi.tinfo_t, casts:list[CallCast]):
 		for call_cast in casts:
-			func_call = call_cast.func_call
-			call_ea = -1
-			if func_call.is_explicit():
-				call_ea = func_call.address
-			elif func_call.is_implicit():
-				call_ea = self.calculate_implicit_func_call_address(func_call)
-
+			call_ea = self.get_call_address(call_cast.func_call)
 			if call_ea == -1:
 				continue
 
@@ -468,13 +465,13 @@ class StructAnalyzer(TypeAnalyzer):
 			current_type = self.lvar2tinfo.get((call_ea, arg_id), utils.UNKNOWN_TYPE)
 			if current_type is utils.UNKNOWN_TYPE:
 				lvar_uses = self.get_lvar_uses(call_ea, arg_id)
-				func_aa = self.get_ast_analysis(call_ea)
-				arg_assigns = [w for w in func_aa.iterate_lvar_writes(call_ea, arg_id) if w.is_assign()]
+				arg_assigns = [w for w in lvar_uses.writes if w.is_assign()]
 				if len(arg_assigns) != 0:
 					continue
 
 				self.lvar2tinfo[(call_ea, arg_id)] = var_type
 				self.propagate_var(Var(call_ea, arg_id))
+				self.analyze_lvar_uses(call_ea, arg_id, lvar_uses)
 				self.add_type_uses(lvar_uses, var_type)
 				continue
 
