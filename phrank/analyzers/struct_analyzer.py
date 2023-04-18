@@ -119,15 +119,12 @@ class StructAnalyzer(TypeAnalyzer):
 		self.vtable_analyzer = VtableAnalyzer(func_factory)
 
 	def add_type_uses(self, var_uses:VarUses, var_type:idaapi.tinfo_t):
-		strucid = utils.tif2strucid(var_type)
-		var_struct = Structure(strucid)
-
 		for var_write in var_uses.writes:
 			if var_write.is_assign(): continue
-			self.add_type_use(strucid, var_write, var_write.value_type)
+			self.add_type_use(var_type, var_write, var_write.value_type)
 
 		for var_read in var_uses.reads:
-			self.add_type_use(strucid, var_read, utils.UNKNOWN_TYPE)
+			self.add_type_use(var_type, var_read, utils.UNKNOWN_TYPE)
 
 		for cast in var_uses.casts:
 			# FIXME kostyl
@@ -138,13 +135,17 @@ class StructAnalyzer(TypeAnalyzer):
 			if arg_type.is_ptr():
 				arg_type = arg_type.get_pointed_object()
 
-			self.add_type_use(strucid, cast, arg_type)
+			self.add_type_use(var_type, cast, arg_type)
 
-	def add_type_use(self, strucid:int, vuc:VarUseChain, var_type:idaapi.tinfo_t):
-		offset = vuc.get_ptr_offset()
-		if offset is None:
-			return
-		self.add_member_type(strucid, offset, var_type)
+	def add_type_use(self, var_type:idaapi.tinfo_t, vuc:VarUseChain, member_type:idaapi.tinfo_t):
+		if var_type.is_ptr():
+			var_type = var_type.get_pointed_object()
+			if var_type.is_struct():
+				strucid = utils.tif2strucid(var_type)
+				offset = vuc.get_ptr_offset()
+				if offset is None:
+					return
+				self.add_member_type(strucid, offset, member_type)
 
 	def add_member_type(self, strucid:int, offset:int, member_type:idaapi.tinfo_t):
 		# do not modificate existing types
