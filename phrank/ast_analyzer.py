@@ -9,14 +9,14 @@ from phrank.ast_analysis import *
 class ASTAnalyzer(idaapi.ctree_visitor_t):
 	def __init__(self):
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
-		self.current_ast_analysis: ASTAnalysis|None = None
+		self.current_ast_analysis: ASTAnalysis = None # type:ignore
 
 	def analyze_cfunc(self, cfunc: idaapi.cfunc_t) -> ASTAnalysis:
 		actx = ASTCtx.from_cfunc(cfunc)
 		self.current_ast_analysis = ASTAnalysis(actx)
 		self.apply_to(cfunc.body, None)
 
-		rv, self.current_ast_analysis = self.current_ast_analysis, None
+		rv, self.current_ast_analysis = self.current_ast_analysis, None # type:ignore
 		return rv
 
 	def visit_insn(self, insn: idaapi.cinsn_t) -> int:
