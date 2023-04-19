@@ -4,7 +4,7 @@ import idaapi
 
 from phrank.ast_parts import *
 from phrank.util_func import is_func_start
-from phrank.util_tif import get_tif_member_name, get_pointer_object
+from phrank.util_tif import get_tif_member_name
 
 ARRAY_FUNCS = {"qmemcpy", "memcpy", "strncpy", "memset", "memmove", "strncat", "strncmp"}
 ARRAY_FUNCS.update(['_' + s for s in ARRAY_FUNCS])
@@ -37,94 +37,6 @@ def get_var(expr:idaapi.cexpr_t, actx:ASTCtx) -> Var|None:
 	if expr.op == idaapi.cot_obj and not is_func_start(expr.obj_ea):
 		return Var(expr.obj_ea)
 	return None
-
-@_strip_casts
-def get_var_assign(expr:idaapi.cexpr_t, actx:ASTCtx) -> Var|None:
-	var = get_var(expr, actx)
-	if var is not None:
-		return var
-
-	if expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
-		func = expr.x.helper
-		if func in HELPER_FUNCS:
-			return get_var(expr.a[0], actx)
-
-	if expr.op == idaapi.cot_ptr and expr.x.op == idaapi.cot_cast and expr.x.x.op == idaapi.cot_ref:
-		return get_var(expr.x.x.x, actx)
-
-	return None
-
-@_strip_casts
-def get_var_read(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,int]:
-	if expr.op == idaapi.cot_memptr:
-		return get_var(expr.x, actx), expr.m + expr.x.type.get_size()
-
-	if expr.op == idaapi.cot_idx and expr.y.op == idaapi.cot_num:
-		var = get_var(expr.x, actx)
-		obj_type = get_pointer_object(expr.x.type)
-		obj_size = obj_type.get_size()
-		assert obj_size != idaapi.BADSIZE
-		return var, (expr.y.n._value) * obj_size
-
-	if expr.op == idaapi.cot_ptr:
-		return get_var_offset(expr.x, actx)
-
-	return None, -1
-
-# not found is (None, any_int)
-def get_var_ptr_write(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,int]:
-	if expr.op == idaapi.cot_idx and expr.y.op == idaapi.cot_num:
-		var = get_var(expr.x, actx)
-		obj_type = get_pointer_object(expr.x.type)
-		obj_size = obj_type.get_size()
-		assert obj_size != idaapi.BADSIZE
-		return var, (expr.y.n._value) * obj_size
-
-	if expr.op == idaapi.cot_ptr:
-		return get_var_offset(expr.x, actx)
-
-	if expr.op == idaapi.cot_memptr:
-		return get_var(expr.x, actx), expr.m
-
-	return None, -1
-
-def get_var_struct_write(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None,int]:
-	if expr.op != idaapi.cot_memref:
-		return None, -1
-
-	offset = 0
-	while expr.op == idaapi.cot_memref:
-		offset += expr.m
-		expr = expr.x
-	return get_var(expr, actx), offset
-
-# trying to get various forms of "var + X", where X is int
-# not found is (None, any_int)
-@_strip_casts
-def get_var_offset(expr:idaapi.cexpr_t, actx:ASTCtx) -> tuple[Var|None, int]:
-	var = get_var(expr, actx)
-	if var is not None:
-		return var, 0
-
-	# form ((CASTTYPE*)var) + N
-	elif expr.op in [idaapi.cot_add, idaapi.cot_sub] and expr.y.op == idaapi.cot_num:
-		offset = expr.y.n._value
-		if expr.op == idaapi.cot_sub:
-			offset = - offset
-
-		op_x = expr.x
-		var = get_var(op_x, actx)
-
-		if op_x.type.is_ptr():
-			sz = op_x.type.get_pointed_object().get_size()
-			if sz == idaapi.BADSIZE: 
-				raise BaseException("Failed to get object's size")
-			offset = offset * sz
-
-		return var, offset
-
-	else:
-		return None, -1
 
 @_strip_casts
 def get_int(expr:idaapi.cexpr_t) -> int|None:
