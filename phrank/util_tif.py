@@ -112,7 +112,7 @@ def get_shifted_base(shifted:idaapi.tinfo_t):
 
 def get_tif_member(tif:idaapi.tinfo_t, offset:int) -> idaapi.udt_member_t|None:
 	udt_member = idaapi.udt_member_t()
-	udt_member.offset = offset
+	udt_member.offset = offset * 8
 	if tif.find_udt_member(udt_member, idaapi.STRMEM_OFFSET) == -1:
 		return None
 	else:
@@ -120,7 +120,7 @@ def get_tif_member(tif:idaapi.tinfo_t, offset:int) -> idaapi.udt_member_t|None:
 
 def get_tif_member_name(tif:idaapi.tinfo_t, offset:int) -> str:
 	udt_member = idaapi.udt_member_t()
-	udt_member.offset = offset
+	udt_member.offset = offset * 8
 	if tif.find_udt_member(udt_member, idaapi.STRMEM_OFFSET) == -1:
 		return ""
 	else:
@@ -128,7 +128,7 @@ def get_tif_member_name(tif:idaapi.tinfo_t, offset:int) -> str:
 
 def get_tif_member_type(tif:idaapi.tinfo_t, offset:int) -> idaapi.tinfo_t:
 	udt_member = idaapi.udt_member_t()
-	udt_member.offset = offset
+	udt_member.offset = offset * 8
 	if tif.find_udt_member(udt_member, idaapi.STRMEM_OFFSET) == -1:
 		return UNKNOWN_TYPE
 	else:

@@ -119,8 +119,14 @@ class VarUseChain:
 		for i, use in enumerate(self.uses):
 			offset = use.offset
 			if use.is_add():
-				if tif.is_struct() and i == len(self.uses) - 1:
-					return utils.get_tif_member(tif, offset)
+				if tif.is_struct():
+					if i == len(self.uses) - 1:
+						return utils.get_tif_member(tif, offset)
+
+					tif = utils.get_tif_member_type(tif, offset)
+					if tif is utils.UNKNOWN_TYPE:
+						print("WARNING:", "failed to get member tif", str(tif), hex(offset))
+						return None
 
 				elif tif.is_ptr():
 					ptif = tif.get_pointed_object()
@@ -146,15 +152,18 @@ class VarUseChain:
 					offset += shift_offset
 
 				ptif = tif.get_pointed_object()
-				if ptif.is_struct() and i == len(self.uses) - 1:
-					return utils.get_tif_member(ptif, offset)
+				if ptif.is_struct():
+					if i == len(self.uses) - 1:
+						return utils.get_tif_member(ptif, offset)
 
-				mtif = utils.get_tif_member_type(ptif, offset)
-				if mtif is utils.UNKNOWN_TYPE:
-					print("WARNING:", "unknown struct member", str(ptif), hex(offset))
+					tif = utils.get_tif_member_type(ptif, offset)
+					if tif is utils.UNKNOWN_TYPE:
+						print("WARNING:", "unknown struct member", str(ptif), hex(offset))
+						return None
+
+				else:
+					print("WARNING:", "access pointer of non-struct isnt implemented", str(tif))
 					return None
-
-				tif = mtif
 
 			else:
 				return None
