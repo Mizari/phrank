@@ -436,11 +436,11 @@ class StructAnalyzer(TypeAnalyzer):
 		if var_tif is utils.UNKNOWN_TYPE:
 			return -1
 
-		final = vuc.get_final_tif(var_tif)
-		if isinstance(final, idaapi.udt_member_t):
-			addr = utils.str2addr(final.cmt) # type:ignore
+		member = vuc.transform_type(var_tif)
+		if not isinstance(member, idaapi.tinfo_t) and member is not None:
+			addr = utils.str2addr(member.comment)
 			if addr == -1:
-				addr = utils.str2addr(final.name) # type:ignore
+				addr = utils.str2addr(member.name)
 		else:
 			addr = -1
 			print("WARNING:", f"failed to get final member from {var_tif} {[str(x) for x in vuc.uses]}")
