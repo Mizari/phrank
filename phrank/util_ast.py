@@ -18,28 +18,13 @@ PRINTF_FUNCS.update(['_' + s for s in PRINTF_FUNCS])
 HELPER_FUNCS = {"LOWORD", "HIWORD", "LOBYTE"}
 
 
-
 def strip_casts(expr:idaapi.cexpr_t) -> idaapi.cexpr_t:
 	while expr.op == idaapi.cot_cast:
 		expr = expr.x
 	return expr
 
-def _strip_casts(func):
-	def wrapper(expr, *args, **kwargs):
-		expr = strip_casts(expr)
-		return func(expr, *args, **kwargs)
-	return wrapper
-
-@_strip_casts
-def get_var(expr:idaapi.cexpr_t, actx:ASTCtx) -> Var|None:
-	if expr.op == idaapi.cot_var:
-		return Var(actx.addr, expr.v.idx)
-	if expr.op == idaapi.cot_obj and not is_func_start(expr.obj_ea):
-		return Var(expr.obj_ea)
-	return None
-
-@_strip_casts
 def get_int(expr:idaapi.cexpr_t) -> int|None:
+	expr = strip_casts(expr)
 	if expr.op == idaapi.cot_ref and expr.x.op == idaapi.cot_obj:
 		return expr.x.obj_ea
 
@@ -102,96 +87,3 @@ def expr2str(expr:idaapi.cexpr_t, hide_casts=False) -> str:
 	else:
 		print("unknown op in e2s", expr.opname)
 		return "UNKNOWN"
-
-def extract_vars(expr:idaapi.cexpr_t, actx:ASTCtx) -> set[Var]:
-	v = get_var(expr, actx)
-	if v is not None:
-		return {v}
-	vars = set()
-	if expr.x is not None:
-		vars.update(extract_vars(expr.x, actx))
-	if expr.y is not None:
-		vars.update(extract_vars(expr.y, actx))
-	if expr.z is not None:
-		vars.update(extract_vars(expr.z, actx))
-	if expr.op == idaapi.cot_call:
-		for a in expr.a:
-			vars.update(extract_vars(a, actx))
-	vars_dict = {v.varid: v for v in vars}
-	vars = set(vars_dict.values())
-	return vars
-
-def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
-	var = get_var(expr, actx)
-	if var is not None:
-		return VarUseChain(var)
-
-	expr = strip_casts(expr)
-	if expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
-		vuc = get_var_use_chain(expr.a[0], actx)
-		if vuc is None:
-			print("unknown chain var use expression operand", expr.opname, expr2str(expr))
-			return None
-
-		var, use_chain = vuc.var, vuc.uses
-
-		helper2offset = {
-			"HIBYTE": 1,
-			"LOBYTE": 0,
-			"HIWORD": 2,
-			"LOWORD": 0,
-		}
-		offset = helper2offset.get(expr.x.helper)
-		if offset is None:
-			print("WARNING: unknown helper", expr.x.helper)
-			return None
-		if len(use_chain) != 0:
-			print("WARNING: helper of non-variable expr", expr2str(expr))
-
-		var_use = VarUse(offset, VarUse.VAR_HELPER)
-		use_chain.append(var_use)
-		return VarUseChain(var, *use_chain)
-
-	op2use_type = {
-		idaapi.cot_ptr: VarUse.VAR_PTR,
-		idaapi.cot_memptr: VarUse.VAR_PTR,
-		idaapi.cot_memref: VarUse.VAR_REF,
-		idaapi.cot_ref: VarUse.VAR_REF,
-		idaapi.cot_idx: VarUse.VAR_PTR,
-		idaapi.cot_add: VarUse.VAR_ADD,
-		idaapi.cot_sub: VarUse.VAR_ADD,
-	}
-	use_type = op2use_type.get(expr.op)
-	if use_type is None:
-		print("unknown chain var use expression operand", expr.opname, expr2str(expr))
-		return None
-
-	vuc = get_var_use_chain(expr.x, actx)
-	if vuc is None:
-		return None
-
-	var, use_chain = vuc.var, vuc.uses
-
-	if expr.op in [idaapi.cot_ptr, idaapi.cot_ref]:
-		offset = 0
-
-	elif expr.op in [idaapi.cot_memptr, idaapi.cot_memref]:
-		offset = expr.m
-
-	elif expr.op in [idaapi.cot_idx, idaapi.cot_add, idaapi.cot_sub]:
-		offset = get_int(expr.y)
-		if offset is None:
-			print("unknown expression add operand", expr2str(expr.y))
-			return None
-		if expr.op == idaapi.cot_sub: offset = -offset
-		if expr.x.type.is_ptr():
-			pointed = expr.x.type.get_pointed_object()
-			offset *= pointed.get_size()
-
-	# this should not happen at all, since expr op is check when use_type gets got
-	else:
-		raise Exception("Wut")
-
-	var_use = VarUse(offset, use_type)
-	use_chain.append(var_use)
-	return VarUseChain(var, *use_chain)

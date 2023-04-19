@@ -44,6 +44,107 @@ class Var:
 		else:
 			return idaapi.get_name(self.varid)
 
+def get_var(expr:idaapi.cexpr_t, actx:ASTCtx) -> Var|None:
+	expr = utils.strip_casts(expr)
+	if expr.op == idaapi.cot_var:
+		return Var(actx.addr, expr.v.idx)
+	if expr.op == idaapi.cot_obj and not utils.is_func_start(expr.obj_ea):
+		return Var(expr.obj_ea)
+	return None
+
+def extract_vars(expr:idaapi.cexpr_t, actx:ASTCtx) -> set[Var]:
+	v = get_var(expr, actx)
+	if v is not None:
+		return {v}
+	vars = set()
+	if expr.x is not None:
+		vars.update(extract_vars(expr.x, actx))
+	if expr.y is not None:
+		vars.update(extract_vars(expr.y, actx))
+	if expr.z is not None:
+		vars.update(extract_vars(expr.z, actx))
+	if expr.op == idaapi.cot_call:
+		for a in expr.a:
+			vars.update(extract_vars(a, actx))
+	vars_dict = {v.varid: v for v in vars}
+	vars = set(vars_dict.values())
+	return vars
+
+def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
+	var = get_var(expr, actx)
+	if var is not None:
+		return VarUseChain(var)
+
+	expr = utils.strip_casts(expr)
+	if expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
+		vuc = get_var_use_chain(expr.a[0], actx)
+		if vuc is None:
+			print("unknown chain var use expression operand", expr.opname, utils.expr2str(expr))
+			return None
+
+		var, use_chain = vuc.var, vuc.uses
+
+		helper2offset = {
+			"HIBYTE": 1,
+			"LOBYTE": 0,
+			"HIWORD": 2,
+			"LOWORD": 0,
+		}
+		offset = helper2offset.get(expr.x.helper)
+		if offset is None:
+			print("WARNING: unknown helper", expr.x.helper)
+			return None
+		if len(use_chain) != 0:
+			print("WARNING: helper of non-variable expr", utils.expr2str(expr))
+
+		var_use = VarUse(offset, VarUse.VAR_HELPER)
+		use_chain.append(var_use)
+		return VarUseChain(var, *use_chain)
+
+	op2use_type = {
+		idaapi.cot_ptr: VarUse.VAR_PTR,
+		idaapi.cot_memptr: VarUse.VAR_PTR,
+		idaapi.cot_memref: VarUse.VAR_REF,
+		idaapi.cot_ref: VarUse.VAR_REF,
+		idaapi.cot_idx: VarUse.VAR_PTR,
+		idaapi.cot_add: VarUse.VAR_ADD,
+		idaapi.cot_sub: VarUse.VAR_ADD,
+	}
+	use_type = op2use_type.get(expr.op)
+	if use_type is None:
+		print("unknown chain var use expression operand", expr.opname, utils.expr2str(expr))
+		return None
+
+	vuc = get_var_use_chain(expr.x, actx)
+	if vuc is None:
+		return None
+
+	var, use_chain = vuc.var, vuc.uses
+
+	if expr.op in [idaapi.cot_ptr, idaapi.cot_ref]:
+		offset = 0
+
+	elif expr.op in [idaapi.cot_memptr, idaapi.cot_memref]:
+		offset = expr.m
+
+	elif expr.op in [idaapi.cot_idx, idaapi.cot_add, idaapi.cot_sub]:
+		offset = utils.get_int(expr.y)
+		if offset is None:
+			print("unknown expression add operand", utils.expr2str(expr.y))
+			return None
+		if expr.op == idaapi.cot_sub: offset = -offset
+		if expr.x.type.is_ptr():
+			pointed = expr.x.type.get_pointed_object()
+			offset *= pointed.get_size()
+
+	# this should not happen at all, since expr op is check when use_type gets got
+	else:
+		raise Exception("Wut")
+
+	var_use = VarUse(offset, use_type)
+	use_chain.append(var_use)
+	return VarUseChain(var, *use_chain)
+
 
 class FuncCall:
 	def __init__(self, call_expr:idaapi.cexpr_t):
@@ -112,31 +213,44 @@ class VarUseChain:
 	def __len__(self) -> int:
 		return len(self.uses)
 
-	def get_final_tif(self, tif:idaapi.tinfo_t) -> idaapi.tinfo_t|idaapi.udt_member_t|None:
+	def transform_type(self, tif:idaapi.tinfo_t) -> idaapi.tinfo_t|utils.ShiftedStruct|None:
 		if len(self.uses) == 0:
 			return tif
 
+		next_tif = tif
 		for i, use in enumerate(self.uses):
+			if next_tif is utils.UNKNOWN_TYPE:
+				print("WARNING:", f"failed to calculate next step on {i}")
+				return None
+			tif = next_tif
+
 			offset = use.offset
 			if use.is_add():
 				if tif.is_struct():
-					if i == len(self.uses) - 1:
-						return utils.get_tif_member(tif, offset)
-
-					tif = utils.get_tif_member_type(tif, offset)
-					if tif is utils.UNKNOWN_TYPE:
+					member = utils.get_tif_member(tif, offset)
+					if member is None:
 						print("WARNING:", "failed to get member tif", str(tif), hex(offset))
 						return None
 
-				elif tif.is_ptr():
-					ptif = tif.get_pointed_object()
-					mtif = utils.get_tif_member_type(ptif, offset)
+					if i == len(self.uses) - 1:
+						return member
+
+					next_tif = member.tif
+
+				elif tif.is_ptr() and (ptif := tif.get_pointed_object()).is_struct():
+					member = utils.get_tif_member(ptif, offset)
+					if member is None:
+						print("WARNING:", "failed to get member", str(ptif), hex(offset))
+						return None
+
+					mtif = member.tif
 					if mtif is utils.UNKNOWN_TYPE:
 						print("WARNING:", "failed to get member tif", str(ptif), hex(offset))
 						return None
 					tif = utils.make_shifted_ptr(tif, mtif, offset)
 
 				else:
+					print("WARNING:", f"adding to tif {str(tif)} isnt implemented")
 					return None
 
 			elif use.is_ptr():
@@ -152,20 +266,22 @@ class VarUseChain:
 					offset += shift_offset
 
 				ptif = tif.get_pointed_object()
-				if ptif.is_struct():
-					if i == len(self.uses) - 1:
-						return utils.get_tif_member(ptif, offset)
-
-					tif = utils.get_tif_member_type(ptif, offset)
-					if tif is utils.UNKNOWN_TYPE:
-						print("WARNING:", "unknown struct member", str(ptif), hex(offset))
-						return None
-
-				else:
+				if not ptif.is_struct():
 					print("WARNING:", "access pointer of non-struct isnt implemented", str(tif))
 					return None
 
+				member = utils.get_tif_member(ptif, offset)
+				if member is None:
+					print("WARNING:", "failed to get member tif", str(ptif), hex(offset))
+					return None
+
+				if i == len(self.uses) - 1:
+					return member
+
+				next_tif = member.tif
+
 			else:
+				print("WARNING:", f"this use {str(use)} isnt implemented")
 				return None
 
 	def is_possible_ptr(self) -> bool:
