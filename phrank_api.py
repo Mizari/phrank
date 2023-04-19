@@ -8,6 +8,7 @@ from phrank.cfunction_factory import CFunctionFactory
 import phrank.settings as settings
 
 from phrank.utils import *
+from phrank.ast_parts import *
 
 
 def propagate_var(var:Var):
