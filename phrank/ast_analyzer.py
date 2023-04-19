@@ -45,12 +45,12 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		if retval.op == idaapi.cot_num:
 			return True
 
-		if len(utils.extract_vars(retval, actx)) > 1:
+		if len(extract_vars(retval, actx)) > 1:
 			print("Found multiple variables in return value", utils.expr2str(retval))
 			self.current_ast_analysis.unknown_retvals.append(retval)
 			return True
 
-		vuc = utils.get_var_use_chain(retval, actx)
+		vuc = get_var_use_chain(retval, actx)
 		if vuc is None:
 			print("Failed to calculate return value use chain", utils.expr2str(retval))
 			self.current_ast_analysis.unknown_casts.append(retval)
@@ -67,8 +67,8 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		fc = FuncCall(expr)
 		self.current_ast_analysis.calls.append(fc)
 		if fc.is_implicit():
-			if len(utils.extract_vars(expr.x, actx)) == 1:
-				fc.implicit_var_use_chain = utils.get_var_use_chain(expr.x, actx)
+			if len(extract_vars(expr.x, actx)) == 1:
+				fc.implicit_var_use_chain = get_var_use_chain(expr.x, actx)
 			else:
 				print("Failed to get var use chain of implicit call for", utils.expr2str(expr.x))
 
@@ -78,12 +78,12 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			if arg.op in [idaapi.cot_num, idaapi.cot_sizeof, idaapi.cot_call]:
 				continue
 
-			if len(utils.extract_vars(arg, actx)) > 1:
+			if len(extract_vars(arg, actx)) > 1:
 				print("Found multiple variables in call argument", utils.expr2str(arg))
 				self.current_ast_analysis.unknown_casts.append(arg)
 				continue
 
-			vuc = utils.get_var_use_chain(arg, actx)
+			vuc = get_var_use_chain(arg, actx)
 			if vuc is None:
 				print("Failed to calculate call argument chain", utils.expr2str(arg))
 				self.current_ast_analysis.unknown_casts.append(arg)
@@ -99,12 +99,12 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 
 		self.apply_to(expr.y, None)
 
-		if len(utils.extract_vars(expr.x, actx)) > 1:
+		if len(extract_vars(expr.x, actx)) > 1:
 			print("Found multiple variables in write target", utils.expr2str(expr.x))
 			self.current_ast_analysis.unknown_asgs.append(expr.x)
 			return True
 
-		vuc = utils.get_var_use_chain(expr.x, actx)
+		vuc = get_var_use_chain(expr.x, actx)
 		if vuc is None:
 			print("Failed to calculate write target chain", utils.expr2str(expr.x))
 			self.current_ast_analysis.unknown_asgs.append(expr.x)
@@ -122,12 +122,12 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		if expr.op == idaapi.cot_num:
 			return True
 
-		if len(utils.extract_vars(expr, actx)) > 1:
+		if len(extract_vars(expr, actx)) > 1:
 			print("Found multiple variables in read", utils.expr2str(expr))
 			self.current_ast_analysis.unknown_reads.append(expr)
 			return True
 
-		vuc = utils.get_var_use_chain(expr, actx)
+		vuc = get_var_use_chain(expr, actx)
 		if vuc is None:
 			print("Failed to calculate read chain", utils.expr2str(expr))
 			self.current_ast_analysis.unknown_reads.append(expr)
