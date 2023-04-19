@@ -2,10 +2,6 @@ from __future__ import annotations
 
 import idaapi
 
-from phrank.ast_parts import *
-from phrank.util_func import is_func_start
-from phrank.util_tif import get_tif_member_name
-
 ARRAY_FUNCS = {"qmemcpy", "memcpy", "strncpy", "memset", "memmove", "strncat", "strncmp"}
 ARRAY_FUNCS.update(['_' + s for s in ARRAY_FUNCS])
 
@@ -35,6 +31,14 @@ def get_int(expr:idaapi.cexpr_t) -> int|None:
 		return expr.n._value
 
 	return None
+
+def get_tif_member_name(tif:idaapi.tinfo_t, offset:int) -> str:
+	udt_member = idaapi.udt_member_t()
+	udt_member.offset = offset * 8
+	if tif.find_udt_member(udt_member, idaapi.STRMEM_OFFSET) == -1:
+		return ""
+	else:
+		return udt_member.name
 
 def expr2str(expr:idaapi.cexpr_t, hide_casts=False) -> str:
 	def e2s(e):
