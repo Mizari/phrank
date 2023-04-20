@@ -269,15 +269,12 @@ class VarUseChain:
 		return len(self.uses)
 
 	def transform_type(self, tif:idaapi.tinfo_t) -> idaapi.tinfo_t|utils.ShiftedStruct:
-		print("chain transform", self.uses_str())
 		for i, use in enumerate(self.uses):
-			print("transforming", i, str(tif), str(use))
 			tif = use.do_transform(tif)
 			if tif is utils.UNKNOWN_TYPE:
 				print("WARNING:", f"failed to calculate next step on {i} of uses {self.uses_str()}")
 				break
 
-		print("chain transform result", str(tif), '\n')
 		return tif
 
 	def is_possible_ptr(self) -> bool:
