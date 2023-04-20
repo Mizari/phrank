@@ -210,8 +210,9 @@ class VarUse:
 
 			mtif = member.tif
 			if mtif is utils.UNKNOWN_TYPE:
-				print("WARNING:", "failed to get member tif", str(ptif), hex(offset))
-				return utils.UNKNOWN_TYPE
+				mtif = utils.str2tif("void*")
+				# print("WARNING:", "failed to get member tif", str(ptif), hex(offset))
+				# return utils.UNKNOWN_TYPE
 			return utils.make_shifted_ptr(tif, mtif, offset)
 
 		print("WARNING:", f"adding to tif {str(tif)} isnt implemented")

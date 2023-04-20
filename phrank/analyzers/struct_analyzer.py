@@ -36,14 +36,18 @@ class StructAnalyzer(TypeAnalyzer):
 			self.add_type_use(var_type, cast, arg_type)
 
 	def add_type_use(self, var_type:idaapi.tinfo_t, vuc:VarUseChain, member_type:idaapi.tinfo_t):
-		if var_type.is_ptr():
-			var_type = var_type.get_pointed_object()
-			if var_type.is_struct():
-				strucid = utils.tif2strucid(var_type)
-				offset = vuc.get_ptr_offset()
-				if offset is None:
-					return
-				self.add_member_type(strucid, offset, member_type)
+		tif = vuc.transform_type(var_type)
+		if isinstance(tif, utils.ShiftedStruct):
+			self.add_member_type(tif.strucid, tif.offset, member_type)
+			return
+
+		# kostyl for UNKNOWN member pointer
+		if var_type.is_ptr() and (ptif := var_type.get_pointed_object()).is_struct() and (offset := vuc.get_ptr_offset()) is not None:
+			strucid = utils.tif2strucid(ptif)
+			self.add_member_type(strucid, offset, member_type)
+			return
+
+		print("WARNING:", f"cant add member={str(member_type)} to type={str(var_type)} transformed by {vuc.uses_str()}")
 
 	def add_member_type(self, strucid:int, offset:int, member_type:idaapi.tinfo_t):
 		# do not modificate existing types
