@@ -218,19 +218,22 @@ class VarUse:
 		return utils.UNKNOWN_TYPE
 
 	def transform_ptr(self, tif:idaapi.tinfo_t|utils.ShiftedStruct):
-		if isinstance(tif, utils.ShiftedStruct) or not tif.is_ptr():
+		if isinstance(tif, utils.ShiftedStruct):
+			tif = tif.tif
+
+		if not tif.is_ptr(): # type:ignore
 			print("WARNING:", "using non-pointer type as pointer", str(tif))
 			return utils.UNKNOWN_TYPE
 
 		offset = self.offset
-		if tif.is_shifted_ptr():
+		if tif.is_shifted_ptr(): # type:ignore
 			tif, shift_offset = utils.get_shifted_base(tif)
 			if tif is None:
 				print("WARNING:", "couldnt get base of shifted pointer")
 				return utils.UNKNOWN_TYPE
 			offset += shift_offset
 
-		ptif = tif.get_pointed_object()
+		ptif = tif.get_pointed_object() # type:ignore
 		if not ptif.is_struct():
 			print("WARNING:", "access pointer of non-struct isnt implemented", str(tif))
 			return utils.UNKNOWN_TYPE
