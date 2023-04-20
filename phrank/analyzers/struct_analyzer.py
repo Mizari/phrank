@@ -437,7 +437,7 @@ class StructAnalyzer(TypeAnalyzer):
 			return -1
 
 		member = vuc.transform_type(var_tif)
-		if not isinstance(member, idaapi.tinfo_t) and member is not None:
+		if isinstance(member, utils.ShiftedStruct):
 			addr = utils.str2addr(member.comment)
 			if addr == -1:
 				addr = utils.str2addr(member.name)

@@ -144,6 +144,9 @@ class ShiftedStruct:
 		if cmt is None: cmt = ""
 		return cmt
 
+	def __str__(self) -> str:
+		return f"MEMBEROF({idc.get_struc_name(self.strucid)},{hex(self.offset)})"
+
 def get_tif_member(tif:idaapi.tinfo_t, offset:int) -> ShiftedStruct|None:
 	strucid = tif2strucid(tif)
 	if strucid == idaapi.BADADDR:
