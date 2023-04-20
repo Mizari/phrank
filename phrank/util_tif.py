@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import idaapi
+import ida_struct
 import idc
 from functools import lru_cache as _lru_cache
 
@@ -110,26 +111,42 @@ def get_shifted_base(shifted:idaapi.tinfo_t):
 		return None, -1
 	return pi.parent, pi.delta
 
-def get_tif_member(tif:idaapi.tinfo_t, offset:int) -> idaapi.udt_member_t|None:
-	udt_member = idaapi.udt_member_t()
-	udt_member.offset = offset * 8
-	if tif.find_udt_member(udt_member, idaapi.STRMEM_OFFSET) == -1:
+
+class ShiftedStruct:
+	""" Analog of shifted pointers but not for pointers"""
+	def __init__(self, strucid, offset):
+		self.strucid = strucid
+		self.offset = offset
+
+	@property
+	def name(self) -> str:
+		name = idc.get_member_name(self.strucid, self.offset)
+		if name is None: name = ""
+		return name
+
+	@property
+	def tif(self) -> idaapi.tinfo_t:
+		sptr = ida_struct.get_struc(self.strucid)
+		mptr = ida_struct.get_member(sptr, self.offset)
+		# member is unset
+		if mptr is None:
+			return UNKNOWN_TYPE
+
+		tif = idaapi.tinfo_t()
+		# member has no type
+		if not ida_struct.get_member_tinfo(tif, mptr):
+			return UNKNOWN_TYPE
+		return tif
+
+	@property
+	def comment(self) -> str:
+		cmt = idc.get_member_cmt(self.strucid, self.offset, 0)
+		if cmt is None: cmt = ""
+		return cmt
+
+def get_tif_member(tif:idaapi.tinfo_t, offset:int) -> ShiftedStruct|None:
+	strucid = tif2strucid(tif)
+	if strucid == idaapi.BADADDR:
 		return None
-	else:
-		return udt_member
 
-def get_tif_member_name(tif:idaapi.tinfo_t, offset:int) -> str:
-	udt_member = idaapi.udt_member_t()
-	udt_member.offset = offset * 8
-	if tif.find_udt_member(udt_member, idaapi.STRMEM_OFFSET) == -1:
-		return ""
-	else:
-		return udt_member.name
-
-def get_tif_member_type(tif:idaapi.tinfo_t, offset:int) -> idaapi.tinfo_t:
-	udt_member = idaapi.udt_member_t()
-	udt_member.offset = offset * 8
-	if tif.find_udt_member(udt_member, idaapi.STRMEM_OFFSET) == -1:
-		return UNKNOWN_TYPE
-	else:
-		return udt_member.type
+	return ShiftedStruct(strucid, offset)
