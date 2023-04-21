@@ -29,11 +29,22 @@ class StructAnalyzer(TypeAnalyzer):
 			if cast.is_var_arg():
 				continue
 
-			arg_type = cast.arg_type
-			if arg_type.is_ptr():
-				arg_type = arg_type.get_pointed_object()
+			tif = cast.transform_type(var_type)
+			if isinstance(tif, utils.ShiftedStruct):
+				self.add_member_type(tif.strucid, tif.offset, cast.arg_type)
+				continue
 
-			self.add_type_use(var_type, cast, arg_type)
+			base, offset = utils.get_shifted_base(tif)
+			if base is not None and utils.is_struct_ptr(base):
+				strucid = utils.tif2strucid(base)
+				if cast.arg_type is utils.UNKNOWN_TYPE:
+					self.add_member_type(strucid, offset, cast.arg_type)
+					continue
+				elif cast.arg_type.is_ptr():
+					self.add_member_type(strucid, offset, cast.arg_type.get_pointed_object())
+					continue
+
+			print("WARNING:", f"cant cast {str(var_type)} transformed by {cast.uses_str()} into {str(tif)} to {str(cast.arg_type)}")
 
 	def add_type_use(self, var_type:idaapi.tinfo_t, vuc:VarUseChain, member_type:idaapi.tinfo_t):
 		tif = vuc.transform_type(var_type)

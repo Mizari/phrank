@@ -111,6 +111,13 @@ def get_shifted_base(shifted:idaapi.tinfo_t):
 		return None, -1
 	return pi.parent, pi.delta
 
+def is_struct_ptr(tif:idaapi.tinfo_t) -> bool:
+	if not tif.is_ptr():
+		return False
+
+	ptif = tif.get_pointed_object()
+	return ptif.is_struct()
+
 
 class ShiftedStruct:
 	""" Analog of shifted pointers but not for pointers"""
