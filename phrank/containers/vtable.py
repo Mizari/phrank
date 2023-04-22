@@ -29,7 +29,7 @@ class Vtable(Structure):
 			return None
 
 		vtbl_strucid = utils.tif2strucid(addr_tif)
-		if vtbl_strucid == idaapi.BADADDR:
+		if vtbl_strucid == -1:
 			print("WARNING:", "failed to get strucid from vtbl tinfo")
 			return None
 
@@ -55,7 +55,7 @@ class Vtable(Structure):
 			return None
 
 		strucid = utils.tif2strucid(vtbl_tif)
-		if strucid == idaapi.BADADDR:
+		if strucid == -1:
 			return False
 
 		return Vtable.is_strucid_vtable(strucid)

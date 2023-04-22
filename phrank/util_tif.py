@@ -43,22 +43,22 @@ def str2strucid(s:str) -> int:
 
 	rv = idaapi.import_type(idaapi.get_idati(), -1, s)
 	if rv == idaapi.BADNODE:
-		return idaapi.BADADDR
+		return -1
 	return rv
 
 def tif2strucid(tif:idaapi.tinfo_t) -> int:
 	tif = get_final_tif(tif)
 	if not is_tif_correct(tif):
-		return idaapi.BADADDR
+		return -1
 
 	if tif.is_struct():
 		return str2strucid(str(tif))
 
 	if tif.is_integral() or tif.is_void() or tif.is_func() or tif.is_enum() or tif.is_bool():
-		return idaapi.BADADDR
+		return -1
 
 	print("WARNING: unknown tinfo2strucid", tif)
-	return idaapi.BADADDR
+	return -1
 
 
 def addr2tif(addr:int) -> idaapi.tinfo_t:
@@ -156,7 +156,7 @@ class ShiftedStruct:
 
 def get_tif_member(tif:idaapi.tinfo_t, offset:int) -> ShiftedStruct|None:
 	strucid = tif2strucid(tif)
-	if strucid == idaapi.BADADDR:
+	if strucid == -1:
 		return None
 
 	return ShiftedStruct(strucid, offset)

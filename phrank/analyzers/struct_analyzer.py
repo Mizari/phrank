@@ -255,7 +255,7 @@ class StructAnalyzer(TypeAnalyzer):
 				if a.value_type is utils.UNKNOWN_TYPE:
 					continue
 				strucid = utils.tif2strucid(a.value_type)
-				if strucid != idaapi.BADADDR:
+				if strucid != -1:
 					strucid_assign_types.append(a.value_type)
 
 			if len(strucid_assign_types) == 1:
@@ -360,7 +360,7 @@ class StructAnalyzer(TypeAnalyzer):
 		if utils.is_func_import(func_ea):
 			return lvar_tinfo
 
-		if lvar_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(lvar_tinfo) != idaapi.BADADDR:
+		if lvar_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(lvar_tinfo) != -1:
 			# TODO check correctness of writes, read, casts
 			return lvar_tinfo
 
@@ -369,7 +369,7 @@ class StructAnalyzer(TypeAnalyzer):
 		lvar_uses = self.get_lvar_uses(func_ea, lvar_id)
 		self.analyze_lvar_uses(func_ea, lvar_id, lvar_uses)
 		lvar_tinfo = self.calculate_var_type_by_uses(lvar_uses)
-		if lvar_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(lvar_tinfo) != idaapi.BADADDR:
+		if lvar_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(lvar_tinfo) != -1:
 			self.add_type_uses(lvar_uses, lvar_tinfo)
 		self.lvar2tinfo[(func_ea, lvar_id)] = lvar_tinfo
 		return lvar_tinfo
