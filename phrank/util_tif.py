@@ -121,7 +121,7 @@ def is_struct_ptr(tif:idaapi.tinfo_t) -> bool:
 
 class ShiftedStruct:
 	""" Analog of shifted pointers but not for pointers"""
-	def __init__(self, strucid, offset):
+	def __init__(self, strucid:int, offset:int):
 		self.strucid = strucid
 		self.offset = offset
 

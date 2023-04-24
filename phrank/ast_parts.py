@@ -5,7 +5,7 @@ import phrank.utils as utils
 
 
 class ASTCtx:
-	def __init__(self, addr):
+	def __init__(self, addr:int):
 		self.addr = addr
 
 	@classmethod
@@ -50,10 +50,10 @@ class Var:
 		assert self.is_global()
 		return self.varid # type: ignore
 
-	def is_lvar(self, func_ea, lvar_id):
+	def is_lvar(self, func_ea:int, lvar_id:int):
 		return self.is_local() and self.varid == (func_ea, lvar_id)
 
-	def is_gvar(self, gvar_id):
+	def is_gvar(self, gvar_id:int):
 		return self.is_global() and self.varid == gvar_id
 
 	def is_local(self):
