@@ -80,30 +80,6 @@ class Structure(IdaStrucWrapper):
 		mptr = ida_struct.get_member(sptr, offset)
 		return mptr is not None
 
-	def get_shifted_member_ptr_tinfo(self, offset:int) -> idaapi.tinfo_t:
-		retval = idaapi.tinfo_t()
-
-		class_tif = self.tinfo
-		if offset == 0:
-			assert retval.create_ptr(class_tif)
-
-		else:
-			# TODO check offset correctness
-			# TODO looking into inner struct
-
-			parent, parent_offset = self.get_parent_offset(offset)
-			if parent is None:
-				member_tinfo = self.get_member_type(offset)
-			else:
-				if offset == parent_offset:
-					member_tinfo = self.get_member_type(offset)
-				else:
-					member_tinfo = parent.get_member_tinfo(offset - parent_offset)
-
-			retval = utils.make_shifted_ptr(class_tif, member_tinfo, offset)
-
-		return retval
-
 	def get_next_member_offset(self, offset:int) -> int:
 		if offset < 0 or offset > self.size:
 			return -1
