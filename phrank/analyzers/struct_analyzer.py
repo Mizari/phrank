@@ -330,9 +330,9 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def get_current_var_type(self, var:Var):
 		if var.is_local():
-			return self.get_var_type(*var.varid)
+			return self.get_var_type(var.func_ea, var.lvar_id)
 		else:
-			return utils.addr2tif(var.varid)
+			return utils.addr2tif(var.obj_ea)
 
 	def set_var_type(self, var:Var, var_tinfo:idaapi.tinfo_t):
 		if var.is_local():
@@ -342,9 +342,9 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def analyze_var(self, var:Var) -> idaapi.tinfo_t:
 		if var.is_local():
-			return self.analyze_lvar(*var.varid)
+			return self.analyze_lvar(var.func_ea, var.lvar_id)
 		else:
-			return self.analyze_gvar(var.varid)
+			return self.analyze_gvar(var.obj_ea)
 
 	def analyze_lvar(self, func_ea:int, lvar_id:int) -> idaapi.tinfo_t:
 		current_lvar_tinfo = self.lvar2tinfo.get((func_ea, lvar_id))
@@ -500,14 +500,14 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def get_var_call_casts(self, var:Var):
 		if var.is_local():
-			aa = self.get_ast_analysis(var.varid[0])
-			casts = [c for c in aa.iterate_lvar_call_casts(*var.varid)]
+			aa = self.get_ast_analysis(var.func_ea)
+			casts = [c for c in aa.iterate_lvar_call_casts(var.func_ea, var.lvar_id)]
 		else:
-			funcs = set(utils.get_func_calls_to(var.varid))
+			funcs = set(utils.get_func_calls_to(var.obj_ea))
 			casts = []
 			for func_ea in funcs:
 				aa = self.get_ast_analysis(func_ea)
-				for call_cast in aa.iterate_gvar_call_casts(var.varid):
+				for call_cast in aa.iterate_gvar_call_casts(var.obj_ea):
 					casts.append(call_cast)
 		return casts
 
