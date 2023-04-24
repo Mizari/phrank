@@ -13,7 +13,8 @@ for fea in phrank_api.iterate_all_functions():
 	for gvar_write in aa.var_writes:
 		if gvar_write.var.is_global():
 			all_gvars.add(gvar_write.var.varid)
-	for gvar_assign in aa.var_assigns:
+	for gvar_assign in aa.var_writes:
+		if not gvar_assign.is_assign(): continue
 		if gvar_assign.var.is_global():
 			all_gvars.add(gvar_assign.var.varid)
 
@@ -21,7 +22,7 @@ failed_gvars = []
 analyzed_gvars = {}
 for addr in all_gvars:
 	analyzer.analyze_gvar(addr)
-	gvar_type = analyzer.gvar2tinfo[addr]
+	gvar_type = analyzer.var2tinfo[phrank_api.Var(addr)]
 	if gvar_type is phrank_api.UNKNOWN_TYPE:
 		failed_gvars.append(addr)
 	else:
