@@ -145,7 +145,6 @@ class IdaStrucWrapper(object):
 			self.del_member(mo)
 
 	def del_member(self, offset:int):
-		if not self.is_offset_ok(offset, 1): raise BaseException("Offset too big " + hex(offset) + " in " + str(self.size))
 		idc.del_struc_member(self.strucid, offset)
 
 	def set_member_type(self, member_offset: int, member_type: idaapi.tinfo_t):
