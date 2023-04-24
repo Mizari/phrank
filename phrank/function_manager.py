@@ -41,7 +41,7 @@ class FunctionManager:
 		return self.func_factory.get_cfunc(func_ea)
 
 	def get_func_details(self, func_ea: int):
-		func_tinfo = self.get_tinfo(func_ea)
+		func_tinfo = self.get_func_tinfo(func_ea)
 		if func_tinfo is None:
 			return None
 
@@ -53,7 +53,7 @@ class FunctionManager:
 		return func_details
 
 	def get_var_type(self, func_ea:int, var_id:int) -> idaapi.tinfo_t:
-		func_tif = self.get_tinfo(func_ea)
+		func_tif = self.get_func_tinfo(func_ea)
 		if func_tif is not None and var_id > func_tif.get_nargs():
 			arg_type = func_tif.get_nth_arg(var_id)
 			if not utils.is_tif_correct(arg_type): arg_type = utils.UNKNOWN_TYPE
@@ -136,7 +136,7 @@ class FunctionManager:
 
 		self.func_factory.clear_cfunc(func_ea)
 
-	def get_tinfo(self, func_ea:int) -> idaapi.tinfo_t|None:
+	def get_func_tinfo(self, func_ea:int) -> idaapi.tinfo_t|None:
 		tif = idaapi.tinfo_t()
 		if idaapi.get_tinfo(tif, func_ea) and tif.is_correct():
 			return tif
@@ -156,8 +156,8 @@ class FunctionManager:
 		print("Failed to get tinfo for", hex(func_ea), get_funcname(func_ea))
 		return None
 
-	def get_ptr_tinfo(self, func_ea:int) -> idaapi.tinfo_t|None:
-		tif = self.get_tinfo(func_ea)
+	def get_funcptr_tinfo(self, func_ea:int) -> idaapi.tinfo_t|None:
+		tif = self.get_func_tinfo(func_ea)
 		if tif is None:
 			return None
 		rv = tif.create_ptr(tif)
@@ -167,7 +167,7 @@ class FunctionManager:
 		return tif
 
 	def get_nargs(self, func_ea:int) -> int:
-		tif = self.get_tinfo(func_ea)
+		tif = self.get_func_tinfo(func_ea)
 		if tif is None:
 			return 0
 		return tif.get_nargs()

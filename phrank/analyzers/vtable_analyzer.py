@@ -26,7 +26,7 @@ class VtableAnalyzer(TypeAnalyzer):
 
 			member_name = vtbl.get_next_available_name(member_name, Vtable.REUSE_DELIM)
 
-			func_ptr_tif = self.get_ptr_tinfo(func_addr)
+			func_ptr_tif = self.get_funcptr_tinfo(func_addr)
 			if func_ptr_tif is None:
 				func_ptr_tif = unknown_func_ptr_tif
 

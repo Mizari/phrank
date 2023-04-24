@@ -408,7 +408,15 @@ class CppClassAnalyzer(TypeAnalyzer):
 		for cpp_class in self._created_classes:
 			self.update_func_types_in_class(cpp_class)
 			for vtbl in cpp_class._vtables.values():
-				vtbl.update_func_types()
+				self.get_func_tinfo
+
+				for member_offset in vtbl.member_offsets():
+					member_name = vtbl.get_member_name(member_offset)
+					func_addr = idc.get_name_ea_simple(member_name)
+					func_ptr_tif = self.get_funcptr_tinfo(func_addr)
+					if func_ptr_tif is None:
+						continue
+					vtbl.set_member_type(member_offset, func_ptr_tif)
 
 	def update_func_types_in_class(self, cpp_class):
 		new_arg_tinfo = cpp_class.get_shifted_member_ptr_tinfo(0)

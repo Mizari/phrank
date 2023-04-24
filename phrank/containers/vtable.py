@@ -35,15 +35,6 @@ class Vtable(Structure):
 
 		return cls(vtbl_strucid)
 
-	def update_func_types(self):
-		for member_offset in self.member_offsets():
-			member_name = self.get_member_name(member_offset)
-			func_addr = idc.get_name_ea_simple(member_name)
-			func_ptr_tif = get_func_ptr_tinfo(func_addr)
-			if func_ptr_tif is None:
-				continue
-			self.set_member_type(member_offset, func_ptr_tif)
-
 	def get_member_name(self, moffset:int) -> str:
 		member_name = super().get_member_name(moffset)
 		member_name = member_name.split(Vtable.REUSE_DELIM)[0]
