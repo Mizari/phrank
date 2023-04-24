@@ -185,4 +185,6 @@ class FunctionManager:
 
 	def get_lvar_name(self, func_ea:int, lvar_id:int) -> str:
 		lvar = self.get_lvar(func_ea, lvar_id)
+		if lvar is None:
+			return ""
 		return lvar.name
