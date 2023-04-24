@@ -19,13 +19,21 @@ class ASTCtx:
 
 class Var:
 	def __init__(self, *varid):
-		self.varid : int|tuple[int,int]
+		self.varid : int|tuple[int,int] = 0
 		if len(varid) == 1:  # global
 			self.varid = varid[0]
 		elif len(varid) == 2:
 			self.varid = tuple(varid)
 		else:
 			raise ValueError("Invalid length of variable identifier")
+
+	def __eq__(self, __value: object) -> bool:
+		if not isinstance(__value, Var):
+			return False
+		return self.varid == __value.varid
+
+	def __hash__(self) -> int:
+		return hash(self.varid)
 
 	@property
 	def func_ea(self) -> int:

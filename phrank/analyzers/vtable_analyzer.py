@@ -2,6 +2,7 @@ import idaapi
 import phrank.utils as utils
 
 from phrank.analyzers.type_analyzer import TypeAnalyzer
+from phrank.ast_parts import Var
 from phrank.containers.vtable import Vtable
 import phrank.settings as settings
 
@@ -36,7 +37,8 @@ class VtableAnalyzer(TypeAnalyzer):
 		return Vtable.get_vtable_at_address(gvar_ea)
 
 	def analyze_gvar(self, gvar_ea:int):
-		vtbl = self.gvar2tinfo.get(gvar_ea)
+		gvar = Var(gvar_ea)
+		vtbl = self.var2tinfo.get(gvar)
 		if vtbl is not None:
 			return vtbl
 
@@ -44,7 +46,7 @@ class VtableAnalyzer(TypeAnalyzer):
 		vtbl = Vtable.get_vtable_at_address(gvar_ea)
 		if vtbl is not None:
 			tif = vtbl.tinfo
-			self.gvar2tinfo[gvar_ea] = tif
+			self.var2tinfo[gvar] = tif
 			return tif
 
 		vtbl = self.create_vtable_at_address(gvar_ea)
@@ -54,7 +56,7 @@ class VtableAnalyzer(TypeAnalyzer):
 			self.new_types.add(vtbl.strucid)
 			tif = vtbl.tinfo
 
-		self.gvar2tinfo[gvar_ea] = tif
+		self.var2tinfo[gvar] = tif
 		return tif
 
 	def analyze_everything(self):

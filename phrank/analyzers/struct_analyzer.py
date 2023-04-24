@@ -102,22 +102,16 @@ class StructAnalyzer(TypeAnalyzer):
 			lvar_struct.set_member_type(offset, member_type)
 
 	def apply_analysis(self):
-		var_to_propagate = []
-		for func_ea, lvar_id in self.lvar2tinfo.keys():
-			var_to_propagate.append(Var(func_ea, lvar_id))
-
-		for obj_ea in self.gvar2tinfo.keys():
-			var_to_propagate.append(Var(obj_ea))
-
+		var_to_propagate = [v for v in self.var2tinfo.keys()]
 		for var in var_to_propagate:
-			self.propagate_var(var)
+			self.propagate_var(var) # modifies var2tinfo
 
 		touched_functions = set()
-		for func_ea, _ in self.lvar2tinfo.keys():
-			touched_functions.add(func_ea)
-
-		for obj_ea in self.gvar2tinfo.keys():
-			touched_functions.update(utils.get_func_calls_to(obj_ea))
+		for var in self.var2tinfo.keys():
+			if var.is_local():
+				touched_functions.add(var.func_ea)
+			else:
+				touched_functions.update(utils.get_func_calls_to(var.obj_ea))
 
 		for func_ea in touched_functions:
 			func_aa = self.get_ast_analysis(func_ea)
@@ -179,7 +173,8 @@ class StructAnalyzer(TypeAnalyzer):
 		return self.analyze_cexpr(assign_ea, gvar_assign.value)
 
 	def analyze_gvar(self, gvar_ea:int) -> idaapi.tinfo_t:
-		current_type = self.gvar2tinfo.get(gvar_ea)
+		var = Var(gvar_ea)
+		current_type = self.var2tinfo.get(var)
 		if current_type is not None:
 			return current_type
 
@@ -188,7 +183,7 @@ class StructAnalyzer(TypeAnalyzer):
 			return vtbl
 
 		gvar_type = self.analyze_gvar_type_by_assigns(gvar_ea)
-		self.gvar2tinfo[gvar_ea] = gvar_type
+		self.var2tinfo[var] = gvar_type
 		return gvar_type
 
 	def analyze_tif_use_chain(self, tif:idaapi.tinfo_t, chain:list[VarUse]):
@@ -335,10 +330,7 @@ class StructAnalyzer(TypeAnalyzer):
 			return utils.addr2tif(var.obj_ea)
 
 	def set_var_type(self, var:Var, var_tinfo:idaapi.tinfo_t):
-		if var.is_local():
-			self.lvar2tinfo[var.varid] = var_tinfo
-		else:
-			self.gvar2tinfo[var.varid] = var_tinfo
+		self.var2tinfo[var] = var_tinfo
 
 	def analyze_var(self, var:Var) -> idaapi.tinfo_t:
 		if var.is_local():
@@ -347,7 +339,8 @@ class StructAnalyzer(TypeAnalyzer):
 			return self.analyze_gvar(var.obj_ea)
 
 	def analyze_lvar(self, func_ea:int, lvar_id:int) -> idaapi.tinfo_t:
-		current_lvar_tinfo = self.lvar2tinfo.get((func_ea, lvar_id))
+		var = Var(func_ea, lvar_id)
+		current_lvar_tinfo = self.var2tinfo.get(var)
 		if current_lvar_tinfo is not None:
 			return current_lvar_tinfo
 
@@ -371,7 +364,7 @@ class StructAnalyzer(TypeAnalyzer):
 		lvar_tinfo = self.calculate_var_type_by_uses(lvar_uses)
 		if lvar_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(lvar_tinfo) != -1:
 			self.add_type_uses(lvar_uses, lvar_tinfo)
-		self.lvar2tinfo[(func_ea, lvar_id)] = lvar_tinfo
+		self.var2tinfo[var] = lvar_tinfo
 		return lvar_tinfo
 
 	def analyze_retval(self, func_ea:int) -> idaapi.tinfo_t:
@@ -434,10 +427,7 @@ class StructAnalyzer(TypeAnalyzer):
 		return True
 
 	def get_var_tinfo(self, var:Var) -> idaapi.tinfo_t:
-		if var.is_local():
-			return self.lvar2tinfo.get(var.varid, utils.UNKNOWN_TYPE)
-		else:
-			return self.gvar2tinfo.get(var.varid, utils.UNKNOWN_TYPE)
+		return self.var2tinfo.get(var, utils.UNKNOWN_TYPE)
 
 	def get_call_address(self, func_call:FuncCall) -> int:
 		if func_call.is_explicit():
@@ -477,15 +467,16 @@ class StructAnalyzer(TypeAnalyzer):
 				continue
 
 			arg_id = call_cast.arg_id
-			current_type = self.lvar2tinfo.get((call_ea, arg_id), utils.UNKNOWN_TYPE)
+			arg_var = Var(call_ea, arg_id)
+			current_type = self.var2tinfo.get(arg_var, utils.UNKNOWN_TYPE)
 			if current_type is utils.UNKNOWN_TYPE:
 				lvar_uses = self.get_lvar_uses(call_ea, arg_id)
 				arg_assigns = [w for w in lvar_uses.writes if w.is_assign()]
 				if len(arg_assigns) != 0:
 					continue
 
-				self.lvar2tinfo[(call_ea, arg_id)] = var_type
-				self.propagate_var(Var(call_ea, arg_id))
+				self.var2tinfo[arg_var] = var_type
+				self.propagate_var(arg_var)
 				self.analyze_lvar_uses(call_ea, arg_id, lvar_uses)
 				self.add_type_uses(lvar_uses, var_type)
 				continue
