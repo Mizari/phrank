@@ -75,7 +75,7 @@ class CppClass(Structure):
 		if parent is not None:
 			return parent.set_vtable(offset - parent_offset, vtbl)
 
-		mtif = self.get_member_tinfo(offset)
+		mtif = self.get_member_type(offset)
 		if VtablesUnion.is_vtables_union(mtif):
 			vu = VtablesUnion(name=str(mtif))
 			vu.add_vtable(vtbl)
@@ -84,7 +84,7 @@ class CppClass(Structure):
 		mname = self.get_member_name(offset)
 		# current vtbl --> union [current vtbl , vtbl]
 		if mname == "vtable" or mname == "vtable_" + hex(offset)[2:]:
-			member_vtbl = self.get_member_tinfo(offset)
+			member_vtbl = self.get_member_type(offset)
 			member_vtbl = str(member_vtbl.get_pointed_object())
 			member_vtbl = Structure.get(member_vtbl)
 

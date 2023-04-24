@@ -91,7 +91,7 @@ class StructAnalyzer(TypeAnalyzer):
 				return
 
 		member_offset = lvar_struct.get_member_start(offset)
-		current_type = lvar_struct.get_member_tinfo(offset)
+		current_type = lvar_struct.get_member_type(offset)
 		if  current_type is not None and \
 			current_type.is_struct() and \
 			current_type.get_size() > member_type.get_size():

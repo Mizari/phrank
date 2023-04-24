@@ -147,6 +147,32 @@ class IdaStrucWrapper(object):
 	def del_member(self, offset:int):
 		idc.del_struc_member(self.strucid, offset)
 
+	def get_member_type(self, member_offset:int) -> idaapi.tinfo_t|None:
+		# TODO add ability to get member by offset or by name
+		# get_member_by_fullname(fullname) -> member_t Get a member by its fully qualified name, "struct.field".
+		# get_member_by_name(sptr, membername) -> member_t
+
+		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
+		if idc.is_union(self.strucid):
+			if member_offset >= idc.get_member_qty(self.strucid):
+				print("fokk", self.name, idc.get_member_qty(self.strucid), hex(member_offset))
+				raise BaseException("Offset too big")
+		else:
+			if member_offset >= self.size:
+				raise BaseException("Offset too big")
+
+		sptr = ida_struct.get_struc(self.strucid)
+		mptr = ida_struct.get_member(sptr, member_offset)
+		# member is unset
+		if mptr is None:
+			return None
+
+		tif = idaapi.tinfo_t()
+		# member has no type
+		if not ida_struct.get_member_tinfo(tif, mptr):
+			return None
+		return tif
+
 	def set_member_type(self, member_offset: int, member_type: idaapi.tinfo_t):
 		if self.strucid == -1: raise BaseException("Invalid strucid")
 

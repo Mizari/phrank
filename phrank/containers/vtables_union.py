@@ -13,7 +13,7 @@ class VtablesUnion(Union):
 	def is_vtables_union(vtbl_info:idaapi.tinfo_t|str|int) -> bool:
 		# TODO
 		if isinstance(vtbl_info, idaapi.tinfo_t):
-			if not vtbl_info.is_union():
+			if not vtbl_info.is_union(): # type: ignore
 				return False
 			return VtablesUnion.is_vtables_union(str(vtbl_info))
 
@@ -55,7 +55,7 @@ class VtablesUnion(Union):
 			if mname == vname:
 				return
 
-			mtif = self.get_member_tinfo(member_offset)
+			mtif = self.get_member_type(member_offset)
 			if str(mtif) == vname + " *":
 				return
 
