@@ -19,12 +19,28 @@ class ASTCtx:
 
 class Var:
 	def __init__(self, *varid):
+		self.varid : int|tuple[int,int]
 		if len(varid) == 1:  # global
 			self.varid = varid[0]
 		elif len(varid) == 2:
 			self.varid = tuple(varid)
 		else:
 			raise ValueError("Invalid length of variable identifier")
+
+	@property
+	def func_ea(self) -> int:
+		assert self.is_local()
+		return self.varid[0] # type:ignore
+
+	@property
+	def lvar_id(self) -> int:
+		assert self.is_local()
+		return self.varid[1] # type:ignore
+
+	@property
+	def obj_ea(self) -> int:
+		assert self.is_global()
+		return self.varid # type: ignore
 
 	def is_lvar(self, func_ea, lvar_id):
 		return self.is_local() and self.varid == (func_ea, lvar_id)
@@ -40,7 +56,7 @@ class Var:
 
 	def __str__(self) -> str:
 		if self.is_local():
-			return "Lvar(" + idaapi.get_name(self.varid[0]) + "," + str(self.varid[1]) + ")"
+			return "Lvar(" + idaapi.get_name(self.func_ea) + "," + str(self.lvar_id) + ")"
 		else:
 			return idaapi.get_name(self.varid)
 
