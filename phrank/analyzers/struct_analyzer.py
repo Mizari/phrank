@@ -28,23 +28,24 @@ class StructAnalyzer(TypeAnalyzer):
 			# FIXME kostyl
 			if cast.is_var_arg():
 				continue
+			cast_type = cast.arg_type
 
 			tif = cast.transform_type(var_type)
 			if isinstance(tif, utils.ShiftedStruct):
-				self.add_member_type(tif.strucid, tif.offset, cast.arg_type)
+				self.add_member_type(tif.strucid, tif.offset, cast_type)
 				continue
 
 			base, offset = utils.get_shifted_base(tif)
 			if base is not None and utils.is_struct_ptr(base):
 				strucid = utils.tif2strucid(base)
-				if cast.arg_type is utils.UNKNOWN_TYPE:
-					self.add_member_type(strucid, offset, cast.arg_type)
+				if cast_type is utils.UNKNOWN_TYPE:
+					self.add_member_type(strucid, offset, cast_type)
 					continue
-				elif cast.arg_type.is_ptr():
-					self.add_member_type(strucid, offset, cast.arg_type.get_pointed_object())
+				elif cast_type.is_ptr():
+					self.add_member_type(strucid, offset, cast_type.get_pointed_object())
 					continue
 
-			print("WARNING:", f"cant cast {str(var_type)} transformed by {cast.uses_str()} into {str(tif)} to {str(cast.arg_type)}")
+			print("WARNING:", f"cant cast {str(var_type)} transformed by {cast.uses_str()} into {str(tif)} to {str(cast_type)}")
 
 	def add_type_use(self, var_type:idaapi.tinfo_t, vuc:VarUseChain, member_type:idaapi.tinfo_t):
 		tif = vuc.transform_type(var_type)
@@ -61,6 +62,10 @@ class StructAnalyzer(TypeAnalyzer):
 		print("WARNING:", f"cant add member={str(member_type)} to type={str(var_type)} transformed by {vuc.uses_str()}")
 
 	def add_member_type(self, strucid:int, offset:int, member_type:idaapi.tinfo_t):
+		# rogue shifted struct
+		if offset < 0:
+			return
+
 		# do not modificate existing types
 		if strucid not in self.new_types:
 			return
@@ -150,7 +155,7 @@ class StructAnalyzer(TypeAnalyzer):
 		for var_write in var_uses.writes:
 			var_write.value_type = self.analyze_cexpr(func_ea, var_write.value)
 		for call_cast in var_uses.casts:
-			address = call_cast.func_call.address
+			address = self.get_call_address(call_cast.func_call)
 			if address == -1:
 				continue
 
