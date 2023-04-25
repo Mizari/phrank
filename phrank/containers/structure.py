@@ -76,6 +76,7 @@ class Structure(IdaStrucWrapper):
 	def member_exists(self, offset:int) -> bool:
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
 
+		if offset < 0 or offset >= self.size: return False
 		sptr = ida_struct.get_struc(self.strucid)
 		mptr = ida_struct.get_member(sptr, offset)
 		return mptr is not None
