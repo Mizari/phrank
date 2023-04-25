@@ -4,7 +4,7 @@ import idaapi
 import idc
 import ida_struct
 import phrank.settings as settings
-from phrank.containers.ida_struc_wrapper import IdaStrucWrapper, handle_addstrucmember_ret
+from phrank.containers.ida_struc_wrapper import IdaStrucWrapper
 import phrank.utils as utils
 
 
@@ -54,7 +54,7 @@ class Structure(IdaStrucWrapper):
 			self.resize(original_size - 1)
 
 		ret = idc.add_struc_member(self.strucid, name, offset, utils.size2dataflags(size), -1, size)
-		handle_addstrucmember_ret(ret)
+		self.handle_addstrucmember_ret(ret)
 		if ret == idaapi.BADADDR: raise BaseException("Failed to append structure pointer")
 
 	def set_struc(self, name:str, offset:int, struc):
@@ -62,7 +62,7 @@ class Structure(IdaStrucWrapper):
 		if not self.is_offset_ok(offset, size): raise BaseException("offset and size are too big")
 		self.unset_members(offset, size)
 		ret = ida_struct.add_struc_member(self.strucid, name, offset, utils.size2dataflags(1), -1, 1)
-		handle_addstrucmember_ret(ret)
+		self.handle_addstrucmember_ret(ret)
 		idc.SetType(ida_struct.get_member_id(self.strucid, offset), struc.get_name())
 
 	def set_strucptr(self, name:str, offset:int, struc):
@@ -70,7 +70,7 @@ class Structure(IdaStrucWrapper):
 		if not self.is_offset_ok(offset, PTRSIZE): raise BaseException("offset and size are too big")
 		self.unset_members(offset, PTRSIZE)
 		ret = ida_struct.add_struc_member(self.strucid, name, offset, utils.size2dataflags(PTRSIZE), -1, PTRSIZE)
-		handle_addstrucmember_ret(ret)
+		self.handle_addstrucmember_ret(ret)
 		idc.SetType(ida_struct.get_member_id(self.strucid, offset), struc.get_name() + "*")
 
 	def member_exists(self, offset:int) -> bool:

@@ -7,20 +7,23 @@ import ida_struct
 import phrank.utils as utils
 
 
-def handle_addstrucmember_ret(ret):
-	if   ret == -1: errmsg = 'already has member with this name (bad name)'
-	elif ret == -2: errmsg = 'already has member at this offset'
-	elif ret == -3: errmsg = 'bad number of bytes or bad sizeof(type)'
-	elif ret == -4: errmsg = 'bad typeid parameter'
-	elif ret == -5: errmsg = 'bad struct id (the 1st argument)'
-	elif ret == -6: errmsg = 'unions can\'t have variable sized members'
-	elif ret == -7: errmsg = 'variable sized member should be the last member in the structure'
-	elif ret == -8: errmsg = 'recursive structure nesting is forbidden'
-	else: errmsg = "unknown error " + str(ret)
-	if ret < 0: raise BaseException("Failed to AddStrucMember: " + errmsg)
-
-
 class IdaStrucWrapper(object):
+	add_struc_member_retvals = {
+		-1: 'already has member with this name (bad name)',
+		-2: 'already has member at this offset',
+		-3: 'bad number of bytes or bad sizeof(type)',
+		-4: 'bad typeid parameter',
+		-5: 'bad struct id (the 1st argument)',
+		-6: 'unions can\'t have variable sized members',
+		-7: 'variable sized member should be the last member in the structure',
+		-8: 'recursive structure nesting is forbidden',
+	}
+
+	@classmethod
+	def handle_addstrucmember_ret(cls, ret):
+		errmsg = cls.add_struc_member_retvals.get(ret, f"unknown error {str(ret)}")
+		if ret < 0: raise BaseException("Failed to AddStrucMember: " + errmsg)
+
 	def __init__(self, strucid):
 		self.strucid = strucid
 
@@ -190,13 +193,13 @@ class IdaStrucWrapper(object):
 		if self.strucid == -1: raise BaseException("Invalid strucid")
 		if name is None: name = "field_" + hex(member_offset)[2:]
 		ret = idc.add_struc_member(self.strucid, name, member_offset, idaapi.FF_DATA | idaapi.FF_BYTE, -1, 1)
-		handle_addstrucmember_ret(ret)
+		self.handle_addstrucmember_ret(ret)
 
 	def append_member(self, name:str, member_type:idaapi.tinfo_t, member_comment=None):
 		if self.strucid == -1: raise BaseException("Invalid strucid")
 		size = member_type.get_size()
 		ret = idc.add_struc_member(self.strucid, name, -1, utils.size2dataflags(size), -1, size)
-		handle_addstrucmember_ret(ret)
+		self.handle_addstrucmember_ret(ret)
 		offset = self.size - size
 		self.set_member_type(offset, member_type)
 		if member_comment is not None:
