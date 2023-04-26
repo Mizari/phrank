@@ -57,9 +57,9 @@ class IdaStrucWrapper(object):
 
 	@property
 	def ptr_tinfo(self):
-		ptr_tinfo = self.tinfo
-		ptr_tinfo.create_ptr(ptr_tinfo)
-		return ptr_tinfo.copy()
+		ptr_tinfo = idaapi.tinfo_t()
+		ptr_tinfo.create_ptr(self.tinfo)
+		return ptr_tinfo
 
 	def is_union(self):
 		return idaapi.is_union(self.strucid)
