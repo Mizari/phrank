@@ -72,14 +72,24 @@ class FuncCall:
 		self.call_expr = call_expr.x
 		self.implicit_var_use_chain:VarUseChain|None = None
 		self.args = call_expr.a
-		self.address : int = -1
-		self.name : str = ""
 
+	@property
+	def address(self) -> int:
 		if self.call_expr.op == idaapi.cot_obj:
-			self.address = self.call_expr.obj_ea
-			self.name = idaapi.get_func_name(self.address)
+			return self.call_expr.obj_ea
+		else:
+			return -1
+
+	@property
+	def name(self) -> str:
+		if self.call_expr.op == idaapi.cot_obj:
+			rv = idaapi.get_func_name(self.address)
+			if rv is None: rv = ""
+			return rv
 		elif self.call_expr.op == idaapi.cot_helper:
-			self.name = self.call_expr.helper
+			return self.call_expr.helper
+		else:
+			return ""
 
 	def is_explicit(self):
 		return self.call_expr.op == idaapi.cot_obj
