@@ -27,9 +27,7 @@ class Var:
 		else:
 			raise ValueError("Invalid length of variable identifier")
 
-	def __eq__(self, __value: object) -> bool:
-		if not isinstance(__value, Var):
-			return False
+	def __eq__(self, __value:Var) -> bool:
 		return self.varid == __value.varid
 
 	def __hash__(self) -> int:
