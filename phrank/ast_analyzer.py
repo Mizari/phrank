@@ -24,6 +24,23 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			self.prune_now()
 		return 0
 
+	def get_var_use_chain(self, expr:idaapi.cexpr_t) -> VarUseChain|None:
+		actx = self.current_ast_analysis.actx
+
+		# FIXME
+		if expr.op == idaapi.cot_num:
+			return None
+
+		if len(extract_vars(expr, actx)) > 1:
+			print("WARNING:", f"found multiple variables in {utils.expr2str(expr)}")
+			return None
+
+		vuc = get_var_use_chain(expr, actx)
+		if vuc is None:
+			print("WARNING:", f"failed to calculate var use chain for {utils.expr2str(expr)}")
+			return None
+		return vuc
+
 	def visit_expr(self, expr: idaapi.cexpr_t) -> int:
 		if expr.op == idaapi.cot_asg:
 			should_prune = self.handle_assignment(expr)
@@ -38,20 +55,9 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		return 0
 
 	def handle_return(self, insn:idaapi.cinsn_t) -> bool:
-		actx = self.current_ast_analysis.actx
 		retval = utils.strip_casts(insn.creturn.expr)
 
-		# FIXME
-		if retval.op == idaapi.cot_num:
-			return True
-
-		if len(extract_vars(retval, actx)) > 1:
-			print("WARNING:", "found multiple variables in return value", utils.expr2str(retval))
-			return True
-
-		vuc = get_var_use_chain(retval, actx)
-		if vuc is None:
-			print("WARNING:", "failed to calculate return value use chain", utils.expr2str(retval))
+		if (vuc := self.get_var_use_chain(retval)) is None:
 			return True
 
 		var, uses = vuc.var, vuc.uses
@@ -60,17 +66,10 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		return True
 
 	def handle_call(self, expr:idaapi.cexpr_t) -> bool:
-		actx = self.current_ast_analysis.actx
-
 		fc = FuncCall(expr)
 		self.current_ast_analysis.calls.append(fc)
 		if fc.is_implicit():
-			if len(extract_vars(expr.x, actx)) > 1:
-				print("WARNING:", "found multiple variables in call argument", utils.expr2str(expr.x))
-			else:
-				fc.implicit_var_use_chain = get_var_use_chain(expr.x, actx)
-				if fc.implicit_var_use_chain is None:
-					print("WARNING:", "failed to get var use chain of implicit call for", utils.expr2str(expr.x))
+			fc.implicit_var_use_chain = self.get_var_use_chain(expr.x)
 
 		for arg_id, arg in enumerate(expr.a):
 			self.apply_to_exprs(arg, None)
@@ -78,13 +77,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			if arg.op in [idaapi.cot_num, idaapi.cot_sizeof, idaapi.cot_call]:
 				continue
 
-			if len(extract_vars(arg, actx)) > 1:
-				print("WARNING:", "found multiple variables in call argument", utils.expr2str(arg))
-				continue
-
-			vuc = get_var_use_chain(arg, actx)
-			if vuc is None:
-				print("WARNING:", "failed to calculate call argument chain", utils.expr2str(arg))
+			if (vuc := self.get_var_use_chain(arg)) is None:
 				continue
 
 			var, uses = vuc.var, vuc.uses
@@ -93,17 +86,9 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		return True
 
 	def handle_assignment(self, expr: idaapi.cexpr_t) -> bool:
-		actx = self.current_ast_analysis.actx
+		self.handle_expr(expr.y)
 
-		self.apply_to(expr.y, None)
-
-		if len(extract_vars(expr.x, actx)) > 1:
-			print("WARNING:", "found multiple variables in write target", utils.expr2str(expr.x))
-			return True
-
-		vuc = get_var_use_chain(expr.x, actx)
-		if vuc is None:
-			print("WARNING:", "failed to calculate write target chain", utils.expr2str(expr.x))
+		if (vuc := self.get_var_use_chain(expr.x)) is None:
 			return True
 
 		var, uses = vuc.var, vuc.uses
@@ -112,19 +97,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		return True
 
 	def handle_expr(self, expr:idaapi.cexpr_t) -> bool:
-		actx = self.current_ast_analysis.actx
-
-		# FIXME
-		if expr.op == idaapi.cot_num:
-			return True
-
-		if len(extract_vars(expr, actx)) > 1:
-			print("WARNING:", "found multiple variables in read", utils.expr2str(expr))
-			return True
-
-		vuc = get_var_use_chain(expr, actx)
-		if vuc is None:
-			print("WARNING:", "failed to calculate read chain", utils.expr2str(expr))
+		if (vuc := self.get_var_use_chain(expr)) is None:
 			return True
 
 		var, uses = vuc.var, vuc.uses
