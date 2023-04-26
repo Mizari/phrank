@@ -1,5 +1,5 @@
 import idaapi
-
+import time
 import phrank_api
 
 
@@ -36,7 +36,12 @@ class HRActionHandler(idaapi.action_handler_t):
 			should_refresh = self.handle_expr(cfunc, citem)
 		elif citem.citype == idaapi.VDI_LVAR:
 			lvar_id = get_lvar_id(cfunc, citem.l)
-			should_refresh = self.handle_lvar(cfunc, lvar_id)
+			if lvar_id == -1:
+				print("ERROR:", f"failed to get local variable id for {citem.l}")
+				should_refresh = 0
+			else:
+				var = phrank_api.Var(cfunc.entry_ea, lvar_id)
+				should_refresh = self.handle_var(var)
 		elif citem.citype == idaapi.VDI_FUNC:
 			should_refresh = self.handle_function(cfunc.entry_ea)
 
@@ -44,13 +49,13 @@ class HRActionHandler(idaapi.action_handler_t):
 			hx_view.refresh_view(1)
 		return should_refresh
 
-	def handle_expr(self, cfunc, citem):
+	def handle_expr(self, cfunc, citem) -> int:
 		raise NotImplementedError()
 
-	def handle_lvar(self, cfunc, lvar_id):
+	def handle_var(self, var:phrank_api.Var) -> int:
 		raise NotImplementedError()
 
-	def handle_function(self, cfunc):
+	def handle_function(self, cfunc) -> int:
 		raise NotImplementedError()
 
 	def update(self, ctx):
@@ -67,7 +72,7 @@ class HRActionHandler(idaapi.action_handler_t):
 
 
 class VtableMaker(HRActionHandler):
-	def handl_expr(self, cfunc, citem):
+	def handl_expr(self, cfunc, citem) -> int:
 		intval = phrank_api.get_int(citem)
 		if intval is None:
 			print("Failed to get int value")
@@ -91,38 +96,36 @@ class StructMaker(HRActionHandler):
 		struct_analyzer.apply_analysis()
 		return 1
 
-	def handle_lvar(self, cfunc, lvar_id):
+	def handle_var(self, var:phrank_api.Var) -> int:
+		start = time.time()
 		struct_analyzer = phrank_api.StructAnalyzer()
-		struct_analyzer.analyze_lvar(cfunc.entry_ea, lvar_id)
+		struct_analyzer.analyze_var(var)
 		struct_analyzer.apply_analysis()
+		print(f"Analysis completed in {time.time() - start}")
 		return 1
 
-	def handle_expr(self, cfunc, citem):
+	def handle_expr(self, cfunc, citem) -> int:
 		citem = phrank_api.strip_casts(citem)
 
 		if citem.op == idaapi.cot_obj:
 			if phrank_api.is_func_start(citem.obj_ea):
 				return self.handle_function(citem.obj_ea)
 
-			struct_analyzer = phrank_api.StructAnalyzer()
-			struct_analyzer.analyze_gvar(citem.obj_ea)
-			struct_analyzer.apply_analysis()
-			return 1
+			var = phrank_api.Var(citem.obj_ea)
+			return self.handle_var(var)
 
 		if citem.op == idaapi.cot_call and citem.x.op == idaapi.cot_obj:
 			return self.handle_function(citem.x.obj_ea)
 
 		if citem.op == idaapi.cot_var:
-			return self.handle_lvar(cfunc, citem.v.idx)
+			var = phrank_api.Var(cfunc.entry_ea, citem.v.idx)
+			return self.handle_var(var)
 
 		actx = phrank_api.ASTCtx.from_cfunc(cfunc)
 		vars = phrank_api.extract_vars(citem, actx)
 		if len(vars) == 1:
 			var = vars.pop()
-			struct_analyzer = phrank_api.StructAnalyzer()
-			struct_analyzer.analyze_var(var)
-			struct_analyzer.apply_analysis()
-			return 1
+			return self.handle_var(var)
 
 		print("unknown citem under cursor", citem.opname)
 		return 0
