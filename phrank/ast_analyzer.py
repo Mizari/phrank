@@ -47,13 +47,11 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 
 		if len(extract_vars(retval, actx)) > 1:
 			print("WARNING:", "found multiple variables in return value", utils.expr2str(retval))
-			self.current_ast_analysis.unknown_retvals.append(retval)
 			return True
 
 		vuc = get_var_use_chain(retval, actx)
 		if vuc is None:
 			print("WARNING:", "failed to calculate return value use chain", utils.expr2str(retval))
-			self.current_ast_analysis.unknown_casts.append(retval)
 			return True
 
 		var, uses = vuc.var, vuc.uses
@@ -82,13 +80,11 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 
 			if len(extract_vars(arg, actx)) > 1:
 				print("WARNING:", "found multiple variables in call argument", utils.expr2str(arg))
-				self.current_ast_analysis.unknown_casts.append(arg)
 				continue
 
 			vuc = get_var_use_chain(arg, actx)
 			if vuc is None:
 				print("WARNING:", "failed to calculate call argument chain", utils.expr2str(arg))
-				self.current_ast_analysis.unknown_casts.append(arg)
 				continue
 
 			var, uses = vuc.var, vuc.uses
@@ -103,13 +99,11 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 
 		if len(extract_vars(expr.x, actx)) > 1:
 			print("WARNING:", "found multiple variables in write target", utils.expr2str(expr.x))
-			self.current_ast_analysis.unknown_asgs.append(expr.x)
 			return True
 
 		vuc = get_var_use_chain(expr.x, actx)
 		if vuc is None:
 			print("WARNING:", "failed to calculate write target chain", utils.expr2str(expr.x))
-			self.current_ast_analysis.unknown_asgs.append(expr.x)
 			return True
 
 		var, uses = vuc.var, vuc.uses
@@ -126,13 +120,11 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 
 		if len(extract_vars(expr, actx)) > 1:
 			print("WARNING:", "found multiple variables in read", utils.expr2str(expr))
-			self.current_ast_analysis.unknown_reads.append(expr)
 			return True
 
 		vuc = get_var_use_chain(expr, actx)
 		if vuc is None:
 			print("WARNING:", "failed to calculate read chain", utils.expr2str(expr))
-			self.current_ast_analysis.unknown_reads.append(expr)
 			return True
 
 		var, uses = vuc.var, vuc.uses

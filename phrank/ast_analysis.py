@@ -16,11 +16,6 @@ class ASTAnalysis():
 		self.var_writes  : list[VarWrite]  = []
 		self.var_reads   : list[VarRead]   = []
 
-		self.unknown_casts = []
-		self.unknown_asgs = []
-		self.unknown_reads = []
-		self.unknown_retvals = []
-
 	def iterate_lvar_writes(self, func_ea:int, lvar_id:int):
 		for w in self.var_writes:
 			if not w.var.is_lvar(func_ea, lvar_id): continue
