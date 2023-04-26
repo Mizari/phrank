@@ -132,12 +132,12 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			return None
 
 		if len(extract_vars(expr, actx)) > 1:
-			print("WARNING:", f"found multiple variables in {utils.expr2str(expr)}")
+			# print("WARNING:", f"found multiple variables in {utils.expr2str(expr)}")
 			return None
 
 		vuc = get_var_use_chain(expr, actx)
 		if vuc is None:
-			print("WARNING:", f"failed to calculate var use chain for {utils.expr2str(expr)}")
+			# print("WARNING:", f"failed to calculate var use chain for {utils.expr2str(expr)}")
 			return None
 		return vuc
 
