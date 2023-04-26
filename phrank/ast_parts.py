@@ -348,7 +348,6 @@ class CallCast(VarUseChain):
 		super().__init__(var, *uses)
 		self.func_call = func_call
 		self.arg_id = arg_id
-		self.arg_type = utils.UNKNOWN_TYPE
 
 	def is_var_arg(self):
 		return len(self.uses) == 0

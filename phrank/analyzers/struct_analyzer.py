@@ -28,7 +28,7 @@ class StructAnalyzer(TypeAnalyzer):
 			# FIXME kostyl
 			if cast.is_var_arg():
 				continue
-			cast_type = cast.arg_type
+			cast_type = self.get_cast_type(cast)
 
 			tif = cast.transform_type(var_type)
 			if isinstance(tif, utils.ShiftedStruct):
@@ -154,12 +154,13 @@ class StructAnalyzer(TypeAnalyzer):
 	def analyze_lvar_uses(self, func_ea:int, lvar_id:int, var_uses:VarUses):
 		for var_write in var_uses.writes:
 			var_write.value_type = self.analyze_cexpr(func_ea, var_write.value)
-		for call_cast in var_uses.casts:
-			address = self.get_call_address(call_cast.func_call)
-			if address == -1:
-				continue
 
-			call_cast.arg_type = self.analyze_lvar(address, call_cast.arg_id)
+	def get_cast_type(self, call_cast:CallCast) -> idaapi.tinfo_t:
+		address = self.get_call_address(call_cast.func_call)
+		if address == -1:
+			return utils.UNKNOWN_TYPE
+
+		return self.analyze_lvar(address, call_cast.arg_id)
 
 	def analyze_gvar_type_by_assigns(self, gvar_ea:int) -> idaapi.tinfo_t:
 		# analyzing gvar type by assigns to it
@@ -290,7 +291,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 		# single cast at offset 0 might be existing type
 		if len(casts) == 1 and casts[0].is_var_arg():
-			arg_type = casts[0].arg_type
+			arg_type = self.get_cast_type(casts[0])
 
 			# casting to something unknown yield unknown
 			if arg_type is utils.UNKNOWN_TYPE:
