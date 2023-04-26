@@ -39,7 +39,7 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 	if expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
 		vuc = get_var_use_chain(expr.a[0], actx)
 		if vuc is None:
-			print("WARNING:", "unknown chain var use expression operand", expr.opname, utils.expr2str(expr))
+			# print("WARNING:", "unknown chain var use expression operand", expr.opname, utils.expr2str(expr))
 			return None
 
 		var, use_chain = vuc.var, vuc.uses
