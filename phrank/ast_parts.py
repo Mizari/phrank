@@ -99,7 +99,7 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 	if expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
 		vuc = get_var_use_chain(expr.a[0], actx)
 		if vuc is None:
-			print("unknown chain var use expression operand", expr.opname, utils.expr2str(expr))
+			print("WARNING:", "unknown chain var use expression operand", expr.opname, utils.expr2str(expr))
 			return None
 
 		var, use_chain = vuc.var, vuc.uses
@@ -132,7 +132,7 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 	}
 	use_type = op2use_type.get(expr.op)
 	if use_type is None:
-		print("unknown chain var use expression operand", expr.opname, utils.expr2str(expr))
+		print("WARNING:", "unknown chain var use expression operand", expr.opname, utils.expr2str(expr))
 		return None
 
 	vuc = get_var_use_chain(expr.x, actx)
@@ -150,7 +150,7 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 	elif expr.op in [idaapi.cot_idx, idaapi.cot_add, idaapi.cot_sub]:
 		offset = utils.get_int(expr.y)
 		if offset is None:
-			print("unknown expression add operand", utils.expr2str(expr.y))
+			print("WARNING:", "unknown expression add operand", utils.expr2str(expr.y))
 			return None
 		if expr.op == idaapi.cot_sub: offset = -offset
 		if expr.x.type.is_ptr():

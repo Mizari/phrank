@@ -46,13 +46,13 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			return True
 
 		if len(extract_vars(retval, actx)) > 1:
-			print("Found multiple variables in return value", utils.expr2str(retval))
+			print("WARNING:", "found multiple variables in return value", utils.expr2str(retval))
 			self.current_ast_analysis.unknown_retvals.append(retval)
 			return True
 
 		vuc = get_var_use_chain(retval, actx)
 		if vuc is None:
-			print("Failed to calculate return value use chain", utils.expr2str(retval))
+			print("WARNING:", "failed to calculate return value use chain", utils.expr2str(retval))
 			self.current_ast_analysis.unknown_casts.append(retval)
 			return True
 
@@ -67,10 +67,12 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		fc = FuncCall(expr)
 		self.current_ast_analysis.calls.append(fc)
 		if fc.is_implicit():
-			if len(extract_vars(expr.x, actx)) == 1:
-				fc.implicit_var_use_chain = get_var_use_chain(expr.x, actx)
+			if len(extract_vars(expr.x, actx)) > 1:
+				print("WARNING:", "found multiple variables in call argument", utils.expr2str(expr.x))
 			else:
-				print("Failed to get var use chain of implicit call for", utils.expr2str(expr.x))
+				fc.implicit_var_use_chain = get_var_use_chain(expr.x, actx)
+				if fc.implicit_var_use_chain is None:
+					print("WARNING:", "failed to get var use chain of implicit call for", utils.expr2str(expr.x))
 
 		for arg_id, arg in enumerate(expr.a):
 			self.apply_to_exprs(arg, None)
@@ -79,13 +81,13 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 				continue
 
 			if len(extract_vars(arg, actx)) > 1:
-				print("Found multiple variables in call argument", utils.expr2str(arg))
+				print("WARNING:", "found multiple variables in call argument", utils.expr2str(arg))
 				self.current_ast_analysis.unknown_casts.append(arg)
 				continue
 
 			vuc = get_var_use_chain(arg, actx)
 			if vuc is None:
-				print("Failed to calculate call argument chain", utils.expr2str(arg))
+				print("WARNING:", "failed to calculate call argument chain", utils.expr2str(arg))
 				self.current_ast_analysis.unknown_casts.append(arg)
 				continue
 
@@ -100,13 +102,13 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		self.apply_to(expr.y, None)
 
 		if len(extract_vars(expr.x, actx)) > 1:
-			print("Found multiple variables in write target", utils.expr2str(expr.x))
+			print("WARNING:", "found multiple variables in write target", utils.expr2str(expr.x))
 			self.current_ast_analysis.unknown_asgs.append(expr.x)
 			return True
 
 		vuc = get_var_use_chain(expr.x, actx)
 		if vuc is None:
-			print("Failed to calculate write target chain", utils.expr2str(expr.x))
+			print("WARNING:", "failed to calculate write target chain", utils.expr2str(expr.x))
 			self.current_ast_analysis.unknown_asgs.append(expr.x)
 			return True
 
@@ -123,13 +125,13 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			return True
 
 		if len(extract_vars(expr, actx)) > 1:
-			print("Found multiple variables in read", utils.expr2str(expr))
+			print("WARNING:", "found multiple variables in read", utils.expr2str(expr))
 			self.current_ast_analysis.unknown_reads.append(expr)
 			return True
 
 		vuc = get_var_use_chain(expr, actx)
 		if vuc is None:
-			print("Failed to calculate read chain", utils.expr2str(expr))
+			print("WARNING:", "failed to calculate read chain", utils.expr2str(expr))
 			self.current_ast_analysis.unknown_reads.append(expr)
 			return True
 

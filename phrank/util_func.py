@@ -111,5 +111,5 @@ def decompile_function(func_ea:int) -> idaapi.cfunc_t|None:
 		str(cfunc)
 		return cfunc
 	except idaapi.DecompilationFailure:
-		print("failed to decompile", hex(func_ea), idaapi.get_name(func_ea))
+		print("WARNING:", "failed to decompile", hex(func_ea), idaapi.get_name(func_ea))
 		return None

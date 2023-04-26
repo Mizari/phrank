@@ -48,7 +48,7 @@ class FunctionManager:
 		func_details = idaapi.func_type_data_t()
 		rv = func_tinfo.get_func_details(func_details)
 		if not rv:
-			print("Failed to get func details in", get_funcname(func_ea))
+			print("WARNING:", "failed to get func details in", get_funcname(func_ea))
 			return None
 		return func_details
 
@@ -67,7 +67,7 @@ class FunctionManager:
 
 		cfunc = self.get_cfunc(func_ea)
 		if cfunc is None:
-			print("Failed to get variable type, because of decompilation failure in", get_funcname(func_ea))
+			print("WARNING:", "failed to get variable type, because of decompilation failure in", get_funcname(func_ea))
 			return utils.UNKNOWN_TYPE
 
 		if len(cfunc.lvars) <= var_id:
@@ -82,7 +82,7 @@ class FunctionManager:
 	def set_lvar_tinfo(self, func_ea:int, var_id:int, var_type:idaapi.tinfo_t):
 		cfunc = self.get_cfunc(func_ea)
 		if cfunc is None:
-			print("Failed to change variable type, because of decompilation failure in", get_funcname(func_ea))
+			print("WARNING:", "failed to change variable type, because of decompilation failure in", get_funcname(func_ea))
 			return
 
 		var = cfunc.lvars[var_id]
@@ -109,7 +109,7 @@ class FunctionManager:
 		# XXX because ida will lose arg type somewhere along the way
 		fdet = self.get_func_details(func_ea)
 		if fdet is None:
-			print("Failed to get func details in", get_funcname(func_ea))
+			print("WARNING:", "failed to get func details in", get_funcname(func_ea))
 			return utils.UNKNOWN_TYPE
 
 		if len(fdet) <= arg_id:
@@ -122,7 +122,7 @@ class FunctionManager:
 
 		func_details = self.get_func_details(func_ea)
 		if func_details is None:
-			print("Failed to change argument type (no func details) in", get_funcname(func_ea))
+			print("WARNING:", "failed to change argument type (no func details) in", get_funcname(func_ea))
 			return
 
 		func_details[arg_id].type = arg_type.copy()
@@ -153,7 +153,7 @@ class FunctionManager:
 				return rv
 			return rv.copy()
 
-		print("Failed to get tinfo for", hex(func_ea), get_funcname(func_ea))
+		print("WARNING:", "failed to get tinfo for", hex(func_ea), get_funcname(func_ea))
 		return None
 
 	def get_funcptr_tinfo(self, func_ea:int) -> idaapi.tinfo_t|None:
@@ -162,7 +162,7 @@ class FunctionManager:
 			return None
 		rv = tif.create_ptr(tif)
 		if rv == False:
-			print("Failed to change tinfo of", str(tif))
+			print("WARNING:", "failed to change tinfo of", str(tif))
 			return None
 		return tif
 
