@@ -3,7 +3,7 @@
 from phrank.analyzers.struct_analyzer import StructAnalyzer
 from phrank.analyzers.vtable_analyzer import VtableAnalyzer
 from phrank.analyzers.cpp_class_analyzer import CppClassAnalyzer
-from phrank.ast_analyzer import ASTAnalyzer
+from phrank.ast_analyzer import ASTAnalyzer, get_var, get_var_use_chain, extract_vars
 from phrank.cfunction_factory import CFunctionFactory
 import phrank.settings as settings
 
