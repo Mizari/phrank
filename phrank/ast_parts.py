@@ -88,8 +88,6 @@ def extract_vars(expr:idaapi.cexpr_t, actx:ASTCtx) -> set[Var]:
 	if expr.op == idaapi.cot_call:
 		for a in expr.a:
 			vars.update(extract_vars(a, actx))
-	vars_dict = {v.varid: v for v in vars}
-	vars = set(vars_dict.values())
 	return vars
 
 def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
