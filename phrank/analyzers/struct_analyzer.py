@@ -240,10 +240,10 @@ class StructAnalyzer(TypeAnalyzer):
 			return utils.UNKNOWN_TYPE
 
 		casts = var_uses.casts
-		writes = var_uses.writes
 		reads = var_uses.reads
+		writes = [w for w in var_uses.writes if not w.is_assign()]
+		assigns = [w for w in var_uses.writes if w.is_assign()]
 
-		assigns = [w for w in writes if w.is_assign()]
 		# single assign can only be one type
 		if len(assigns) == 1:
 			return assigns[0].value_type
