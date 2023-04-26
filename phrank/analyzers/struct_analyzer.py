@@ -236,7 +236,6 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def calculate_var_type_by_uses(self, var_uses: VarUses):
 		if len(var_uses) == 0:
-			print("WARNING:", "found no var uses")
 			return utils.UNKNOWN_TYPE
 
 		casts = var_uses.casts
@@ -363,9 +362,14 @@ class StructAnalyzer(TypeAnalyzer):
 			# TODO check correctness of writes, read, casts
 			return lvar_tinfo
 
+		lvar_uses = self.get_lvar_uses(func_ea, lvar_id)
+		if len(lvar_uses) == 0:
+			print("WARNING:", f"found no var uses for {str(var)}")
+			self.var2tinfo[var] = utils.UNKNOWN_TYPE
+			return utils.UNKNOWN_TYPE
+
 		# TODO check that var is not recursively dependant on itself
 		# TODO check that var uses are compatible
-		lvar_uses = self.get_lvar_uses(func_ea, lvar_id)
 		self.analyze_lvar_uses(func_ea, lvar_id, lvar_uses)
 		lvar_tinfo = self.calculate_var_type_by_uses(lvar_uses)
 		if lvar_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(lvar_tinfo) != -1:
