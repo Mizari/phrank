@@ -63,7 +63,7 @@ def get_trampoline_func_target(func_ea:int) -> int:
 	if idaapi.is_indirect_jump_insn(insn):
 		dis_str = idc.GetDisasm(instrs[0])
 		dis_words = dis_str.split()
-		if len(dis_words) == 2 and dis_words[0] == "jmp":
+		if dis_words[0] == "jmp":
 			target = dis_words[1]
 			if target.startswith("ds:"): target = target[3:]
 			val = idc.get_name_ea_simple(target)
