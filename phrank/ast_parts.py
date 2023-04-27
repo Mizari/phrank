@@ -66,6 +66,13 @@ class Var:
 		else:
 			return idaapi.get_name(self.varid)
 
+	def get_functions(self) -> list[int]:
+		if self.is_local():
+			functions = [self.func_ea]
+		else:
+			functions = utils.get_func_calls_to(self.obj_ea)
+		return functions
+
 
 class FuncCall:
 	def __init__(self, func_ea:int, call_expr:idaapi.cexpr_t):

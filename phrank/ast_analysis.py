@@ -23,3 +23,10 @@ class ASTAnalysis():
 	def iterate_var_call_casts(self, var:Var):
 		for c in self.call_casts:
 			if c.var == var: yield c
+
+	def get_var_uses(self, var:Var) -> VarUses:
+		var_uses = VarUses()
+		var_uses.writes = [w for w in self.iterate_var_writes(var)]
+		var_uses.reads = [r for r in self.iterate_var_reads(var)]
+		var_uses.casts = [c for c in self.iterate_var_call_casts(var)]
+		return var_uses

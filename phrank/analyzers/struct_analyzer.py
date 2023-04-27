@@ -141,15 +141,14 @@ class StructAnalyzer(TypeAnalyzer):
 		super().clear_analysis()
 		self.vtable_analyzer.clear_analysis()
 
-	def get_lvar_uses(self, lvar:Var) -> VarUses:
+	def get_var_uses(self, var:Var) -> VarUses:
 		var_uses = VarUses()
-		func_aa = self.get_ast_analysis(lvar.func_ea)
-		for var_read in func_aa.iterate_var_reads(lvar):
-			var_uses.reads.append(var_read)
-		for var_write in func_aa.iterate_var_writes(lvar):
-			var_uses.writes.append(var_write)
-		for call_cast in func_aa.iterate_var_call_casts(lvar):
-			var_uses.casts.append(call_cast)
+		for func_ea in var.get_functions():
+			aa = self.get_ast_analysis(func_ea)
+			va = aa.get_var_uses(var)
+			var_uses.writes += va.writes
+			var_uses.reads += va.reads
+			var_uses.casts += va.casts
 		return var_uses
 
 	def get_write_type(self, var_write:VarWrite) -> idaapi.tinfo_t:
@@ -362,7 +361,7 @@ class StructAnalyzer(TypeAnalyzer):
 			# TODO check correctness of writes, read, casts
 			return lvar_tinfo
 
-		lvar_uses = self.get_lvar_uses(lvar)
+		lvar_uses = self.get_var_uses(lvar)
 		if len(lvar_uses) == 0:
 			print("WARNING:", f"found no var uses for {str(lvar)}")
 			self.var2tinfo[lvar] = utils.UNKNOWN_TYPE
@@ -479,7 +478,7 @@ class StructAnalyzer(TypeAnalyzer):
 			arg_var = Var(call_ea, arg_id)
 			current_type = self.var2tinfo.get(arg_var, utils.UNKNOWN_TYPE)
 			if current_type is utils.UNKNOWN_TYPE:
-				lvar_uses = self.get_lvar_uses(arg_var)
+				lvar_uses = self.get_var_uses(arg_var)
 				arg_assigns = [w for w in lvar_uses.writes if w.is_assign()]
 				if len(arg_assigns) != 0:
 					continue
