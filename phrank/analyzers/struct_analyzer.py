@@ -140,10 +140,9 @@ class StructAnalyzer(TypeAnalyzer):
 		super().clear_analysis()
 		self.vtable_analyzer.clear_analysis()
 
-	def get_lvar_uses(self, func_ea:int, lvar_id:int):
+	def get_lvar_uses(self, lvar:Var) -> VarUses:
 		var_uses = VarUses()
-		lvar = Var(func_ea, lvar_id)
-		func_aa = self.get_ast_analysis(func_ea)
+		func_aa = self.get_ast_analysis(lvar.func_ea)
 		for var_read in func_aa.iterate_var_reads(lvar):
 			var_uses.reads.append(var_read)
 		for var_write in func_aa.iterate_var_writes(lvar):
@@ -346,14 +345,14 @@ class StructAnalyzer(TypeAnalyzer):
 			return self.analyze_gvar(var.obj_ea)
 
 	def analyze_lvar(self, func_ea:int, lvar_id:int) -> idaapi.tinfo_t:
-		var = Var(func_ea, lvar_id)
-		current_lvar_tinfo = self.var2tinfo.get(var)
+		lvar = Var(func_ea, lvar_id)
+		current_lvar_tinfo = self.var2tinfo.get(lvar)
 		if current_lvar_tinfo is not None:
 			return current_lvar_tinfo
 
-		lvar = self.get_lvar(func_ea, lvar_id)
-		if lvar is not None and lvar.is_stk_var() and not lvar.is_arg_var:
-			print("WARNING: variable", lvar.name, "in", idaapi.get_name(func_ea), "is stack variable, whose analysis is not yet implemented")
+		original_type = self.get_lvar(func_ea, lvar_id)
+		if original_type is not None and original_type.is_stk_var() and not original_type.is_arg_var:
+			print("WARNING: variable", original_type.name, "in", idaapi.get_name(func_ea), "is stack variable, whose analysis is not yet implemented")
 			return utils.UNKNOWN_TYPE
 
 		lvar_tinfo = self.get_var_type(func_ea, lvar_id)
@@ -364,10 +363,10 @@ class StructAnalyzer(TypeAnalyzer):
 			# TODO check correctness of writes, read, casts
 			return lvar_tinfo
 
-		lvar_uses = self.get_lvar_uses(func_ea, lvar_id)
+		lvar_uses = self.get_lvar_uses(lvar)
 		if len(lvar_uses) == 0:
-			print("WARNING:", f"found no var uses for {str(var)}")
-			self.var2tinfo[var] = utils.UNKNOWN_TYPE
+			print("WARNING:", f"found no var uses for {str(lvar)}")
+			self.var2tinfo[lvar] = utils.UNKNOWN_TYPE
 			return utils.UNKNOWN_TYPE
 
 		# TODO check that var is not recursively dependant on itself
@@ -376,7 +375,7 @@ class StructAnalyzer(TypeAnalyzer):
 		lvar_tinfo = self.calculate_var_type_by_uses(lvar_uses)
 		if lvar_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(lvar_tinfo) != -1:
 			self.add_type_uses(lvar_uses, lvar_tinfo)
-		self.var2tinfo[var] = lvar_tinfo
+		self.var2tinfo[lvar] = lvar_tinfo
 		return lvar_tinfo
 
 	def analyze_retval(self, func_ea:int) -> idaapi.tinfo_t:
@@ -482,7 +481,7 @@ class StructAnalyzer(TypeAnalyzer):
 			arg_var = Var(call_ea, arg_id)
 			current_type = self.var2tinfo.get(arg_var, utils.UNKNOWN_TYPE)
 			if current_type is utils.UNKNOWN_TYPE:
-				lvar_uses = self.get_lvar_uses(call_ea, arg_id)
+				lvar_uses = self.get_lvar_uses(arg_var)
 				arg_assigns = [w for w in lvar_uses.writes if w.is_assign()]
 				if len(arg_assigns) != 0:
 					continue
