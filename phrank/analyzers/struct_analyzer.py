@@ -200,7 +200,7 @@ class StructAnalyzer(TypeAnalyzer):
 			gvar_ptr_type.create_ptr(gvar_type)
 			return gvar_ptr_type
 
-		print("WARNING:", "unknown cexpr value", cexpr.opname)
+		print("WARNING:", f"unknown cexpr value {cexpr.opname} in {idaapi.get_name(func_ea)}")
 		return utils.UNKNOWN_TYPE
 
 	def calculate_var_type_by_uses(self, var_uses: VarUses):
