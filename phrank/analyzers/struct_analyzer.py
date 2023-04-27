@@ -114,10 +114,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 		touched_functions = set()
 		for var in self.var2tinfo.keys():
-			if var.is_local():
-				touched_functions.add(var.func_ea)
-			else:
-				touched_functions.update(utils.get_func_calls_to(var.obj_ea))
+			touched_functions.update(var.get_functions())
 
 		for func_ea in touched_functions:
 			func_aa = self.get_ast_analysis(func_ea)
@@ -151,17 +148,12 @@ class StructAnalyzer(TypeAnalyzer):
 			var_uses.casts += va.casts
 		return var_uses
 
-	def get_var_call_casts(self, var:Var):
-		if var.is_local():
-			aa = self.get_ast_analysis(var.func_ea)
-			casts = [c for c in aa.iterate_var_call_casts(var)]
-		else:
-			funcs = utils.get_func_calls_to(var.obj_ea)
-			casts = []
-			for func_ea in funcs:
-				aa = self.get_ast_analysis(func_ea)
-				for call_cast in aa.iterate_var_call_casts(var):
-					casts.append(call_cast)
+	def get_var_call_casts(self, var:Var) -> list[CallCast]:
+		casts = []
+		for func_ea in var.get_functions():
+			aa = self.get_ast_analysis(func_ea)
+			va = aa.get_var_uses(var)
+			casts += va.casts
 		return casts
 
 	def get_write_type(self, var_write:VarWrite) -> idaapi.tinfo_t:
