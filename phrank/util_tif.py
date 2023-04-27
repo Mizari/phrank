@@ -31,6 +31,10 @@ def is_tif_correct(tif:idaapi.tinfo_t) -> bool:
 
 	if str(tif) == "":
 		return False
+
+	if tif is UNKNOWN_TYPE:
+		return False
+
 	return True
 
 def str2strucid(s:str) -> int:
