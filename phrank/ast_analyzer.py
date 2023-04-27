@@ -161,12 +161,14 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			return True
 
 		var, uses = vuc.var, vuc.uses
-		rw = ReturnWrapper(var, retval, *uses)
+		func_ea = self.current_ast_analysis.actx.addr
+		rw = ReturnWrapper(func_ea, var, retval, *uses)
 		self.current_ast_analysis.returns.append(rw)
 		return True
 
 	def handle_call(self, expr:idaapi.cexpr_t) -> bool:
-		fc = FuncCall(expr)
+		func_ea = self.current_ast_analysis.actx.addr
+		fc = FuncCall(func_ea, expr)
 		self.current_ast_analysis.calls.append(fc)
 		if fc.is_implicit():
 			fc.implicit_var_use_chain = self.get_var_use_chain(expr.x)
@@ -181,7 +183,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 				continue
 
 			var, uses = vuc.var, vuc.uses
-			cast = CallCast(var, arg_id, fc, *uses)
+			cast = CallCast(func_ea, var, arg_id, fc, *uses)
 			self.current_ast_analysis.call_casts.append(cast)
 		return True
 
@@ -192,7 +194,8 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			return True
 
 		var, uses = vuc.var, vuc.uses
-		w = VarWrite(var, expr.y, *uses)
+		func_ea = self.current_ast_analysis.actx.addr
+		w = VarWrite(func_ea, var, expr.y, *uses)
 		self.current_ast_analysis.var_writes.append(w)
 		return True
 
@@ -201,6 +204,7 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 			return True
 
 		var, uses = vuc.var, vuc.uses
-		r = VarRead(var, *uses)
+		func_ea = self.current_ast_analysis.actx.addr
+		r = VarRead(func_ea, var, *uses)
 		self.current_ast_analysis.var_reads.append(r)
 		return True

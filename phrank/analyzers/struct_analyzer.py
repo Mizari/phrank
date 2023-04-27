@@ -19,7 +19,8 @@ class StructAnalyzer(TypeAnalyzer):
 	def add_type_uses(self, var_uses:VarUses, var_type:idaapi.tinfo_t):
 		for var_write in var_uses.writes:
 			if var_write.is_assign(): continue
-			self.add_type_use(var_type, var_write, var_write.value_type)
+			write_type = self.get_write_type(var_write)
+			self.add_type_use(var_type, var_write, write_type)
 
 		for var_read in var_uses.reads:
 			self.add_type_use(var_type, var_read, utils.UNKNOWN_TYPE)
@@ -151,9 +152,8 @@ class StructAnalyzer(TypeAnalyzer):
 			var_uses.casts.append(call_cast)
 		return var_uses
 
-	def analyze_lvar_uses(self, func_ea:int, lvar_id:int, var_uses:VarUses):
-		for var_write in var_uses.writes:
-			var_write.value_type = self.analyze_cexpr(func_ea, var_write.value)
+	def get_write_type(self, var_write:VarWrite) -> idaapi.tinfo_t:
+		return self.analyze_cexpr(var_write.func_ea, var_write.value)
 
 	def get_cast_type(self, call_cast:CallCast) -> idaapi.tinfo_t:
 		address = self.get_call_address(call_cast.func_call)
@@ -244,20 +244,22 @@ class StructAnalyzer(TypeAnalyzer):
 		writes = [w for w in var_uses.writes if not w.is_assign()]
 		assigns = [w for w in var_uses.writes if w.is_assign()]
 
+		assigns_types = [self.get_write_type(t) for t in assigns]
 		# single assign can only be one type
 		if len(assigns) == 1:
-			return assigns[0].value_type
+			return assigns_types[0]
 
 		# try to resolve multiple assigns
 		if len(assigns) > 1:
 			# prefer types over non-types
 			strucid_assign_types = []
-			for a in assigns:
-				if a.value_type is utils.UNKNOWN_TYPE:
+			for i, asg in enumerate(assigns):
+				assign_type = assigns_types[i]
+				if assign_type is utils.UNKNOWN_TYPE:
 					continue
-				strucid = utils.tif2strucid(a.value_type)
+				strucid = utils.tif2strucid(assign_type)
 				if strucid != -1:
-					strucid_assign_types.append(a.value_type)
+					strucid_assign_types.append(assign_type)
 
 			if len(strucid_assign_types) == 1:
 				return strucid_assign_types[0]
@@ -283,9 +285,11 @@ class StructAnalyzer(TypeAnalyzer):
 				print("non-pointer reads are not supported for now", r)
 				return utils.UNKNOWN_TYPE
 
+		writes_types = [self.get_write_type(w) for w in writes]
+
 		# single write at offset 0 does not create new type
 		if len(var_uses) == 1 and len(writes) == 1 and writes[0].get_ptr_offset() == 0:
-			write_type = writes[0].value_type.copy()
+			write_type = writes_types[0].copy()
 			write_type.create_ptr(write_type)
 			return write_type
 
@@ -307,11 +311,11 @@ class StructAnalyzer(TypeAnalyzer):
 
 			# checking that writes do not go outside of casted value
 			cast_end = arg_type.get_size()
-			for w in writes:
+			for i, w in enumerate(writes):
 				write_start = w.get_ptr_offset()
 				if write_start is None:
 					continue
-				write_end = w.value_type.get_size()
+				write_end = writes_types[i].get_size()
 				# write_start, write_end = w[0], w[1].get_size()
 				if write_start < 0 or write_end > cast_end:
 					return utils.UNKNOWN_TYPE
@@ -371,7 +375,6 @@ class StructAnalyzer(TypeAnalyzer):
 
 		# TODO check that var is not recursively dependant on itself
 		# TODO check that var uses are compatible
-		self.analyze_lvar_uses(func_ea, lvar_id, lvar_uses)
 		lvar_tinfo = self.calculate_var_type_by_uses(lvar_uses)
 		if lvar_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(lvar_tinfo) != -1:
 			self.add_type_uses(lvar_uses, lvar_tinfo)
@@ -488,7 +491,6 @@ class StructAnalyzer(TypeAnalyzer):
 
 				self.var2tinfo[arg_var] = var_type
 				self.propagate_var(arg_var)
-				self.analyze_lvar_uses(call_ea, arg_id, lvar_uses)
 				self.add_type_uses(lvar_uses, var_type)
 				continue
 

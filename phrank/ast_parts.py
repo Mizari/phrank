@@ -68,7 +68,8 @@ class Var:
 
 
 class FuncCall:
-	def __init__(self, call_expr:idaapi.cexpr_t):
+	def __init__(self, func_ea:int, call_expr:idaapi.cexpr_t):
+		self.func_ea = func_ea
 		self.call_expr = call_expr.x
 		self.implicit_var_use_chain:VarUseChain|None = None
 		self.args = call_expr.a
@@ -233,16 +234,17 @@ class VarUseChain:
 
 class VarRead(VarUseChain):
 	USE_STR = "READ"
-	def __init__(self, var:Var, *uses:VarUse):
+	def __init__(self, func_ea:int, var:Var, *uses:VarUse):
 		super().__init__(var, *uses)
+		self.func_ea = func_ea
 
 
 class VarWrite(VarUseChain):
 	USE_STR = "WRITE"
-	def __init__(self, var:Var, value:idaapi.cexpr_t, *uses:VarUse):
+	def __init__(self, func_ea:int, var:Var, value:idaapi.cexpr_t, *uses:VarUse):
 		super().__init__(var, *uses)
 		self.value = value
-		self.value_type = utils.UNKNOWN_TYPE
+		self.func_ea = func_ea
 
 	def is_assign(self):
 		# TODO helpers are assigns too
@@ -251,8 +253,9 @@ class VarWrite(VarUseChain):
 
 class CallCast(VarUseChain):
 	USE_STR = "CAST"
-	def __init__(self, var:Var, arg_id:int, func_call:FuncCall, *uses:VarUse):
+	def __init__(self, func_ea:int, var:Var, arg_id:int, func_call:FuncCall, *uses:VarUse):
 		super().__init__(var, *uses)
+		self.func_ea = func_ea
 		self.func_call = func_call
 		self.arg_id = arg_id
 
@@ -262,8 +265,9 @@ class CallCast(VarUseChain):
 
 class ReturnWrapper(VarUseChain):
 	USE_STR = "RETURN"
-	def __init__(self, var:Var, retval, *uses:VarUse) -> None:
+	def __init__(self, func_ea:int, var:Var, retval, *uses:VarUse) -> None:
 		super().__init__(var, *uses)
+		self.func_ea = func_ea
 		self.retval = retval
 
 
