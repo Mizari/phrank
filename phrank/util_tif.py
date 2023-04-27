@@ -68,7 +68,7 @@ def tif2strucid(tif:idaapi.tinfo_t) -> int:
 def addr2tif(addr:int) -> idaapi.tinfo_t:
 	addr_type = idc.get_type(addr)
 	if addr_type is None:
-		return None
+		return UNKNOWN_TYPE
 
 	return str2tif(addr_type)
 
