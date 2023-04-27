@@ -52,7 +52,7 @@ class FunctionManager:
 			return None
 		return func_details
 
-	def get_var_type(self, func_ea:int, var_id:int) -> idaapi.tinfo_t:
+	def get_cfunc_lvar_type(self, func_ea:int, var_id:int) -> idaapi.tinfo_t:
 		func_tif = self.get_func_tinfo(func_ea)
 		if func_tif is not None and var_id > func_tif.get_nargs():
 			arg_type = func_tif.get_nth_arg(var_id)
@@ -98,7 +98,7 @@ class FunctionManager:
 
 		self.func_factory.clear_cfunc(func_ea)
 
-	def get_lvar(self, func_ea: int, lvar_id:int):
+	def get_cfunc_lvar(self, func_ea: int, lvar_id:int):
 		cfunc = self.get_cfunc(func_ea)
 		if cfunc is None:
 			return None
@@ -184,7 +184,7 @@ class FunctionManager:
 		return counter
 
 	def get_lvar_name(self, func_ea:int, lvar_id:int) -> str:
-		lvar = self.get_lvar(func_ea, lvar_id)
+		lvar = self.get_cfunc_lvar(func_ea, lvar_id)
 		if lvar is None:
 			return ""
 		return lvar.name

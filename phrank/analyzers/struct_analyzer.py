@@ -329,7 +329,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def get_current_var_type(self, var:Var):
 		if var.is_local():
-			return self.get_var_type(var.func_ea, var.lvar_id)
+			return self.get_cfunc_lvar_type(var.func_ea, var.lvar_id)
 		else:
 			return utils.addr2tif(var.obj_ea)
 
@@ -348,18 +348,18 @@ class StructAnalyzer(TypeAnalyzer):
 		if current_lvar_tinfo is not None:
 			return current_lvar_tinfo
 
-		original_type = self.get_lvar(func_ea, lvar_id)
-		if original_type is not None and original_type.is_stk_var() and not original_type.is_arg_var:
-			print("WARNING: variable", original_type.name, "in", idaapi.get_name(func_ea), "is stack variable, whose analysis is not yet implemented")
+		cfunc_lvar = self.get_cfunc_lvar(func_ea, lvar_id)
+		if cfunc_lvar is not None and cfunc_lvar.is_stk_var() and not cfunc_lvar.is_arg_var:
+			print("WARNING: variable", cfunc_lvar.name, "in", idaapi.get_name(func_ea), "is stack variable, whose analysis is not yet implemented")
 			return utils.UNKNOWN_TYPE
 
-		lvar_tinfo = self.get_var_type(func_ea, lvar_id)
+		original_lvar_tinfo = self.get_cfunc_lvar_type(func_ea, lvar_id)
 		if utils.is_func_import(func_ea):
-			return lvar_tinfo
+			return original_lvar_tinfo
 
-		if lvar_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(lvar_tinfo) != -1:
+		if original_lvar_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(original_lvar_tinfo) != -1:
 			# TODO check correctness of writes, read, casts
-			return lvar_tinfo
+			return original_lvar_tinfo
 
 		lvar_uses = self.get_var_uses(lvar)
 		if len(lvar_uses) == 0:
