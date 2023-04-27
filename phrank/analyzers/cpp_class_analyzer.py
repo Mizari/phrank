@@ -8,6 +8,7 @@ from phrank.containers.vtable import Vtable
 from phrank.containers.vtables_union import VtablesUnion
 from phrank.analyzers.type_analyzer import TypeAnalyzer
 from phrank.analyzers.vtable_analyzer import VtableAnalyzer
+from phrank.ast_parts import *
 
 class ClassConstructionContext(object):
 	def __init__(self):
@@ -143,7 +144,8 @@ class CppClassAnalyzer(TypeAnalyzer):
 
 		vtbls = set()
 		func_fav = self.get_ast_analysis(func_addr)
-		for w in func_fav.iterate_lvar_writes(0):
+		var = Var(func_addr, 0)
+		for w in func_fav.iterate_var_writes(var):
 			intval = utils.get_int(w.value)
 			if intval is None:
 				continue
@@ -236,7 +238,8 @@ class CppClassAnalyzer(TypeAnalyzer):
 
 	def create_class_per_cdtor(self, cdtor: CDtor):
 		fav = self.get_ast_analysis(cdtor.get_ea())
-		writes = [w for w in fav.iterate_lvar_writes(0)]
+		var = Var(cdtor.get_ea(), 0)
+		writes = [w for w in fav.iterate_var_writes(var)]
 		if len(writes) == 0:
 			print("[*] WARNING", "no writes to thisptr found in cdtor at", idaapi.get_name(cdtor.get_ea()))
 			return

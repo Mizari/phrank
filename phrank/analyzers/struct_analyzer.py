@@ -142,12 +142,13 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def get_lvar_uses(self, func_ea:int, lvar_id:int):
 		var_uses = VarUses()
+		lvar = Var(func_ea, lvar_id)
 		func_aa = self.get_ast_analysis(func_ea)
-		for var_read in func_aa.iterate_lvar_reads(func_ea, lvar_id):
+		for var_read in func_aa.iterate_var_reads(lvar):
 			var_uses.reads.append(var_read)
-		for var_write in func_aa.iterate_lvar_writes(func_ea, lvar_id):
+		for var_write in func_aa.iterate_var_writes(lvar):
 			var_uses.writes.append(var_write)
-		for call_cast in func_aa.iterate_lvar_call_casts(func_ea, lvar_id):
+		for call_cast in func_aa.iterate_var_call_casts(lvar):
 			var_uses.casts.append(call_cast)
 		return var_uses
 
@@ -166,9 +167,10 @@ class StructAnalyzer(TypeAnalyzer):
 		# analyzing gvar type by assigns to it
 		funcs = set(utils.get_func_calls_to(gvar_ea))
 		assigns = []
+		gvar = Var(gvar_ea)
 		for func_ea in funcs:
 			aa = self.get_ast_analysis(func_ea)
-			for ga in aa.iterate_gvar_writes(gvar_ea):
+			for ga in aa.iterate_var_writes(gvar):
 				if ga.is_assign():
 					assigns.append((func_ea, ga))
 
@@ -502,13 +504,13 @@ class StructAnalyzer(TypeAnalyzer):
 	def get_var_call_casts(self, var:Var):
 		if var.is_local():
 			aa = self.get_ast_analysis(var.func_ea)
-			casts = [c for c in aa.iterate_lvar_call_casts(var.func_ea, var.lvar_id)]
+			casts = [c for c in aa.iterate_var_call_casts(var)]
 		else:
 			funcs = set(utils.get_func_calls_to(var.obj_ea))
 			casts = []
 			for func_ea in funcs:
 				aa = self.get_ast_analysis(func_ea)
-				for call_cast in aa.iterate_gvar_call_casts(var.obj_ea):
+				for call_cast in aa.iterate_var_call_casts(var):
 					casts.append(call_cast)
 		return casts
 
