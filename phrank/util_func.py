@@ -15,10 +15,10 @@ def get_func_start(addr:int) -> int:
 		return idaapi.BADADDR
 	return func.start_ea
 
-def get_func_calls_to(fea:int) -> list[int]:
+def get_func_calls_to(fea:int) -> set[int]:
 	rv = filter(None, [get_func_start(x.frm) for x in idautils.XrefsTo(fea)])
 	rv = filter(lambda x: x != idaapi.BADADDR, rv)
-	return list(rv)
+	return set(rv)
 
 def get_func_calls_from(fea:int) -> list[int]:
 	return [x.to for r in idautils.FuncItems(fea) for x in idautils.XrefsFrom(r, 0) if x.type == idaapi.fl_CN or x.type == idaapi.fl_CF]

@@ -79,7 +79,7 @@ class VtableMaker(HRActionHandler):
 			return 0
 
 		vtbl_analyzer = phrank_api.VtableAnalyzer()
-		vtbl = vtbl_analyzer.analyze_gvar(intval)
+		vtbl = vtbl_analyzer.analyze_var(phrank_api.Var(intval))
 		vtbl_analyzer.apply_analysis()
 		if vtbl is None:
 			print("failed to create vtable at", hex(intval))

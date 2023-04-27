@@ -150,7 +150,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 			if intval is None:
 				continue
 
-			vtbl = self.vtbl_analyzer.analyze_gvar(intval)
+			vtbl = self.vtbl_analyzer.analyze_var(Var(intval))
 			if vtbl is None:
 				continue
 
@@ -175,7 +175,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 	def search_vtable(self, vtbl):
 		if isinstance(vtbl, int):
 			addr = vtbl
-			vtbl = self.vtbl_analyzer.analyze_gvar(addr)
+			vtbl = self.vtbl_analyzer.analyze_var(Var(addr))
 		elif isinstance(vtbl, Vtable):
 			addr = vtbl.get_ea()
 

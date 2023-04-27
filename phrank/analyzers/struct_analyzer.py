@@ -159,11 +159,11 @@ class StructAnalyzer(TypeAnalyzer):
 		if address == -1:
 			return utils.UNKNOWN_TYPE
 
-		return self.analyze_lvar(address, call_cast.arg_id)
+		return self.analyze_var(Var(address, call_cast.arg_id))
 
 	def analyze_gvar_type_by_assigns(self, gvar_ea:int) -> idaapi.tinfo_t:
 		# analyzing gvar type by assigns to it
-		funcs = set(utils.get_func_calls_to(gvar_ea))
+		funcs = utils.get_func_calls_to(gvar_ea)
 		assigns = []
 		gvar = Var(gvar_ea)
 		for func_ea in funcs:
@@ -178,25 +178,11 @@ class StructAnalyzer(TypeAnalyzer):
 		assign_ea, gvar_assign = assigns[0]
 		return self.analyze_cexpr(assign_ea, gvar_assign.value)
 
-	def analyze_gvar(self, gvar_ea:int) -> idaapi.tinfo_t:
-		var = Var(gvar_ea)
-		current_type = self.var2tinfo.get(var)
-		if current_type is not None:
-			return current_type
-
-		vtbl = self.vtable_analyzer.analyze_gvar(gvar_ea)
-		if vtbl is not utils.UNKNOWN_TYPE:
-			return vtbl
-
-		gvar_type = self.analyze_gvar_type_by_assigns(gvar_ea)
-		self.var2tinfo[var] = gvar_type
-		return gvar_type
-
 	def analyze_cexpr(self, func_ea:int, cexpr:idaapi.cexpr_t) -> idaapi.tinfo_t:
 		cexpr = utils.strip_casts(cexpr)
 
 		if cexpr.op == idaapi.cot_var:
-			return self.analyze_lvar(func_ea, cexpr.v.idx)
+			return self.analyze_var(Var(func_ea, cexpr.v.idx))
 
 		if cexpr.op == idaapi.cot_call and cexpr.x.op == idaapi.cot_obj and utils.is_func_start(cexpr.x.obj_ea):
 			call_ea = cexpr.x.obj_ea
@@ -206,7 +192,7 @@ class StructAnalyzer(TypeAnalyzer):
 			return cexpr.type
 
 		if cexpr.op == idaapi.cot_obj and not utils.is_func_start(cexpr.obj_ea):
-			gvar_type = self.analyze_gvar(cexpr.obj_ea)
+			gvar_type = self.analyze_var(Var(cexpr.obj_ea))
 			if gvar_type is utils.UNKNOWN_TYPE:
 				return utils.UNKNOWN_TYPE
 
@@ -218,7 +204,7 @@ class StructAnalyzer(TypeAnalyzer):
 			return gvar_type
 
 		if cexpr.op == idaapi.cot_ref and cexpr.x.op == idaapi.cot_obj and not utils.is_func_start(cexpr.x.obj_ea):
-			gvar_type = self.analyze_gvar(cexpr.x.obj_ea)
+			gvar_type = self.analyze_var(Var(cexpr.x.obj_ea))
 			if gvar_type is utils.UNKNOWN_TYPE:
 				return utils.UNKNOWN_TYPE
 
@@ -327,7 +313,7 @@ class StructAnalyzer(TypeAnalyzer):
 		lvar_tinfo = lvar_struct.ptr_tinfo
 		return lvar_tinfo
 
-	def get_current_var_type(self, var:Var):
+	def get_current_var_type(self, var:Var) -> idaapi.tinfo_t:
 		if var.is_local():
 			return self.get_cfunc_lvar_type(var.func_ea, var.lvar_id)
 		else:
@@ -336,44 +322,47 @@ class StructAnalyzer(TypeAnalyzer):
 	def set_var_type(self, var:Var, var_tinfo:idaapi.tinfo_t):
 		self.var2tinfo[var] = var_tinfo
 
-	def analyze_var(self, var:Var) -> idaapi.tinfo_t:
-		if var.is_local():
-			return self.analyze_lvar(var.func_ea, var.lvar_id)
-		else:
-			return self.analyze_gvar(var.obj_ea)
+	def get_var_type(self, var:Var) -> idaapi.tinfo_t:
+		return self.var2tinfo.get(var, utils.UNKNOWN_TYPE)
 
-	def analyze_lvar(self, func_ea:int, lvar_id:int) -> idaapi.tinfo_t:
-		lvar = Var(func_ea, lvar_id)
-		current_lvar_tinfo = self.var2tinfo.get(lvar)
+	def analyze_var(self, var:Var) -> idaapi.tinfo_t:
+		current_lvar_tinfo = self.var2tinfo.get(var)
 		if current_lvar_tinfo is not None:
 			return current_lvar_tinfo
 
-		cfunc_lvar = self.get_cfunc_lvar(func_ea, lvar_id)
-		if cfunc_lvar is not None and cfunc_lvar.is_stk_var() and not cfunc_lvar.is_arg_var:
-			print("WARNING: variable", cfunc_lvar.name, "in", idaapi.get_name(func_ea), "is stack variable, whose analysis is not yet implemented")
-			return utils.UNKNOWN_TYPE
-
-		original_lvar_tinfo = self.get_cfunc_lvar_type(func_ea, lvar_id)
-		if utils.is_func_import(func_ea):
-			return original_lvar_tinfo
-
-		if original_lvar_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(original_lvar_tinfo) != -1:
+		original_var_tinfo = self.get_current_var_type(var)
+		if utils.tif2strucid(original_var_tinfo) != -1:
 			# TODO check correctness of writes, read, casts
-			return original_lvar_tinfo
+			return original_var_tinfo
 
-		lvar_uses = self.get_var_uses(lvar)
-		if len(lvar_uses) == 0:
-			print("WARNING:", f"found no var uses for {str(lvar)}")
-			self.var2tinfo[lvar] = utils.UNKNOWN_TYPE
+		# local/global specific analysis
+		if var.is_local():
+			func_ea, lvar_id = var.func_ea, var.lvar_id
+			cfunc_lvar = self.get_cfunc_lvar(func_ea, lvar_id)
+			if cfunc_lvar is not None and cfunc_lvar.is_stk_var() and not cfunc_lvar.is_arg_var:
+				return utils.UNKNOWN_TYPE
+
+			if utils.is_func_import(func_ea):
+				return original_var_tinfo
+
+		else:
+			vtbl = self.vtable_analyzer.analyze_var(var)
+			if vtbl is not utils.UNKNOWN_TYPE:
+				return vtbl
+
+		var_uses = self.get_var_uses(var)
+		if len(var_uses) == 0:
+			print("WARNING:", f"found no var uses for {str(var)}")
+			self.var2tinfo[var] = utils.UNKNOWN_TYPE
 			return utils.UNKNOWN_TYPE
 
 		# TODO check that var is not recursively dependant on itself
 		# TODO check that var uses are compatible
-		lvar_tinfo = self.calculate_var_type_by_uses(lvar_uses)
-		if lvar_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(lvar_tinfo) != -1:
-			self.add_type_uses(lvar_uses, lvar_tinfo)
-		self.var2tinfo[lvar] = lvar_tinfo
-		return lvar_tinfo
+		var_tinfo = self.calculate_var_type_by_uses(var_uses)
+		if var_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(var_tinfo) != -1:
+			self.add_type_uses(var_uses, var_tinfo)
+		self.var2tinfo[var] = var_tinfo
+		return var_tinfo
 
 	def analyze_retval(self, func_ea:int) -> idaapi.tinfo_t:
 		rv = self.retval2tinfo.get(func_ea)
@@ -422,7 +411,7 @@ class StructAnalyzer(TypeAnalyzer):
 			self.analyze_function(call_from_ea)
 
 		for i in range(self.get_lvars_counter(func_ea)):
-			self.analyze_lvar(func_ea, i)
+			self.analyze_var(Var(func_ea, i))
 
 		self.analyze_retval(func_ea)
 
@@ -434,9 +423,6 @@ class StructAnalyzer(TypeAnalyzer):
 			return False
 		return True
 
-	def get_var_tinfo(self, var:Var) -> idaapi.tinfo_t:
-		return self.var2tinfo.get(var, utils.UNKNOWN_TYPE)
-
 	def get_call_address(self, func_call:FuncCall) -> int:
 		if func_call.is_explicit():
 			return func_call.address
@@ -445,7 +431,7 @@ class StructAnalyzer(TypeAnalyzer):
 		if vuc is None:
 			return -1
 
-		var_tif = self.get_var_tinfo(vuc.var)
+		var_tif = self.get_var_type(vuc.var)
 		if var_tif is utils.UNKNOWN_TYPE:
 			return -1
 
@@ -501,7 +487,7 @@ class StructAnalyzer(TypeAnalyzer):
 			aa = self.get_ast_analysis(var.func_ea)
 			casts = [c for c in aa.iterate_var_call_casts(var)]
 		else:
-			funcs = set(utils.get_func_calls_to(var.obj_ea))
+			funcs = utils.get_func_calls_to(var.obj_ea)
 			casts = []
 			for func_ea in funcs:
 				aa = self.get_ast_analysis(func_ea)
@@ -510,7 +496,7 @@ class StructAnalyzer(TypeAnalyzer):
 		return casts
 
 	def propagate_var(self, var:Var):
-		var_type = self.get_var_tinfo(var)
+		var_type = self.get_var_type(var)
 		if var_type is utils.UNKNOWN_TYPE:
 			return
 

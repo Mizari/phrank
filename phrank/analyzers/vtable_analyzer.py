@@ -36,27 +36,24 @@ class VtableAnalyzer(TypeAnalyzer):
 	def get_gvar_vtable(self, gvar_ea:int):
 		return Vtable.get_vtable_at_address(gvar_ea)
 
-	def analyze_gvar(self, gvar_ea:int):
-		gvar = Var(gvar_ea)
-		vtbl = self.var2tinfo.get(gvar)
+	def analyze_var(self, var:Var) -> idaapi.tinfo_t:
+		if var.is_local():
+			return utils.UNKNOWN_TYPE
+
+		vtbl = self.var2tinfo.get(var)
 		if vtbl is not None:
 			return vtbl
 
 		# trying to initialize from type at address
-		vtbl = Vtable.get_vtable_at_address(gvar_ea)
-		if vtbl is not None:
+		if (vtbl := Vtable.get_vtable_at_address(var.obj_ea)) is not None:
 			tif = vtbl.tinfo
-			self.var2tinfo[gvar] = tif
-			return tif
-
-		vtbl = self.create_vtable_at_address(gvar_ea)
-		if vtbl is None:
-			tif = utils.UNKNOWN_TYPE
-		else:
+		elif (vtbl := self.create_vtable_at_address(var.obj_ea)) is not None:
+			tif = vtbl.tinfo
 			self.new_types.add(vtbl.strucid)
-			tif = vtbl.tinfo
+		else:
+			tif = utils.UNKNOWN_TYPE
 
-		self.var2tinfo[gvar] = tif
+		self.var2tinfo[var] = tif
 		return tif
 
 	def analyze_everything(self):
@@ -65,7 +62,7 @@ class VtableAnalyzer(TypeAnalyzer):
 
 	def analyze_segment(self, segstart:int, segend:int):
 		while segstart < segend:
-			vtbl = self.analyze_gvar(segstart)
+			vtbl = self.analyze_var(Var(segstart))
 			if vtbl is None:
 				segstart += settings.PTRSIZE
 			else:

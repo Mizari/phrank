@@ -66,13 +66,10 @@ class TypeAnalyzer(FunctionManager):
 	def analyze_function(self, func_ea:int):
 		raise NotImplementedError
 
-	def analyze_lvar(self, func_ea:int, lvar_id:int) -> idaapi.tinfo_t:
+	def analyze_var(self, var:Var) -> idaapi.tinfo_t:
 		raise NotImplementedError
 
 	def analyze_retval(self, func_ea:int) -> idaapi.tinfo_t:
-		raise NotImplementedError
-
-	def analyze_gvar(self, gvar_ea:int) -> idaapi.tinfo_t:
 		raise NotImplementedError
 
 	def analyze_cexpr(self, func_ea:int, cexpr:int) -> idaapi.tinfo_t:
