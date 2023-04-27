@@ -151,6 +151,19 @@ class StructAnalyzer(TypeAnalyzer):
 			var_uses.casts += va.casts
 		return var_uses
 
+	def get_var_call_casts(self, var:Var):
+		if var.is_local():
+			aa = self.get_ast_analysis(var.func_ea)
+			casts = [c for c in aa.iterate_var_call_casts(var)]
+		else:
+			funcs = utils.get_func_calls_to(var.obj_ea)
+			casts = []
+			for func_ea in funcs:
+				aa = self.get_ast_analysis(func_ea)
+				for call_cast in aa.iterate_var_call_casts(var):
+					casts.append(call_cast)
+		return casts
+
 	def get_write_type(self, var_write:VarWrite) -> idaapi.tinfo_t:
 		return self.analyze_cexpr(var_write.func_ea, var_write.value)
 
@@ -160,23 +173,6 @@ class StructAnalyzer(TypeAnalyzer):
 			return utils.UNKNOWN_TYPE
 
 		return self.analyze_var(Var(address, call_cast.arg_id))
-
-	def analyze_gvar_type_by_assigns(self, gvar_ea:int) -> idaapi.tinfo_t:
-		# analyzing gvar type by assigns to it
-		funcs = utils.get_func_calls_to(gvar_ea)
-		assigns = []
-		gvar = Var(gvar_ea)
-		for func_ea in funcs:
-			aa = self.get_ast_analysis(func_ea)
-			for ga in aa.iterate_var_writes(gvar):
-				if ga.is_assign():
-					assigns.append((func_ea, ga))
-
-		if len(assigns) != 1:
-			return utils.UNKNOWN_TYPE
-
-		assign_ea, gvar_assign = assigns[0]
-		return self.analyze_cexpr(assign_ea, gvar_assign.value)
 
 	def analyze_cexpr(self, func_ea:int, cexpr:idaapi.cexpr_t) -> idaapi.tinfo_t:
 		cexpr = utils.strip_casts(cexpr)
@@ -313,7 +309,7 @@ class StructAnalyzer(TypeAnalyzer):
 		lvar_tinfo = lvar_struct.ptr_tinfo
 		return lvar_tinfo
 
-	def get_current_var_type(self, var:Var) -> idaapi.tinfo_t:
+	def get_original_var_type(self, var:Var) -> idaapi.tinfo_t:
 		if var.is_local():
 			return self.get_cfunc_lvar_type(var.func_ea, var.lvar_id)
 		else:
@@ -330,19 +326,18 @@ class StructAnalyzer(TypeAnalyzer):
 		if current_lvar_tinfo is not None:
 			return current_lvar_tinfo
 
-		original_var_tinfo = self.get_current_var_type(var)
+		original_var_tinfo = self.get_original_var_type(var)
 		if utils.tif2strucid(original_var_tinfo) != -1:
 			# TODO check correctness of writes, read, casts
 			return original_var_tinfo
 
 		# local/global specific analysis
 		if var.is_local():
-			func_ea, lvar_id = var.func_ea, var.lvar_id
-			cfunc_lvar = self.get_cfunc_lvar(func_ea, lvar_id)
+			cfunc_lvar = self.get_cfunc_lvar(var.func_ea, var.lvar_id)
 			if cfunc_lvar is not None and cfunc_lvar.is_stk_var() and not cfunc_lvar.is_arg_var:
 				return utils.UNKNOWN_TYPE
 
-			if utils.is_func_import(func_ea):
+			if utils.is_func_import(var.func_ea):
 				return original_var_tinfo
 
 		else:
@@ -359,7 +354,7 @@ class StructAnalyzer(TypeAnalyzer):
 		# TODO check that var is not recursively dependant on itself
 		# TODO check that var uses are compatible
 		var_tinfo = self.calculate_var_type_by_uses(var_uses)
-		if var_tinfo is not utils.UNKNOWN_TYPE and utils.tif2strucid(var_tinfo) != -1:
+		if utils.tif2strucid(var_tinfo) != -1:
 			self.add_type_uses(var_uses, var_tinfo)
 		self.var2tinfo[var] = var_tinfo
 		return var_tinfo
@@ -415,14 +410,6 @@ class StructAnalyzer(TypeAnalyzer):
 
 		self.analyze_retval(func_ea)
 
-	def is_ok_propagation_type(self, tif:idaapi.tinfo_t) -> bool:
-		if tif is None or tif is utils.UNKNOWN_TYPE:
-			return False
-		strucid = utils.tif2strucid(tif)
-		if strucid not in self.new_types:
-			return False
-		return True
-
 	def get_call_address(self, func_call:FuncCall) -> int:
 		if func_call.is_explicit():
 			return func_call.address
@@ -442,13 +429,18 @@ class StructAnalyzer(TypeAnalyzer):
 				addr = utils.str2addr(member.name)
 		else:
 			addr = -1
-			print("WARNING:", f"failed to get final member from {var_tif} {[str(x) for x in vuc.uses]}")
+			print("WARNING:", f"failed to get final member from {var_tif} {str(vuc)}")
 
 		if addr == -1:
 			print("WARNING: unknown implicit call", utils.expr2str(func_call.call_expr, hide_casts=True))
 		return addr
 
-	def propagate_var_type_in_casts(self, var_type:idaapi.tinfo_t, casts:list[CallCast]):
+	def propagate_var(self, var:Var):
+		var_type = self.get_var_type(var)
+		if utils.tif2strucid(var_type) not in self.new_types:
+			return
+
+		casts = self.get_var_call_casts(var)
 		for call_cast in casts:
 			call_ea = self.get_call_address(call_cast.func_call)
 			if call_ea == -1:
@@ -460,8 +452,7 @@ class StructAnalyzer(TypeAnalyzer):
 			if not call_cast.is_var_arg():
 				continue
 
-			arg_id = call_cast.arg_id
-			arg_var = Var(call_ea, arg_id)
+			arg_var = Var(call_ea, call_cast.arg_id)
 			current_type = self.var2tinfo.get(arg_var, utils.UNKNOWN_TYPE)
 			if current_type is utils.UNKNOWN_TYPE:
 				lvar_uses = self.get_var_uses(arg_var)
@@ -477,31 +468,7 @@ class StructAnalyzer(TypeAnalyzer):
 			if current_type != var_type:
 				print(
 					"Failed to propagate", str(var_type),
-					"to", self.get_lvar_name(call_ea, arg_id),
+					"to", self.get_lvar_name(call_ea, call_cast.arg_id),
 					"in", idaapi.get_name(call_ea),
 					"because variable has different type", current_type,
 				)
-
-	def get_var_call_casts(self, var:Var):
-		if var.is_local():
-			aa = self.get_ast_analysis(var.func_ea)
-			casts = [c for c in aa.iterate_var_call_casts(var)]
-		else:
-			funcs = utils.get_func_calls_to(var.obj_ea)
-			casts = []
-			for func_ea in funcs:
-				aa = self.get_ast_analysis(func_ea)
-				for call_cast in aa.iterate_var_call_casts(var):
-					casts.append(call_cast)
-		return casts
-
-	def propagate_var(self, var:Var):
-		var_type = self.get_var_type(var)
-		if var_type is utils.UNKNOWN_TYPE:
-			return
-
-		if utils.tif2strucid(var_type) not in self.new_types:
-			return
-
-		casts = self.get_var_call_casts(var)
-		self.propagate_var_type_in_casts(var_type, casts)
