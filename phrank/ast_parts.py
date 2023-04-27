@@ -79,7 +79,6 @@ class FuncCall:
 		self.func_ea = func_ea
 		self.call_expr = call_expr.x
 		self.implicit_var_use_chain:VarUseChain|None = None
-		self.args = call_expr.a
 
 	@property
 	def address(self) -> int:
