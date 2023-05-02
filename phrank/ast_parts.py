@@ -87,25 +87,11 @@ class FuncCall:
 		else:
 			return -1
 
-	@property
-	def name(self) -> str:
-		if self.call_expr.op == idaapi.cot_obj:
-			rv = idaapi.get_func_name(self.address)
-			if rv is None: rv = ""
-			return rv
-		elif self.call_expr.op == idaapi.cot_helper:
-			return self.call_expr.helper
-		else:
-			return ""
-
 	def is_explicit(self):
 		return self.call_expr.op == idaapi.cot_obj
 
-	def is_helper(self):
-		return self.call_expr.op == idaapi.cot_helper
-
 	def is_implicit(self):
-		return not self.is_explicit() and not self.is_helper()
+		return not self.is_explicit()
 
 
 class VarUse:
