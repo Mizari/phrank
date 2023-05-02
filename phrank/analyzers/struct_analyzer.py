@@ -13,7 +13,6 @@ from phrank.ast_parts import *
 class StructAnalyzer(TypeAnalyzer):
 	def __init__(self, func_factory=None) -> None:
 		super().__init__(func_factory)
-		self.analyzed_functions = set()
 		self.vtable_analyzer = VtableAnalyzer(func_factory)
 
 	def add_type_uses(self, var_uses:VarUses, var_type:idaapi.tinfo_t):
@@ -388,19 +387,6 @@ class StructAnalyzer(TypeAnalyzer):
 
 		self.retval2tinfo[func_ea] = retval_type
 		return retval_type
-
-	def analyze_function(self, func_ea:int):
-		if func_ea in self.analyzed_functions:
-			return
-		self.analyzed_functions.add(func_ea)
-
-		for call_from_ea in utils.get_func_calls_from(func_ea):
-			self.analyze_function(call_from_ea)
-
-		for i in range(self.get_lvars_counter(func_ea)):
-			self.analyze_var(Var(func_ea, i))
-
-		self.analyze_retval(func_ea)
 
 	def get_call_address(self, func_call:FuncCall) -> int:
 		if func_call.is_explicit():

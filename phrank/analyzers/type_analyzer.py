@@ -63,9 +63,6 @@ class TypeAnalyzer(FunctionManager):
 	def analyze_everything(self):
 		raise NotImplementedError
 
-	def analyze_function(self, func_ea:int):
-		raise NotImplementedError
-
 	def analyze_var(self, var:Var) -> idaapi.tinfo_t:
 		raise NotImplementedError
 

@@ -92,7 +92,10 @@ class VtableMaker(HRActionHandler):
 class StructMaker(HRActionHandler):
 	def handle_function(self, func_ea):
 		struct_analyzer = phrank_api.StructAnalyzer()
-		struct_analyzer.analyze_function(func_ea)
+		for i in range(struct_analyzer.get_lvars_counter(func_ea)):
+			struct_analyzer.analyze_var(phrank_api.Var(func_ea, i))
+
+		struct_analyzer.analyze_retval(func_ea)
 		struct_analyzer.apply_analysis()
 		return 1
 
