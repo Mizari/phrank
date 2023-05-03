@@ -160,19 +160,19 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 			return UNKNOWN_SEXPR
 
 		elif expr.op == idaapi.cot_call and expr.x.op != idaapi.cot_helper:
-			fc = self.lift_cexpr(expr.x)
-			if fc.is_function():
-				fc.op = fc.TYPE_EXPLICIT_CALL
+			call_func = self.lift_cexpr(expr.x)
+			if call_func.is_function():
+				fc = SExpr.create_explicit_function(expr.ea, call_func.function)
 				self.current_ast_analysis.calls.append(fc)
-			elif fc.is_var_use_chain():
-				fc.op = fc.TYPE_IMPLICIT_CALL
-				self.current_ast_analysis.calls.append(fc)
-			else:
+			elif call_func is UNKNOWN_SEXPR:
 				fc = UNKNOWN_SEXPR
+			else:
+				fc = SExpr.create_implicit_function(expr.ea, call_func)
+				self.current_ast_analysis.calls.append(fc)
 			for arg_id, arg in enumerate(expr.a):
 				arg = utils.strip_casts(arg)
 				arg_sexpr = self.lift_cexpr(arg)
-				cast = CallCast(arg_sexpr, arg_id, fc)
+				cast = CallCast(arg_sexpr, arg_id, call_func)
 				self.current_ast_analysis.call_casts.append(cast)
 			return fc
 

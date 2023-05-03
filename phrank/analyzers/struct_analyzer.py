@@ -235,7 +235,7 @@ class StructAnalyzer(TypeAnalyzer):
 		for r in reads:
 			if r.var_use_chain is None: continue
 			if not r.var_use_chain.is_possible_ptr():
-				print("non-pointer reads are not supported for now", r)
+				print("non-pointer reads are not supported for now", r.op)
 				return utils.UNKNOWN_TYPE
 
 		writes_types = [self.analyze_sexpr_type(w.value) for w in writes]

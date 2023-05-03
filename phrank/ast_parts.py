@@ -248,6 +248,12 @@ class SExpr:
 		return obj
 
 	@classmethod
+	def create_implicit_function(cls, expr_ea:int, implicit):
+		obj = cls(cls.TYPE_IMPLICIT_CALL, expr_ea)
+		obj.x = implicit
+		return obj
+
+	@classmethod
 	def create_bool_op(cls, expr_ea:int):
 		obj = cls(cls.TYPE_BOOL_OP, expr_ea)
 		return obj
