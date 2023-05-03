@@ -179,10 +179,13 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 		elif expr.op == idaapi.cot_obj and utils.is_func_start(expr.obj_ea):
 			return SExpr.create_function(expr.ea, expr.obj_ea)
 
+		elif expr.op in {idaapi.cot_eq, idaapi.cot_ne, idaapi.cot_slt, idaapi.cot_land, idaapi.cot_lnot, idaapi.cot_sle, idaapi.cot_ult, idaapi.cot_ule, idaapi.cot_lor}:
+			return SExpr.create_bool_op(expr.ea)
+
 		elif (vuc := get_var_use_chain(expr, self.actx)) is not None:
 			r = SExpr.create_var_use_chain(expr.ea, vuc)
 			self.current_ast_analysis.var_reads.append(r)
 			return r
 
-		print(f"failed to lift {utils.expr2str(expr)}")
+		print(f"failed to lift {expr.opname} {utils.expr2str(expr)}")
 		return UNKNOWN_SEXPR

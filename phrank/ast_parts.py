@@ -213,14 +213,14 @@ class SExpr:
 	TYPE_LITERAL = 0
 	TYPE_VAR_USE_CHAIN = 1
 	TYPE_FUNCTION = 2
-	TYPE_OPERATION = 3
+	TYPE_BOOL_OP = 3
 	TYPE_EXPLICIT_CALL = 4
 	TYPE_IMPLICIT_CALL = 5
 
 	def is_literal(self): return self.op == self.TYPE_LITERAL
 	def is_var_use_chain(self): return self.op == self.TYPE_VAR_USE_CHAIN
 	def is_function(self): return self.op == self.TYPE_FUNCTION
-	def is_operation(self): return self.op == self.TYPE_OPERATION
+	def is_bool_op(self): return self.op == self.TYPE_BOOL_OP
 	def is_explicit_call(self): return self.op == self.TYPE_EXPLICIT_CALL
 	def is_implicit_call(self): return self.op == self.TYPE_IMPLICIT_CALL
 
@@ -245,6 +245,11 @@ class SExpr:
 	def create_explicit_function(cls, expr_ea:int, explicit:int):
 		obj = cls(cls.TYPE_EXPLICIT_CALL, expr_ea)
 		obj.x = explicit
+		return obj
+
+	@classmethod
+	def create_bool_op(cls, expr_ea:int):
+		obj = cls(cls.TYPE_BOOL_OP, expr_ea)
 		return obj
 
 	@property
