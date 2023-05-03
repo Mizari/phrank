@@ -80,12 +80,13 @@ class VarUse:
 	VAR_HELPER = 2
 	VAR_REF = 3
 
+	def is_ptr(self): return self.use_type == self.VAR_PTR
+	def is_add(self): return self.use_type == self.VAR_ADD
+	def is_ref(self): return self.use_type == self.VAR_REF
+
 	def __init__(self, offset:int, use_type:int):
 		self.offset = offset
 		self.use_type = use_type
-
-	def is_ptr(self):
-		return self.use_type == self.VAR_PTR
 
 	def do_transform(self, tif:idaapi.tinfo_t|utils.ShiftedStruct):
 		if self.is_add(): return self.transform_add(tif)
@@ -150,9 +151,6 @@ class VarUse:
 			return utils.UNKNOWN_TYPE
 
 		return member
-
-	def is_add(self):
-		return self.use_type == self.VAR_ADD
 
 	def __str__(self) -> str:
 		use_type_str = {
