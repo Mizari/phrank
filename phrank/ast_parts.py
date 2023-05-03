@@ -91,6 +91,7 @@ class VarUse:
 	def do_transform(self, tif:idaapi.tinfo_t|utils.ShiftedStruct):
 		if self.is_add(): return self.transform_add(tif)
 		elif self.is_ptr(): return self.transform_ptr(tif)
+		elif self.is_ref(): return self.transform_ref(tif)
 		else:
 			print("WARNING:", f"this use {str(self)} isnt implemented")
 			return utils.UNKNOWN_TYPE
@@ -151,6 +152,19 @@ class VarUse:
 			return utils.UNKNOWN_TYPE
 
 		return member
+
+	def transform_ref(self, tif:idaapi.tinfo_t|utils.ShiftedStruct):
+		if self.offset != 0:
+			print("WARNING:", f"non-zero ref isnt implemented yet")
+			return utils.UNKNOWN_TYPE
+
+		if isinstance(tif, idaapi.tinfo_t):
+			ptif = idaapi.tinfo_t()
+			ptif.create_ptr(tif)
+			return ptif
+		else:
+			print("WARNING:", "shifted member reference isnt implemented yet")
+			return utils.UNKNOWN_TYPE
 
 	def __str__(self) -> str:
 		use_type_str = {
