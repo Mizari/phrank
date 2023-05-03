@@ -69,7 +69,7 @@ class TypeAnalyzer(FunctionManager):
 	def analyze_retval(self, func_ea:int) -> idaapi.tinfo_t:
 		raise NotImplementedError
 
-	def analyze_cexpr(self, func_ea:int, cexpr:int) -> idaapi.tinfo_t:
+	def analyze_sexpr_type(self, func_ea:int, cexpr:int) -> idaapi.tinfo_t:
 		raise NotImplementedError
 
 	def analyze_structure(self, struct):

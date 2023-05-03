@@ -31,6 +31,14 @@ def extract_vars(expr:idaapi.cexpr_t, actx:ASTCtx) -> set[Var]:
 	return vars
 
 def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
+	# FIXME
+	if expr.op == idaapi.cot_num:
+		return None
+
+	if len(extract_vars(expr, actx)) > 1:
+		# print("WARNING:", f"found multiple variables in {utils.expr2str(expr)}")
+		return None
+
 	var = get_var(expr, actx)
 	if var is not None:
 		return VarUseChain(var)
@@ -106,7 +114,7 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 	return VarUseChain(var, *use_chain)
 
 
-class ASTAnalyzer(idaapi.ctree_visitor_t):
+class CTreeAnalyzer(idaapi.ctree_visitor_t):
 	def __init__(self):
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
 		self.current_ast_analysis: ASTAnalysis = None # type:ignore
@@ -119,92 +127,62 @@ class ASTAnalyzer(idaapi.ctree_visitor_t):
 		rv, self.current_ast_analysis = self.current_ast_analysis, None # type:ignore
 		return rv
 
+	@property
+	def actx(self) -> ASTCtx:
+		return self.current_ast_analysis.actx
+
 	def visit_insn(self, insn: idaapi.cinsn_t) -> int:
 		if insn.op == idaapi.cit_return and self.handle_return(insn):
 			self.prune_now()
 		return 0
 
-	def get_var_use_chain(self, expr:idaapi.cexpr_t) -> VarUseChain|None:
-		actx = self.current_ast_analysis.actx
-
-		# FIXME
-		if expr.op == idaapi.cot_num:
-			return None
-
-		if len(extract_vars(expr, actx)) > 1:
-			# print("WARNING:", f"found multiple variables in {utils.expr2str(expr)}")
-			return None
-
-		vuc = get_var_use_chain(expr, actx)
-		if vuc is None:
-			# print("WARNING:", f"failed to calculate var use chain for {utils.expr2str(expr)}")
-			return None
-		return vuc
-
-	def visit_expr(self, expr: idaapi.cexpr_t) -> int:
-		if expr.op == idaapi.cot_asg:
-			should_prune = self.handle_assignment(expr)
-		elif expr.op == idaapi.cot_call:
-			should_prune = self.handle_call(expr)
-		else:
-			should_prune = self.handle_expr(expr)
-
-		if should_prune:
-			self.prune_now()
-
-		return 0
-
 	def handle_return(self, insn:idaapi.cinsn_t) -> bool:
 		retval = utils.strip_casts(insn.creturn.expr)
 
-		if (vuc := self.get_var_use_chain(retval)) is None:
+		if (vuc := get_var_use_chain(retval, self.actx)) is None:
 			return True
 
-		var, uses = vuc.var, vuc.uses
-		func_ea = self.current_ast_analysis.actx.addr
-		rw = ReturnWrapper(func_ea, var, retval, *uses)
+		rw = SExpr.create_var_use_chain(retval.ea, vuc)
 		self.current_ast_analysis.returns.append(rw)
 		return True
 
-	def handle_call(self, expr:idaapi.cexpr_t) -> bool:
-		func_ea = self.current_ast_analysis.actx.addr
-		fc = FuncCall(func_ea, expr)
-		self.current_ast_analysis.calls.append(fc)
-		if fc.is_implicit():
-			fc.implicit_var_use_chain = self.get_var_use_chain(expr.x)
+	def visit_expr(self, expr: idaapi.cexpr_t) -> int:
+		self.lift_cexpr(expr)
+		self.prune_now()
+		return 0
 
-		for arg_id, arg in enumerate(expr.a):
-			self.apply_to_exprs(arg, None)
-			arg = utils.strip_casts(arg)
-			if arg.op in [idaapi.cot_num, idaapi.cot_sizeof, idaapi.cot_call]:
-				continue
+	def lift_cexpr(self, expr:idaapi.cexpr_t) -> SExpr:
+		if expr.op == idaapi.cot_asg:
+			target = self.lift_cexpr(expr.x)
+			value = self.lift_cexpr(expr.y)
+			w = VarWrite(target, value)
+			self.current_ast_analysis.var_writes.append(w)
+			return UNKNOWN_SEXPR
 
-			if (vuc := self.get_var_use_chain(arg)) is None:
-				continue
+		elif expr.op == idaapi.cot_call and expr.x.op != idaapi.cot_helper:
+			fc = self.lift_cexpr(expr.x)
+			if fc.is_function():
+				fc.op = fc.TYPE_EXPLICIT_CALL
+				self.current_ast_analysis.calls.append(fc)
+			elif fc.is_var_use_chain():
+				fc.op = fc.TYPE_IMPLICIT_CALL
+				self.current_ast_analysis.calls.append(fc)
+			else:
+				fc = UNKNOWN_SEXPR
+			for arg_id, arg in enumerate(expr.a):
+				arg = utils.strip_casts(arg)
+				arg_sexpr = self.lift_cexpr(arg)
+				cast = CallCast(arg_sexpr, arg_id, fc)
+				self.current_ast_analysis.call_casts.append(cast)
+			return fc
 
-			var, uses = vuc.var, vuc.uses
-			cast = CallCast(func_ea, var, arg_id, fc, *uses)
-			self.current_ast_analysis.call_casts.append(cast)
-		return True
+		elif expr.op == idaapi.cot_obj and utils.is_func_start(expr.obj_ea):
+			return SExpr.create_function(expr.ea, expr.obj_ea)
 
-	def handle_assignment(self, expr: idaapi.cexpr_t) -> bool:
-		self.handle_expr(expr.y)
+		elif (vuc := get_var_use_chain(expr, self.actx)) is not None:
+			r = SExpr.create_var_use_chain(expr.ea, vuc)
+			self.current_ast_analysis.var_reads.append(r)
+			return r
 
-		if (vuc := self.get_var_use_chain(expr.x)) is None:
-			return True
-
-		var, uses = vuc.var, vuc.uses
-		func_ea = self.current_ast_analysis.actx.addr
-		w = VarWrite(func_ea, var, expr.y, *uses)
-		self.current_ast_analysis.var_writes.append(w)
-		return True
-
-	def handle_expr(self, expr:idaapi.cexpr_t) -> bool:
-		if (vuc := self.get_var_use_chain(expr)) is None:
-			return True
-
-		var, uses = vuc.var, vuc.uses
-		func_ea = self.current_ast_analysis.actx.addr
-		r = VarRead(func_ea, var, *uses)
-		self.current_ast_analysis.var_reads.append(r)
-		return True
+		print(f"failed to lift {utils.expr2str(expr)}")
+		return UNKNOWN_SEXPR

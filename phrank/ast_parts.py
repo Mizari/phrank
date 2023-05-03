@@ -74,26 +74,6 @@ class Var:
 		return functions
 
 
-class FuncCall:
-	def __init__(self, func_ea:int, call_expr:idaapi.cexpr_t):
-		self.func_ea = func_ea
-		self.call_expr = call_expr.x
-		self.implicit_var_use_chain:VarUseChain|None = None
-
-	@property
-	def address(self) -> int:
-		if self.call_expr.op == idaapi.cot_obj:
-			return self.call_expr.obj_ea
-		else:
-			return -1
-
-	def is_explicit(self):
-		return self.call_expr.op == idaapi.cot_obj
-
-	def is_implicit(self):
-		return not self.is_explicit()
-
-
 class VarUse:
 	VAR_ADD = 0
 	VAR_PTR = 1
@@ -185,7 +165,6 @@ class VarUse:
 
 
 class VarUseChain:
-	USE_STR = ""
 	def __init__(self, var:Var, *uses:VarUse):
 		self.var = var
 		self.uses = list(uses)
@@ -195,6 +174,10 @@ class VarUseChain:
 
 	def __len__(self) -> int:
 		return len(self.uses)
+
+	def is_var_chain(self):
+		# TODO helpers are assigns too
+		return len(self.uses) == 0
 
 	def transform_type(self, tif:idaapi.tinfo_t) -> idaapi.tinfo_t|utils.ShiftedStruct:
 		for i, use in enumerate(self.uses):
@@ -221,52 +204,94 @@ class VarUseChain:
 		return None
 
 	def __str__(self) -> str:
-		return f"{self.USE_STR}({str(self.var)},{self.uses_str()})"
+		return f"{str(self.var)},{self.uses_str()}"
 
 
-class VarRead(VarUseChain):
-	USE_STR = "READ"
-	def __init__(self, func_ea:int, var:Var, *uses:VarUse):
-		super().__init__(var, *uses)
-		self.func_ea = func_ea
+
+class SExpr:
+	TYPE_LITERAL = 0
+	TYPE_VAR_USE_CHAIN = 1
+	TYPE_FUNCTION = 2
+	TYPE_OPERATION = 3
+	TYPE_EXPLICIT_CALL = 4
+	TYPE_IMPLICIT_CALL = 5
+
+	def is_literal(self): return self.op == self.TYPE_LITERAL
+	def is_var_use_chain(self): return self.op == self.TYPE_VAR_USE_CHAIN
+	def is_function(self): return self.op == self.TYPE_FUNCTION
+	def is_operation(self): return self.op == self.TYPE_OPERATION
+	def is_explicit_call(self): return self.op == self.TYPE_EXPLICIT_CALL
+	def is_implicit_call(self): return self.op == self.TYPE_IMPLICIT_CALL
+
+	def __init__(self, t:int, expr_ea:int) -> None:
+		self.op = t
+		self.expr_ea = expr_ea
+		self.x = None
+
+	@classmethod
+	def create_var_use_chain(cls, expr_ea:int, vuc:VarUseChain):
+		obj = cls(cls.TYPE_VAR_USE_CHAIN, expr_ea)
+		obj.x = vuc
+		return obj
+
+	@classmethod
+	def create_function(cls, expr_ea:int, call_ea:int):
+		obj = cls(cls.TYPE_FUNCTION, expr_ea)
+		obj.x = call_ea
+		return obj
+
+	@classmethod
+	def create_explicit_function(cls, expr_ea:int, explicit:int):
+		obj = cls(cls.TYPE_EXPLICIT_CALL, expr_ea)
+		obj.x = explicit
+		return obj
+
+	@property
+	def func_ea(self) -> int:
+		rv = utils.get_func_start(self.expr_ea)
+		if rv == idaapi.BADADDR: rv = -1
+		return rv
+
+	@property
+	def var_use_chain(self) -> VarUseChain|None:
+		if not isinstance(self.x, VarUseChain): return None
+		return self.x # type:ignore
+
+	@property
+	def function(self) -> int:
+		if not isinstance(self.x, int): return -1
+		return self.x # type:ignore
 
 
-class VarWrite(VarUseChain):
-	USE_STR = "WRITE"
-	def __init__(self, func_ea:int, var:Var, value:idaapi.cexpr_t, *uses:VarUse):
-		super().__init__(var, *uses)
+UNKNOWN_SEXPR = SExpr(-1, -1)
+
+
+
+class VarWrite:
+	def __init__(self, target:SExpr, value:SExpr):
+		self.target = target
 		self.value = value
-		self.func_ea = func_ea
 
 	def is_assign(self):
-		# TODO helpers are assigns too
-		return len(self.uses) == 0
+		if not self.target.var_use_chain: return False
+		return self.target.var_use_chain.is_var_chain()
 
 
-class CallCast(VarUseChain):
-	USE_STR = "CAST"
-	def __init__(self, func_ea:int, var:Var, arg_id:int, func_call:FuncCall, *uses:VarUse):
-		super().__init__(var, *uses)
-		self.func_ea = func_ea
+class CallCast:
+	def __init__(self, arg:SExpr, arg_id:int, func_call:SExpr):
+		self.arg = arg
 		self.func_call = func_call
 		self.arg_id = arg_id
 
 	def is_var_arg(self):
-		return len(self.uses) == 0
-
-
-class ReturnWrapper(VarUseChain):
-	USE_STR = "RETURN"
-	def __init__(self, func_ea:int, var:Var, retval, *uses:VarUse) -> None:
-		super().__init__(var, *uses)
-		self.func_ea = func_ea
-		self.retval = retval
+		if not self.arg.var_use_chain: return False
+		return self.arg.var_use_chain.is_var_chain()
 
 
 class VarUses:
 	def __init__(self):
 		self.writes:list[VarWrite]   = []
-		self.reads:list[VarRead]     = []
+		self.reads:list[SExpr]     = []
 		self.casts:list[CallCast]    = []
 
 	def __len__(self):

@@ -4,7 +4,7 @@ import idaapi
 
 import phrank.utils as utils
 
-from phrank.ast_analyzer import ASTAnalyzer, ASTAnalysis
+from phrank.ast_analyzer import CTreeAnalyzer, ASTAnalysis
 from phrank.cfunction_factory import CFunctionFactory
 from phrank.ast_parts import ASTCtx
 
@@ -17,7 +17,7 @@ class FunctionManager:
 		if cfunc_factory is None:
 			cfunc_factory = CFunctionFactory()
 		self.func_factory = cfunc_factory
-		self.ast_analyzer = ASTAnalyzer()
+		self.ast_analyzer = CTreeAnalyzer()
 		self.ast_analysis_cache = {}
 
 	def get_ast_analysis(self, func_ea:int) -> ASTAnalysis:

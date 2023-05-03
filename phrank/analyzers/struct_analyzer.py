@@ -17,20 +17,26 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def add_type_uses(self, var_uses:VarUses, var_type:idaapi.tinfo_t):
 		for var_write in var_uses.writes:
-			if var_write.is_assign(): continue
-			write_type = self.get_write_type(var_write)
-			self.add_type_use(var_type, var_write, write_type)
+			if var_write.target.var_use_chain is None: continue
+			vuc = var_write.target.var_use_chain
+			if vuc.is_var_chain(): continue # is assign
+			write_type = self.analyze_sexpr_type(var_write.value)
+			self.add_type_use(var_type, vuc, write_type)
 
 		for var_read in var_uses.reads:
-			self.add_type_use(var_type, var_read, utils.UNKNOWN_TYPE)
+			if var_read.var_use_chain is None: continue
+			self.add_type_use(var_type, var_read.var_use_chain, utils.UNKNOWN_TYPE)
 
 		for cast in var_uses.casts:
+			if cast.arg.var_use_chain is None: continue
+			cast_arg = cast.arg.var_use_chain
+
 			# FIXME kostyl
-			if cast.is_var_arg():
+			if cast_arg.is_var_chain():
 				continue
 			cast_type = self.get_cast_type(cast)
 
-			tif = cast.transform_type(var_type)
+			tif = cast_arg.transform_type(var_type)
 			if isinstance(tif, utils.ShiftedStruct):
 				self.add_member_type(tif.strucid, tif.offset, cast_type)
 				continue
@@ -45,7 +51,7 @@ class StructAnalyzer(TypeAnalyzer):
 					self.add_member_type(strucid, offset, cast_type.get_pointed_object())
 					continue
 
-			print("WARNING:", f"cant cast {str(var_type)} transformed by {cast.uses_str()} into {str(tif)} to {str(cast_type)}")
+			print("WARNING:", f"cant cast {str(var_type)} transformed by {str(cast_arg)} into {str(tif)} to {str(cast_type)}")
 
 	def add_type_use(self, var_type:idaapi.tinfo_t, vuc:VarUseChain, member_type:idaapi.tinfo_t):
 		tif = vuc.transform_type(var_type)
@@ -118,9 +124,9 @@ class StructAnalyzer(TypeAnalyzer):
 		for func_ea in touched_functions:
 			func_aa = self.get_ast_analysis(func_ea)
 			for func_call in func_aa.calls:
-				if func_call.is_explicit(): continue
+				if not func_call.is_var_use_chain(): continue
 
-				frm = func_call.call_expr.ea
+				frm = func_call.expr_ea
 				if frm == idaapi.BADADDR:
 					continue
 
@@ -155,9 +161,6 @@ class StructAnalyzer(TypeAnalyzer):
 			casts += va.casts
 		return casts
 
-	def get_write_type(self, var_write:VarWrite) -> idaapi.tinfo_t:
-		return self.analyze_cexpr(var_write.func_ea, var_write.value)
-
 	def get_cast_type(self, call_cast:CallCast) -> idaapi.tinfo_t:
 		address = self.get_call_address(call_cast.func_call)
 		if address == -1:
@@ -165,41 +168,21 @@ class StructAnalyzer(TypeAnalyzer):
 
 		return self.analyze_var(Var(address, call_cast.arg_id))
 
-	def analyze_cexpr(self, func_ea:int, cexpr:idaapi.cexpr_t) -> idaapi.tinfo_t:
-		cexpr = utils.strip_casts(cexpr)
+	def analyze_sexpr_type(self, sexpr:SExpr) -> idaapi.tinfo_t:
+		if sexpr.var_use_chain is not None:
+			vuc = sexpr.var_use_chain
+			tif = self.analyze_var(vuc.var)
+			if tif is utils.UNKNOWN_TYPE:
+				return tif
+			stype = vuc.transform_type(tif)
+			if isinstance(stype, utils.ShiftedStruct):
+				stype = stype.tif
+			return stype
 
-		if cexpr.op == idaapi.cot_var:
-			return self.analyze_var(Var(func_ea, cexpr.v.idx))
+		elif sexpr.is_explicit_call():
+			return self.analyze_retval(sexpr.function)
 
-		if cexpr.op == idaapi.cot_call and cexpr.x.op == idaapi.cot_obj and utils.is_func_start(cexpr.x.obj_ea):
-			call_ea = cexpr.x.obj_ea
-			return self.analyze_retval(call_ea)
-
-		if cexpr.op in {idaapi.cot_num}:
-			return cexpr.type
-
-		if cexpr.op == idaapi.cot_obj and not utils.is_func_start(cexpr.obj_ea):
-			gvar_type = self.analyze_var(Var(cexpr.obj_ea))
-			if gvar_type is utils.UNKNOWN_TYPE:
-				return utils.UNKNOWN_TYPE
-
-			actual_type = utils.addr2tif(cexpr.obj_ea)
-			if actual_type is None or actual_type.is_array():
-				gvar_ptr_type = idaapi.tinfo_t()
-				gvar_ptr_type.create_ptr(gvar_type)
-				gvar_type = gvar_ptr_type
-			return gvar_type
-
-		if cexpr.op == idaapi.cot_ref and cexpr.x.op == idaapi.cot_obj and not utils.is_func_start(cexpr.x.obj_ea):
-			gvar_type = self.analyze_var(Var(cexpr.x.obj_ea))
-			if gvar_type is utils.UNKNOWN_TYPE:
-				return utils.UNKNOWN_TYPE
-
-			gvar_ptr_type = idaapi.tinfo_t()
-			gvar_ptr_type.create_ptr(gvar_type)
-			return gvar_ptr_type
-
-		print("WARNING:", f"unknown cexpr value {cexpr.opname} in {idaapi.get_name(func_ea)}")
+		print("WARNING:", f"unknown sexpr value in {idaapi.get_name(sexpr.func_ea)}")
 		return utils.UNKNOWN_TYPE
 
 	def calculate_var_type_by_uses(self, var_uses: VarUses):
@@ -211,7 +194,7 @@ class StructAnalyzer(TypeAnalyzer):
 		writes = [w for w in var_uses.writes if not w.is_assign()]
 		assigns = [w for w in var_uses.writes if w.is_assign()]
 
-		assigns_types = [self.get_write_type(t) for t in assigns]
+		assigns_types = [self.analyze_sexpr_type(t.value) for t in assigns]
 		# single assign can only be one type
 		if len(assigns) == 1:
 			return assigns_types[0]
@@ -236,26 +219,29 @@ class StructAnalyzer(TypeAnalyzer):
 
 		# weeding out non-pointers
 		for w in writes:
-			if not w.is_possible_ptr():
+			if w.target.var_use_chain is None: continue
+			if not w.target.var_use_chain.is_possible_ptr():
 				print("non-pointer writes are not supported for now", w)
 				return utils.UNKNOWN_TYPE
 
 		# weeding out non-pointers2
 		for c in casts:
-			if c.is_possible_ptr() is None:
+			if c.arg.var_use_chain is None: continue
+			if c.arg.var_use_chain.is_possible_ptr() is None:
 				print("non-pointer casts are not supported for now", c)
 				return utils.UNKNOWN_TYPE
 
 		# weeding out non-pointers3
 		for r in reads:
-			if not r.is_possible_ptr():
+			if r.var_use_chain is None: continue
+			if not r.var_use_chain.is_possible_ptr():
 				print("non-pointer reads are not supported for now", r)
 				return utils.UNKNOWN_TYPE
 
-		writes_types = [self.get_write_type(w) for w in writes]
+		writes_types = [self.analyze_sexpr_type(w.value) for w in writes]
 
 		# single write at offset 0 does not create new type
-		if len(var_uses) == 1 and len(writes) == 1 and writes[0].get_ptr_offset() == 0:
+		if len(var_uses) == 1 and len(writes) == 1 and writes[0].target.var_use_chain is not None and writes[0].target.var_use_chain.get_ptr_offset() == 0:
 			write_type = writes_types[0].copy()
 			write_type.create_ptr(write_type)
 			return write_type
@@ -279,7 +265,8 @@ class StructAnalyzer(TypeAnalyzer):
 			# checking that writes do not go outside of casted value
 			cast_end = arg_type.get_size()
 			for i, w in enumerate(writes):
-				write_start = w.get_ptr_offset()
+				if w.target.var_use_chain is None: continue
+				write_start = w.target.var_use_chain.get_ptr_offset()
 				if write_start is None:
 					continue
 				write_end = writes_types[i].get_size()
@@ -356,17 +343,7 @@ class StructAnalyzer(TypeAnalyzer):
 			return rv
 
 		aa = self.get_ast_analysis(func_ea)
-		r_types = []
-		for r in aa.returns:
-			var_type = self.analyze_var(r.var)
-			if var_type is utils.UNKNOWN_TYPE:
-				r_types.append(utils.UNKNOWN_TYPE)
-				continue
-
-			r_type = r.transform_type(var_type)
-			if r_type is utils.UNKNOWN_TYPE:
-				print("WARNING: failed to analyze retval chain", utils.expr2str(r.retval))
-			r_types.append(r_type)
+		r_types = [self.analyze_sexpr_type(r) for r in aa.returns]
 
 		if len(r_types) == 1:
 			retval_type = r_types[0]
@@ -388,14 +365,13 @@ class StructAnalyzer(TypeAnalyzer):
 		self.retval2tinfo[func_ea] = retval_type
 		return retval_type
 
-	def get_call_address(self, func_call:FuncCall) -> int:
-		if func_call.is_explicit():
-			return func_call.address
+	def get_call_address(self, func_call:SExpr) -> int:
+		if func_call.is_function():
+			return func_call.function
 
-		vuc = func_call.implicit_var_use_chain
-		if vuc is None:
+		if func_call.var_use_chain is None:
 			return -1
-
+		vuc = func_call.var_use_chain
 		var_tif = self.get_var_type(vuc.var)
 		if var_tif is utils.UNKNOWN_TYPE:
 			return -1
@@ -409,8 +385,6 @@ class StructAnalyzer(TypeAnalyzer):
 			addr = -1
 			print("WARNING:", f"failed to get final member from {var_tif} {str(vuc)}")
 
-		if addr == -1:
-			print("WARNING: unknown implicit call", utils.expr2str(func_call.call_expr, hide_casts=True))
 		return addr
 
 	def propagate_var(self, var:Var):
