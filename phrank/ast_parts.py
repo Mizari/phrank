@@ -197,10 +197,10 @@ class VarUseChain:
 			return 0
 
 		use0 = self.uses[0]
-		if len(self.uses) == 1 and (use0.is_ptr() or use0.is_add()):
+		if len(self.uses) >= 1 and (use0.is_ptr() or use0.is_add()):
 			return use0.offset
 
-		if len(self.uses) == 2 and self.uses[0].is_add() and self.uses[1].is_ptr():
+		if len(self.uses) >= 2 and self.uses[0].is_add() and self.uses[1].is_ptr():
 			return self.uses[0].offset
 		return None
 
