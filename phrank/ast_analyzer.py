@@ -177,7 +177,7 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 			return fc
 
 		elif expr.op == idaapi.cot_num:
-			return SExpr.create_int(expr.ea, expr.n._value)
+			return SExpr.create_int(expr.ea, expr.n._value, expr.type)
 
 		elif expr.op == idaapi.cot_obj and utils.is_func_start(expr.obj_ea):
 			return SExpr.create_function(expr.ea, expr.obj_ea)

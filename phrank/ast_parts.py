@@ -241,6 +241,7 @@ class SExpr:
 		self.op = t
 		self.expr_ea = expr_ea
 		self.x = None
+		self.y = None
 
 	@classmethod
 	def create_var_use_chain(cls, expr_ea:int, vuc:VarUseChain):
@@ -272,9 +273,10 @@ class SExpr:
 		return obj
 
 	@classmethod
-	def create_int(cls, expr_ea:int, value:int):
+	def create_int(cls, expr_ea:int, value:int, int_type:idaapi.tinfo_t):
 		obj = cls(cls.TYPE_INT, expr_ea)
 		obj.x = value
+		obj.y = int_type
 		return obj
 
 	@property

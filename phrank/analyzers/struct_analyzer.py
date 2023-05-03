@@ -182,6 +182,9 @@ class StructAnalyzer(TypeAnalyzer):
 		elif sexpr.is_explicit_call():
 			return self.analyze_retval(sexpr.function)
 
+		elif sexpr.is_int():
+			return sexpr.y
+
 		print("WARNING:", f"unknown sexpr value in {idaapi.get_name(sexpr.func_ea)}")
 		return utils.UNKNOWN_TYPE
 
