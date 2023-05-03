@@ -159,6 +159,7 @@ class VarUse:
 			self.VAR_ADD: "ADD",
 			self.VAR_PTR: "PTR",
 			self.VAR_HELPER: "HLP",
+			self.VAR_REF: "REF",
 		}.get(self.use_type)
 		if use_type_str is None:
 			raise RuntimeError("Object is initialized incorrectly")
