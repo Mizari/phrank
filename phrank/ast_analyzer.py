@@ -72,8 +72,8 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 	op2use_type = {
 		idaapi.cot_ptr: VarUse.VAR_PTR,
 		idaapi.cot_memptr: VarUse.VAR_PTR,
-		idaapi.cot_memref: VarUse.VAR_ADD,
-		idaapi.cot_ref: VarUse.VAR_ADD,
+		idaapi.cot_memref: VarUse.VAR_REF,
+		idaapi.cot_ref: VarUse.VAR_REF,
 		idaapi.cot_idx: VarUse.VAR_PTR,
 		idaapi.cot_add: VarUse.VAR_ADD,
 		idaapi.cot_sub: VarUse.VAR_ADD,

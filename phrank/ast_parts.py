@@ -78,6 +78,7 @@ class VarUse:
 	VAR_ADD = 0
 	VAR_PTR = 1
 	VAR_HELPER = 2
+	VAR_REF = 3
 
 	def __init__(self, offset:int, use_type:int):
 		self.offset = offset
