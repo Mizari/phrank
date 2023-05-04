@@ -13,12 +13,6 @@ class TypeAnalyzer(FunctionManager):
 		super().__init__(cfunc_factory=func_factory)
 
 		# analysis context
-		# type analysis
-		self.type2func = {}
-		self.type2reads = {}
-		self.type2writes = {}
-
-		# analysis context
 		# analyzed types without actually changing types
 		self.var2tinfo : dict[Var, idaapi.tinfo_t] = {}
 		self.retval2tinfo : dict[int, idaapi.tinfo_t] = {}
