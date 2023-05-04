@@ -184,6 +184,15 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 				self.current_ast_analysis.call_casts.append(cast)
 			return fc
 
+		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper and expr.x.helper == "memset":
+			arg_sexpr = self.lift_cexpr(expr.a[0])
+			n = utils.get_int(expr.a[2])
+			if n is None:
+				n = 1
+			cast = TypeCast(arg_sexpr, utils.str2tif(f"char [{n}]"))
+			self.current_ast_analysis.type_casts.append(cast)
+			return UNKNOWN_SEXPR
+
 		elif expr.op == idaapi.cot_num:
 			return SExpr.create_int(expr.ea, expr.n._value, expr.type)
 

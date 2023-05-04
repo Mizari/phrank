@@ -37,7 +37,36 @@ class StructAnalyzer(TypeAnalyzer):
 				continue
 			self.add_member_type(target.strucid, target.offset, utils.UNKNOWN_TYPE)
 
-		for cast in var_uses.casts:
+		for cast in var_uses.type_casts:
+			if cast.arg.var_use_chain is None: continue
+			cast_arg = cast.arg.var_use_chain
+
+			# FIXME kostyl
+			if cast_arg.is_var_chain():
+				continue
+			cast_type = cast.tif
+
+			tif = cast_arg.transform_type(var_type)
+			if isinstance(tif, utils.ShiftedStruct):
+				self.add_member_type(tif.strucid, tif.offset, cast_type)
+				continue
+
+			base, offset = utils.get_shifted_base(tif)
+			if base is not None and utils.is_struct_ptr(base):
+				strucid = utils.tif2strucid(base)
+				if cast_type is utils.UNKNOWN_TYPE:
+					self.add_member_type(strucid, offset, cast_type)
+					continue
+				elif cast_type.is_ptr():
+					self.add_member_type(strucid, offset, cast_type.get_pointed_object())
+					continue
+				elif cast_type.is_array():
+					self.add_member_type(strucid, offset, cast_type)
+					continue
+
+			print("WARNING:", f"cant cast {str(var_type)} transformed by {str(cast_arg)} into {str(tif)} to {str(cast_type)}")
+
+		for cast in var_uses.call_casts:
 			if cast.arg.var_use_chain is None: continue
 			cast_arg = cast.arg.var_use_chain
 
@@ -180,7 +209,8 @@ class StructAnalyzer(TypeAnalyzer):
 			va = aa.get_var_uses(var)
 			var_uses.writes += va.writes
 			var_uses.reads += va.reads
-			var_uses.casts += va.casts
+			var_uses.call_casts += va.call_casts
+			var_uses.type_casts += va.type_casts
 		return var_uses
 
 	def get_var_call_casts(self, var:Var) -> list[CallCast]:
@@ -188,7 +218,7 @@ class StructAnalyzer(TypeAnalyzer):
 		for func_ea in var.get_functions():
 			aa = self.get_ast_analysis(func_ea)
 			va = aa.get_var_uses(var)
-			casts += va.casts
+			casts += va.call_casts
 		return casts
 
 	def get_cast_type(self, call_cast:CallCast) -> idaapi.tinfo_t:
@@ -225,7 +255,7 @@ class StructAnalyzer(TypeAnalyzer):
 		if len(var_uses) == 0:
 			return utils.UNKNOWN_TYPE
 
-		casts = var_uses.casts
+		casts = var_uses.call_casts
 		reads = var_uses.reads
 		writes = [w for w in var_uses.writes if not w.is_assign()]
 		assigns = [w for w in var_uses.writes if w.is_assign()]
