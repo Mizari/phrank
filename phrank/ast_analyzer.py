@@ -6,6 +6,14 @@ import phrank.utils as utils
 from phrank.ast_analysis import *
 
 
+bool_operations = {
+	idaapi.cot_bor, idaapi.cot_uge, idaapi.cot_band, idaapi.cot_sge,
+	idaapi.cot_sgt, idaapi.cot_eq, idaapi.cot_ne, idaapi.cot_slt,
+	idaapi.cot_land, idaapi.cot_lnot, idaapi.cot_sle, idaapi.cot_ult,
+	idaapi.cot_ule, idaapi.cot_lor, idaapi.cot_ugt,
+}
+
+
 def get_var(expr:idaapi.cexpr_t, actx:ASTCtx) -> Var|None:
 	expr = utils.strip_casts(expr)
 	if expr.op == idaapi.cot_var:
@@ -182,7 +190,7 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 		elif expr.op == idaapi.cot_obj and utils.is_func_start(expr.obj_ea):
 			return SExpr.create_function(expr.ea, expr.obj_ea)
 
-		elif expr.op in {idaapi.cot_eq, idaapi.cot_ne, idaapi.cot_slt, idaapi.cot_land, idaapi.cot_lnot, idaapi.cot_sle, idaapi.cot_ult, idaapi.cot_ule, idaapi.cot_lor}:
+		elif expr.op in bool_operations:
 			return SExpr.create_bool_op(expr.ea)
 
 		elif (vuc := get_var_use_chain(expr, self.actx)) is not None:
@@ -190,5 +198,5 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 			self.current_ast_analysis.var_reads.append(r)
 			return r
 
-		print(f"failed to lift {expr.opname} {utils.expr2str(expr)}")
+		print("WARNING:", f"failed to lift {expr.opname} {utils.expr2str(expr)}")
 		return UNKNOWN_SEXPR
