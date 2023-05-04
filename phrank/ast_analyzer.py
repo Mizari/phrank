@@ -53,12 +53,7 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 
 	expr = utils.strip_casts(expr)
 	if expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
-		vuc = get_var_use_chain(expr.a[0], actx)
-		if vuc is None:
-			# print("WARNING:", "unknown chain var use expression operand", expr.opname, utils.expr2str(expr))
-			return None
-
-		var, use_chain = vuc.var, vuc.uses
+		if len(expr.a) == 0: return None
 
 		helper2offset = {
 			"HIBYTE": 1,
@@ -71,6 +66,10 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 		if offset is None:
 			print("WARNING:", f"unknown helper {expr.x.helper} in {idaapi.get_name(actx.addr)}")
 			return None
+
+		vuc = get_var_use_chain(expr.a[0], actx)
+		if vuc is None: return None
+		var, use_chain = vuc.var, vuc.uses
 		if len(use_chain) != 0:
 			print("WARNING:", f"helper of non-variable expr {utils.expr2str(expr)} in {idaapi.get_name(actx.addr)}")
 
