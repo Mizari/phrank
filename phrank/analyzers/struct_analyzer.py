@@ -24,7 +24,6 @@ class StructAnalyzer(TypeAnalyzer):
 			if target is None:
 				print("WARNING:", f"cant add member={str(write_type)} to type={str(var_type)} from write {str(var_write)}")
 				continue
-			print(f"ADDING MEMBER strucid={target.strucid} offset={target.offset} type={write_type}")
 			self.add_member_type(target.strucid, target.offset, write_type)
 
 			if var_write.value.is_function():
