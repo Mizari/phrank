@@ -345,6 +345,8 @@ class StructAnalyzer(TypeAnalyzer):
 			# TODO check correctness of writes, read, casts
 			return original_var_tinfo
 
+		self.var2tinfo[var] = utils.UNKNOWN_TYPE # to break recursion
+
 		# local/global specific analysis
 		if var.is_local():
 			cfunc_lvar = self.get_cfunc_lvar(var.func_ea, var.lvar_id)
@@ -377,6 +379,7 @@ class StructAnalyzer(TypeAnalyzer):
 		rv = self.retval2tinfo.get(func_ea)
 		if rv is not None:
 			return rv
+		self.retval2tinfo[func_ea] = utils.UNKNOWN_TYPE # to break recursion
 
 		aa = self.get_ast_analysis(func_ea)
 		r_types = [self.analyze_sexpr_type(r) for r in aa.returns]
