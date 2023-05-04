@@ -68,10 +68,10 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 		}
 		offset = helper2offset.get(expr.x.helper)
 		if offset is None:
-			print("WARNING: unknown helper", expr.x.helper)
+			print("WARNING:", f"unknown helper {expr.x.helper} in {idaapi.get_name(actx.addr)}")
 			return None
 		if len(use_chain) != 0:
-			print("WARNING: helper of non-variable expr", utils.expr2str(expr))
+			print("WARNING:", f"helper of non-variable expr {utils.expr2str(expr)} in {idaapi.get_name(actx.addr)}")
 
 		var_use = VarUse(offset, VarUse.VAR_HELPER)
 		use_chain.append(var_use)
@@ -198,5 +198,5 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 			self.current_ast_analysis.var_reads.append(r)
 			return r
 
-		print("WARNING:", f"failed to lift {expr.opname} {utils.expr2str(expr)}")
+		print("WARNING:", f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
 		return UNKNOWN_SEXPR
