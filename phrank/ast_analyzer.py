@@ -65,6 +65,7 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 			"LOBYTE": 0,
 			"HIWORD": 2,
 			"LOWORD": 0,
+			"HIDWORD": 4,
 		}
 		offset = helper2offset.get(expr.x.helper)
 		if offset is None:
