@@ -24,6 +24,7 @@ class StructAnalyzer(TypeAnalyzer):
 			if target is None:
 				print("WARNING:", f"cant add member={str(write_type)} to type={str(var_type)} from write {str(var_write)}")
 				continue
+			print(f"ADDING MEMBER strucid={target.strucid} offset={target.offset} type={write_type}")
 			self.add_member_type(target.strucid, target.offset, write_type)
 
 			if var_write.value.is_function():
@@ -257,21 +258,21 @@ class StructAnalyzer(TypeAnalyzer):
 		for w in writes:
 			if w.target.var_use_chain is None: continue
 			if not w.target.var_use_chain.is_possible_ptr():
-				print("non-pointer writes are not supported for now", w)
+				print("WARNING:", "non-pointer writes are not supported for now", w)
 				return utils.UNKNOWN_TYPE
 
 		# weeding out non-pointers2
 		for c in casts:
 			if c.arg.var_use_chain is None: continue
 			if c.arg.var_use_chain.is_possible_ptr() is None:
-				print("non-pointer casts are not supported for now", c)
+				print("WARNING:", "non-pointer casts are not supported for now", c)
 				return utils.UNKNOWN_TYPE
 
 		# weeding out non-pointers3
 		for r in reads:
 			if r.var_use_chain is None: continue
 			if not r.var_use_chain.is_possible_ptr():
-				print("non-pointer reads are not supported for now", r.op)
+				print("WARNING:", "non-pointer reads are not supported for now", r.op)
 				return utils.UNKNOWN_TYPE
 
 		writes_types = [self.analyze_sexpr_type(w.value) for w in writes]
@@ -296,22 +297,30 @@ class StructAnalyzer(TypeAnalyzer):
 
 			# single cast and writes into casted type
 			if arg_type.is_ptr():
-				arg_type = arg_type.get_pointed_object()
+				arg_size = arg_type.get_pointed_object().get_size()
+			else:
+				arg_size = arg_type.get_size()
+			if arg_size == idaapi.BADSIZE:
+				print("WARNING:", f"failed to calculate size of argument {str(arg_type)}")
+			else:
+				# checking that writes do not go outside of casted value
+				for i, w in enumerate(writes):
+					if w.target.var_use_chain is None: continue
+					write_start = w.target.var_use_chain.get_ptr_offset()
+					if write_start is None: continue
 
-			# checking that writes do not go outside of casted value
-			cast_end = arg_type.get_size()
-			for i, w in enumerate(writes):
-				if w.target.var_use_chain is None: continue
-				write_start = w.target.var_use_chain.get_ptr_offset()
-				if write_start is None:
-					continue
-				write_end = writes_types[i].get_size()
-				# write_start, write_end = w[0], w[1].get_size()
-				if write_start < 0 or write_end > cast_end:
-					return utils.UNKNOWN_TYPE
+					write_end = writes_types[i].get_size()
+					if write_end == idaapi.BADSIZE:
+						print("WARNING:", f"failed to calculate write size of {str(writes_types[i])}")
+						continue
 
-			arg_type.create_ptr(arg_type)
-			return arg_type
+					# found write outside of cast, new struct then
+					if write_start < 0 or write_end > arg_size:
+						lvar_struct = Structure.create()
+						self.new_types.add(lvar_struct.strucid)
+						lvar_tinfo = lvar_struct.ptr_tinfo
+						return lvar_tinfo
+				return arg_type
 
 		# TODO writes into array of one type casts, that start at offset 0
 		# TODO check if all writes are to the same offset
@@ -345,8 +354,6 @@ class StructAnalyzer(TypeAnalyzer):
 			# TODO check correctness of writes, read, casts
 			return original_var_tinfo
 
-		self.var2tinfo[var] = utils.UNKNOWN_TYPE # to break recursion
-
 		# local/global specific analysis
 		if var.is_local():
 			cfunc_lvar = self.get_cfunc_lvar(var.func_ea, var.lvar_id)
@@ -360,6 +367,8 @@ class StructAnalyzer(TypeAnalyzer):
 			vtbl = self.vtable_analyzer.analyze_var(var)
 			if vtbl is not utils.UNKNOWN_TYPE:
 				return vtbl
+
+		self.var2tinfo[var] = utils.UNKNOWN_TYPE # to break recursion
 
 		var_uses = self.get_var_uses(var)
 		if len(var_uses) == 0:
