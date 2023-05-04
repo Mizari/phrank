@@ -17,15 +17,21 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def add_type_uses(self, var_uses:VarUses, var_type:idaapi.tinfo_t):
 		for var_write in var_uses.writes:
-			if var_write.target.var_use_chain is None: continue
-			vuc = var_write.target.var_use_chain
-			if vuc.is_var_chain(): continue # is assign
+			if var_write.is_assign(): continue
+
 			write_type = self.analyze_sexpr_type(var_write.value)
-			self.add_type_use(var_type, vuc, write_type)
+			target = self.analyze_target(var_type, var_write.target)
+			if target is None:
+				print("WARNING:", f"cant add member={str(write_type)} to type={str(var_type)} from write {str(var_write)}")
+				continue
+			self.add_member_type(target.strucid, target.offset, write_type)
 
 		for var_read in var_uses.reads:
-			if var_read.var_use_chain is None: continue
-			self.add_type_use(var_type, var_read.var_use_chain, utils.UNKNOWN_TYPE)
+			target = self.analyze_target(var_type, var_read)
+			if target is None:
+				print("WARNING:", f"cant read type={str(var_type)} from expr {var_read}")
+				continue
+			self.add_member_type(target.strucid, target.offset, utils.UNKNOWN_TYPE)
 
 		for cast in var_uses.casts:
 			if cast.arg.var_use_chain is None: continue
@@ -53,19 +59,22 @@ class StructAnalyzer(TypeAnalyzer):
 
 			print("WARNING:", f"cant cast {str(var_type)} transformed by {str(cast_arg)} into {str(tif)} to {str(cast_type)}")
 
-	def add_type_use(self, var_type:idaapi.tinfo_t, vuc:VarUseChain, member_type:idaapi.tinfo_t):
+	def analyze_target(self, var_type:idaapi.tinfo_t, sexpr:SExpr) -> utils.ShiftedStruct|None:
+		if sexpr.var_use_chain is None:
+			return None
+		vuc = sexpr.var_use_chain
+
 		tif = vuc.transform_type(var_type)
 		if isinstance(tif, utils.ShiftedStruct):
-			self.add_member_type(tif.strucid, tif.offset, member_type)
-			return
+			return tif
 
 		# kostyl for UNKNOWN member pointer
 		if var_type.is_ptr() and (ptif := var_type.get_pointed_object()).is_struct() and (offset := vuc.get_ptr_offset()) is not None:
 			strucid = utils.tif2strucid(ptif)
-			self.add_member_type(strucid, offset, member_type)
-			return
-
-		print("WARNING:", f"cant add member={str(member_type)} to type={str(var_type)} transformed by {vuc.uses_str()}")
+			if strucid == -1:
+				return None
+			return utils.ShiftedStruct(strucid, offset)
+		return None
 
 	def add_member_type(self, strucid:int, offset:int, member_type:idaapi.tinfo_t):
 		# rogue shifted struct
