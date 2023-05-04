@@ -306,7 +306,7 @@ class VarWrite:
 		self.value = value
 
 	def is_assign(self):
-		if not self.target.var_use_chain: return False
+		if self.target.var_use_chain is None: return False
 		return self.target.var_use_chain.is_var_chain()
 
 
@@ -317,7 +317,7 @@ class CallCast:
 		self.arg_id = arg_id
 
 	def is_var_arg(self):
-		if not self.arg.var_use_chain: return False
+		if self.arg.var_use_chain is None: return False
 		return self.arg.var_use_chain.is_var_chain()
 
 
