@@ -26,6 +26,10 @@ class StructAnalyzer(TypeAnalyzer):
 				continue
 			self.add_member_type(target.strucid, target.offset, write_type)
 
+			if var_write.value.is_function():
+				addr = var_write.value.function
+				self.add_member_name(target.strucid, target.offset, idaapi.get_name(addr))
+
 		for var_read in var_uses.reads:
 			target = self.analyze_target(var_type, var_read)
 			if target is None:
@@ -121,6 +125,23 @@ class StructAnalyzer(TypeAnalyzer):
 		else:
 			lvar_struct.set_member_type(offset, member_type)
 
+	def add_member_name(self, strucid:int, offset:int, name:str):
+		# rogue shifted struct
+		if offset < 0:
+			return
+
+		# do not modificate existing types
+		if strucid not in self.new_types:
+			return
+
+		lvar_struct = Structure(strucid)
+
+		# use of the member exists, thus there should be the field
+		if not lvar_struct.member_exists(offset):
+			lvar_struct.add_member(offset)
+
+		lvar_struct.set_member_name(offset, name)
+
 	def apply_analysis(self):
 		var_to_propagate = [v for v in self.var2tinfo.keys()]
 		for var in var_to_propagate:
@@ -187,6 +208,9 @@ class StructAnalyzer(TypeAnalyzer):
 			if isinstance(stype, utils.ShiftedStruct):
 				stype = stype.tif
 			return stype
+
+		elif sexpr.is_function():
+			return self.get_func_tinfo(sexpr.function)
 
 		elif sexpr.is_explicit_call():
 			return self.analyze_retval(sexpr.function)
