@@ -136,9 +136,9 @@ class StructAnalyzer(TypeAnalyzer):
 			if lvar_struct.get_member_size(next_offset) != 1 or lvar_struct.size != next_offset + 1:
 				utils.log_warn(
 					f"failed to change type of "\
-					f"{lvar_struct.name} at {hex(offset)}"\
-					f"to {str(member_type)}"\
-					f"because it overwrites next field at"\
+					f"{lvar_struct.name} at {hex(offset)} "\
+					f"to {str(member_type)} "\
+					f"because it overwrites next field at "\
 					f"{hex(next_offset)} skipping member type change"
 				)
 				return
@@ -329,7 +329,7 @@ class StructAnalyzer(TypeAnalyzer):
 				arg_size = arg_type.get_pointed_object().get_size()
 			else:
 				arg_size = arg_type.get_size()
-			if arg_size == idaapi.BADSIZE:
+			if arg_size == idaapi.BADSIZE and arg_type is not utils.UNKNOWN_TYPE:
 				utils.log_warn(f"failed to calculate size of argument {str(arg_type)}")
 			else:
 				# checking that writes do not go outside of casted value
@@ -339,7 +339,7 @@ class StructAnalyzer(TypeAnalyzer):
 					if write_start is None: continue
 
 					write_end = writes_types[i].get_size()
-					if write_end == idaapi.BADSIZE:
+					if write_end == idaapi.BADSIZE and writes_types[i] is not utils.UNKNOWN_TYPE:
 						utils.log_warn(f"failed to calculate write size of {str(writes_types[i])}")
 						continue
 
@@ -431,8 +431,8 @@ class StructAnalyzer(TypeAnalyzer):
 			for i in range(1, len(r_types)):
 				if r_types[i] != rv0:
 					utils.log_warn(
-						f"multiple retval types are not supported"\
-						"{hex(func_ea)} {idaapi.get_name(func_ea)}"
+						f"multiple retval types are not supported "\
+						f"{hex(func_ea)} {idaapi.get_name(func_ea)}"
 					)
 					retval_type = utils.UNKNOWN_TYPE
 					break
@@ -496,8 +496,8 @@ class StructAnalyzer(TypeAnalyzer):
 
 			if current_type != var_type:
 				utils.log_warn(
-					f"failed to propagate {str(var_type)}"\
-					f"to {self.get_lvar_name(call_ea, call_cast.arg_id)}"\
-					f"in {idaapi.get_name(call_ea)}"\
+					f"failed to propagate {str(var_type)} "\
+					f"to {self.get_lvar_name(call_ea, call_cast.arg_id)} "\
+					f"in {idaapi.get_name(call_ea)} "\
 					f"because variable has different type {current_type}"
 				)
