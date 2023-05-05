@@ -22,7 +22,7 @@ class VtableAnalyzer(TypeAnalyzer):
 			member_name = idaapi.get_name(func_addr)
 			if member_name is None:
 				member_name = "field_" + hex(vtbl.size)[2:]
-				print("Failed to get function name", hex(func_addr))
+				utils.log_warn(f"failed to get function name {hex(func_addr)}")
 
 			member_name = vtbl.get_next_available_name(member_name, Vtable.REUSE_DELIM)
 

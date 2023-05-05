@@ -61,7 +61,6 @@ def tif2strucid(tif:idaapi.tinfo_t) -> int:
 	if tif.is_integral() or tif.is_void() or tif.is_func() or tif.is_enum() or tif.is_bool():
 		return -1
 
-	print("WARNING: unknown tinfo2strucid", tif)
 	return -1
 
 
@@ -80,7 +79,6 @@ def str2tif(type_str:str) -> idaapi.tinfo_t|None:
 	tinfo = idaapi.tinfo_t()
 	idaapi.parse_decl(tinfo, idaapi.get_idati(), type_str, 0)
 	if not tinfo.is_correct():
-		print("[*] WARNING: Failed to parse type: {}".format(type_str))
 		return None
 	return tinfo
 

@@ -30,7 +30,7 @@ class Vtable(Structure):
 
 		vtbl_strucid = utils.tif2strucid(addr_tif)
 		if vtbl_strucid == -1:
-			print("WARNING:", "failed to get strucid from vtbl tinfo")
+			utils.log_warn("failed to get strucid from vtbl tinfo")
 			return None
 
 		return cls(vtbl_strucid)
@@ -117,7 +117,7 @@ class Vtable(Structure):
 
 		potential_func = not_addrs.pop()
 		if idaapi.add_func(potential_func, idaapi.BADADDR):
-			print("[*] WARNING", "created new function at", hex(potential_func))
+			utils.log_warn(f"created new function at {hex(potential_func)}")
 			return ptrs
 
 		bad_idx = ptrs.index(potential_func)

@@ -5,6 +5,7 @@ import idc, idaapi
 from phrank.util_ast import *
 from phrank.util_tif import *
 from phrank.util_func import *
+from phrank.util_log import *
 
 def split_list(l:list, cond) -> tuple[list,list]:
 	on_true = []

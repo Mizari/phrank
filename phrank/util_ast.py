@@ -89,5 +89,4 @@ def expr2str(expr:idaapi.cexpr_t, hide_casts=False) -> str:
 	elif expr.x is not None:
 		return expr.opname + '(' + e2s(expr.x) + ')'
 	else:
-		print("unknown op in e2s", expr.opname)
 		return "UNKNOWN"

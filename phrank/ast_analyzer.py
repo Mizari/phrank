@@ -83,7 +83,6 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 	}
 	use_type = op2use_type.get(expr.op)
 	if use_type is None:
-		# print("WARNING:", "unknown chain var use expression operand", expr.opname, utils.expr2str(expr))
 		return None
 
 	vuc = get_var_use_chain(expr.x, actx)
@@ -101,7 +100,6 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 	elif expr.op in [idaapi.cot_idx, idaapi.cot_add, idaapi.cot_sub]:
 		offset = utils.get_int(expr.y)
 		if offset is None:
-			# print("WARNING:", "unknown expression add operand", utils.expr2str(expr.y))
 			return None
 		if expr.op == idaapi.cot_sub: offset = -offset
 		if expr.x.type.is_ptr():
@@ -202,5 +200,5 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 			self.current_ast_analysis.var_reads.append(r)
 			return r
 
-		print("WARNING:", f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
+		utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
 		return UNKNOWN_SEXPR

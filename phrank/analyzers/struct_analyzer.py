@@ -22,7 +22,7 @@ class StructAnalyzer(TypeAnalyzer):
 			write_type = self.analyze_sexpr_type(var_write.value)
 			target = self.analyze_target(var_type, var_write.target)
 			if target is None:
-				print("WARNING:", f"cant add member={str(write_type)} to type={str(var_type)} from write {str(var_write)}")
+				utils.log_warn(f"cant add member={str(write_type)} to type={str(var_type)} from write {str(var_write)}")
 				continue
 			self.add_member_type(target.strucid, target.offset, write_type)
 
@@ -33,7 +33,7 @@ class StructAnalyzer(TypeAnalyzer):
 		for var_read in var_uses.reads:
 			target = self.analyze_target(var_type, var_read)
 			if target is None:
-				print("WARNING:", f"cant read type={str(var_type)} from expr {var_read}")
+				utils.log_warn(f"cant read type={str(var_type)} from expr {var_read}")
 				continue
 			self.add_member_type(target.strucid, target.offset, utils.UNKNOWN_TYPE)
 
@@ -64,7 +64,7 @@ class StructAnalyzer(TypeAnalyzer):
 					self.add_member_type(strucid, offset, cast_type)
 					continue
 
-			print("WARNING:", f"cant cast {str(var_type)} transformed by {str(cast_arg)} into {str(tif)} to {str(cast_type)}")
+			utils.log_warn(f"cant cast {str(var_type)} transformed by {str(cast_arg)} into {str(tif)} to {str(cast_type)}")
 
 		for cast in var_uses.call_casts:
 			if cast.arg.var_use_chain is None: continue
@@ -90,7 +90,7 @@ class StructAnalyzer(TypeAnalyzer):
 					self.add_member_type(strucid, offset, cast_type.get_pointed_object())
 					continue
 
-			print("WARNING:", f"cant cast {str(var_type)} transformed by {str(cast_arg)} into {str(tif)} to {str(cast_type)}")
+			utils.log_warn(f"cant cast {str(var_type)} transformed by {str(cast_arg)} into {str(tif)} to {str(cast_type)}")
 
 	def analyze_target(self, var_type:idaapi.tinfo_t, sexpr:SExpr) -> utils.ShiftedStruct|None:
 		if sexpr.var_use_chain is None:
@@ -134,12 +134,12 @@ class StructAnalyzer(TypeAnalyzer):
 			# currently struct size is set by adding 1byte int at the end
 			# if that is the case, then allow member type setting
 			if lvar_struct.get_member_size(next_offset) != 1 or lvar_struct.size != next_offset + 1:
-				print(
-					"WARNING: failed to change type of",
-					lvar_struct.name, "at", hex(offset),
-					"to", str(member_type),
-					"because it overwrites next field at",
-					hex(next_offset), "skipping member type change",
+				utils.log_warn(
+					f"failed to change type of "\
+					f"{lvar_struct.name} at {hex(offset)}"\
+					f"to {str(member_type)}"\
+					f"because it overwrites next field at"\
+					f"{hex(next_offset)} skipping member type change"
 				)
 				return
 
@@ -248,7 +248,7 @@ class StructAnalyzer(TypeAnalyzer):
 		elif sexpr.is_int():
 			return sexpr.y
 
-		print("WARNING:", f"unknown sexpr value in {idaapi.get_name(sexpr.func_ea)}")
+		utils.log_warn(f"unknown sexpr value in {idaapi.get_name(sexpr.func_ea)}")
 		return utils.UNKNOWN_TYPE
 
 	def calculate_var_type_by_uses(self, var_uses: VarUses):
@@ -287,21 +287,21 @@ class StructAnalyzer(TypeAnalyzer):
 		for w in writes:
 			if w.target.var_use_chain is None: continue
 			if not w.target.var_use_chain.is_possible_ptr():
-				print("WARNING:", "non-pointer writes are not supported for now", w)
+				utils.log_warn("non-pointer writes are not supported for now {w}")
 				return utils.UNKNOWN_TYPE
 
 		# weeding out non-pointers2
 		for c in casts:
 			if c.arg.var_use_chain is None: continue
 			if c.arg.var_use_chain.is_possible_ptr() is None:
-				print("WARNING:", "non-pointer casts are not supported for now", c)
+				utils.log_warn(f"non-pointer casts are not supported for now {c}")
 				return utils.UNKNOWN_TYPE
 
 		# weeding out non-pointers3
 		for r in reads:
 			if r.var_use_chain is None: continue
 			if not r.var_use_chain.is_possible_ptr():
-				print("WARNING:", "non-pointer reads are not supported for now", r.op)
+				utils.log_warn(f"non-pointer reads are not supported for now {r.op}")
 				return utils.UNKNOWN_TYPE
 
 		writes_types = [self.analyze_sexpr_type(w.value) for w in writes]
@@ -330,7 +330,7 @@ class StructAnalyzer(TypeAnalyzer):
 			else:
 				arg_size = arg_type.get_size()
 			if arg_size == idaapi.BADSIZE:
-				print("WARNING:", f"failed to calculate size of argument {str(arg_type)}")
+				utils.log_warn(f"failed to calculate size of argument {str(arg_type)}")
 			else:
 				# checking that writes do not go outside of casted value
 				for i, w in enumerate(writes):
@@ -340,7 +340,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 					write_end = writes_types[i].get_size()
 					if write_end == idaapi.BADSIZE:
-						print("WARNING:", f"failed to calculate write size of {str(writes_types[i])}")
+						utils.log_warn(f"failed to calculate write size of {str(writes_types[i])}")
 						continue
 
 					# found write outside of cast, new struct then
@@ -401,7 +401,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 		var_uses = self.get_var_uses(var)
 		if len(var_uses) == 0:
-			print("WARNING:", f"found no var uses for {str(var)}")
+			utils.log_warn(f"found no var uses for {str(var)}")
 			self.var2tinfo[var] = utils.UNKNOWN_TYPE
 			return utils.UNKNOWN_TYPE
 
@@ -430,9 +430,9 @@ class StructAnalyzer(TypeAnalyzer):
 			rv0 = r_types[0]
 			for i in range(1, len(r_types)):
 				if r_types[i] != rv0:
-					print(
-						"WARNING: multiple retval types are not supported",
-						hex(func_ea), idaapi.get_name(func_ea)
+					utils.log_warn(
+						f"multiple retval types are not supported"\
+						"{hex(func_ea)} {idaapi.get_name(func_ea)}"
 					)
 					retval_type = utils.UNKNOWN_TYPE
 					break
@@ -460,7 +460,7 @@ class StructAnalyzer(TypeAnalyzer):
 				addr = utils.str2addr(member.name)
 		else:
 			addr = -1
-			print("WARNING:", f"failed to get final member from {var_tif} {str(vuc)}")
+			utils.log_warn(f"failed to get final member from {var_tif} {str(vuc)}")
 
 		return addr
 
@@ -495,9 +495,9 @@ class StructAnalyzer(TypeAnalyzer):
 				continue
 
 			if current_type != var_type:
-				print(
-					"Failed to propagate", str(var_type),
-					"to", self.get_lvar_name(call_ea, call_cast.arg_id),
-					"in", idaapi.get_name(call_ea),
-					"because variable has different type", current_type,
+				utils.log_warn(
+					f"failed to propagate {str(var_type)}"\
+					f"to {self.get_lvar_name(call_ea, call_cast.arg_id)}"\
+					f"in {idaapi.get_name(call_ea)}"\
+					f"because variable has different type {current_type}"
 				)

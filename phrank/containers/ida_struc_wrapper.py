@@ -94,7 +94,7 @@ class IdaStrucWrapper(object):
 	def set_member_comment(self, offset:int, cmt:str):
 		rv = idc.set_member_cmt(self.strucid, offset, cmt, 0)
 		if rv == 0:
-			print("Failed to set member comment")
+			utils.log_warn(f"failed to set member comment in {self.name} at {hex(offset)}")
 		return rv
 
 	def get_member_comment(self, offset:int):
@@ -125,7 +125,7 @@ class IdaStrucWrapper(object):
 		if self.strucid == -1: raise BaseException("Invalid strucid")
 		rv = idc.set_member_name(self.strucid, member_offset, member_name)
 		if rv == 0:
-			print("Failed to set member name " + str(member_name) + " in " + self.name + ' ' + hex(member_offset))
+			utils.log_warn(f"failed to set member name {str(member_name)} in {self.name} at {hex(member_offset)}")
 		return rv
 
 	def member_offsets(self, skip_holes=True):
@@ -158,7 +158,6 @@ class IdaStrucWrapper(object):
 		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
 		if idc.is_union(self.strucid):
 			if member_offset >= idc.get_member_qty(self.strucid):
-				print("fokk", self.name, idc.get_member_qty(self.strucid), hex(member_offset))
 				raise BaseException("Offset too big")
 		else:
 			if member_offset >= self.size:
@@ -185,7 +184,7 @@ class IdaStrucWrapper(object):
 		mptr = ida_struct.get_member(sptr, member_offset)
 		rv = ida_struct.set_member_tinfo(sptr, mptr, member_offset, member_type, ida_struct.SET_MEMTI_COMPATIBLE | ida_struct.SET_MEMTI_MAY_DESTROY)
 		if rv == 0:
-			print("[*] ERROR:", self.name, hex(member_offset), str(member_type))
+			utils.log_err(f"{self.name} {hex(member_offset)} {str(member_type)}")
 			raise BaseException("Failed to change member type")
 		return rv
 

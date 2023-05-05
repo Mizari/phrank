@@ -1,3 +1,4 @@
+import logging
 import idaapi
 import time
 import phrank_api
@@ -37,7 +38,7 @@ class HRActionHandler(idaapi.action_handler_t):
 		elif citem.citype == idaapi.VDI_LVAR:
 			lvar_id = get_lvar_id(cfunc, citem.l)
 			if lvar_id == -1:
-				print("ERROR:", f"failed to get local variable id for {citem.l}")
+				phrank_api.log_err(f"failed to get local variable id for {citem.l}")
 				should_refresh = 0
 			else:
 				var = phrank_api.Var(cfunc.entry_ea, lvar_id)
@@ -75,17 +76,16 @@ class VtableMaker(HRActionHandler):
 	def handl_expr(self, cfunc, citem) -> int:
 		intval = phrank_api.get_int(citem)
 		if intval is None:
-			print("Failed to get int value")
+			phrank_api.log_err("failed to get int value")
 			return 0
 
 		vtbl_analyzer = phrank_api.VtableAnalyzer()
 		vtbl = vtbl_analyzer.analyze_var(phrank_api.Var(intval))
-		vtbl_analyzer.apply_analysis()
 		if vtbl is None:
-			print("failed to create vtable at", hex(intval))
+			phrank_api.log_err(f"failed to create vtable at {hex(intval)}")
 			return 0
 		else:
-			print("successfully created vtable", vtbl, "at", hex(intval))
+			vtbl_analyzer.apply_analysis()
 			return 1
 
 
@@ -104,7 +104,7 @@ class StructMaker(HRActionHandler):
 		struct_analyzer = phrank_api.StructAnalyzer()
 		struct_analyzer.analyze_var(var)
 		struct_analyzer.apply_analysis()
-		print(f"Analysis completed in {time.time() - start}")
+		phrank_api.log_info(f"Analysis completed in {time.time() - start}")
 		return 1
 
 	def handle_expr(self, cfunc, citem) -> int:
@@ -130,7 +130,7 @@ class StructMaker(HRActionHandler):
 			var = vars.pop()
 			return self.handle_var(var)
 
-		print("unknown citem under cursor", citem.opname)
+		phrank_api.log_info(f"unknown citem under cursor {citem.opname}")
 		return 0
 
 
@@ -160,5 +160,18 @@ class PhrankPlugin(idaapi.plugin_t):
 	def term(self):
 		return
 
+
 def PLUGIN_ENTRY():
+	if not idaapi.init_hexrays_plugin():
+		return
+
+	ch = logging.StreamHandler()
+	# ch.setLevel(logging.DEBUG)
+	formatter = logging.Formatter('PHRANK.%(levelname)s: %(message)s')
+	ch.setFormatter(formatter)
+
+	logger = logging.getLogger("phrank_logger")
+	# logger.setLevel(logging.DEBUG)
+	logger.addHandler(ch)
+	logger.propagate = False
 	return PhrankPlugin()

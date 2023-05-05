@@ -32,7 +32,7 @@ class CppClass(Structure):
 	def add_vtable(self, offset, vtbl):
 		current_vtbl = self._vtables.setdefault(offset, vtbl)
 		if current_vtbl != vtbl:
-			print("[*] ERROR", self.name, hex(offset), idaapi.get_name(current_vtbl.get_ea()), idaapi.get_name(vtbl.get_ea()))
+			utils.log_err(f"{self.name} {hex(offset)} {idaapi.get_name(current_vtbl.get_ea())} {idaapi.get_name(vtbl.get_ea())}")
 			raise BaseException("Already have vtbl at this offset")
 
 	@staticmethod
@@ -59,7 +59,7 @@ class CppClass(Structure):
 			return
 
 		if parent.size + offset > self.size:
-			print("ERROR:", self.name, idaapi.get_name(self.get_vtable(0).get_ea()), hex(offset), parent.name, hex(parent.size), idaapi.get_name(parent.get_vtable(0).get_ea()))
+			utils.log_err(f"{self.name} {idaapi.get_name(self.get_vtable(0).get_ea())} {hex(offset)} {parent.name} {hex(parent.size)} {idaapi.get_name(parent.get_vtable(0).get_ea())}")
 			raise BaseException("Cpp class size is changing on setting parent, this shouldnt happen (means size/inheritance analysis failed)")
 
 		self._parents[offset] = parent

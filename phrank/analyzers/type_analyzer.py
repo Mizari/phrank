@@ -43,13 +43,13 @@ class TypeAnalyzer(FunctionManager):
 			else:
 				rv = idc.SetType(var.obj_ea, str(new_type_tif) + ';')
 				if rv == 0:
-					print("setting", hex(var.obj_ea), "to", new_type_tif, "failed")
+					utils.log_warn(f"setting {hex(var.obj_ea)} to {new_type_tif} failed")
 		self.var2tinfo.clear()
 
 		for frm, to in self.new_xrefs:
 			rv = idaapi.add_cref(frm, to, idaapi.fl_CN)
 			if not rv:
-				print("WARNING: failed to add code reference from", hex(frm), "to", hex(to))
+				utils.log_warn(f"failed to add code reference from {hex(frm)} to {hex(to)}")
 		self.new_xrefs.clear()
 
 		self.retval2tinfo.clear()
