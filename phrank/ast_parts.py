@@ -93,18 +93,21 @@ class VarUse:
 		elif self.is_ptr(): return self.transform_ptr(tif)
 		elif self.is_ref(): return self.transform_ref(tif)
 		else:
-			utils.log_warn(f"this use {str(self)} isnt implemented")
+			utils.log_debug(f"this use {str(self)} isnt implemented")
 			return utils.UNKNOWN_TYPE
 
 	def transform_add(self, tif:idaapi.tinfo_t|utils.ShiftedStruct):
 		offset = self.offset
 		if isinstance(tif, utils.ShiftedStruct):
 			tif = tif.tif
+			if tif is utils.UNKNOWN_TYPE:
+				utils.log_debug(f"failed to get member type for in add transformation")
+				return utils.UNKNOWN_TYPE
 
 		if tif.is_struct(): # type:ignore
 			member = utils.get_tif_member(tif, offset)
 			if member is None:
-				utils.log_warn(f"failed to get member tif {str(tif)} {hex(offset)}")
+				utils.log_debug(f"failed to get member tif {str(tif)} {hex(offset)}")
 				return utils.UNKNOWN_TYPE
 
 			return member
@@ -112,7 +115,7 @@ class VarUse:
 		if tif.is_ptr() and (ptif := tif.get_pointed_object()).is_struct(): # type:ignore
 			member = utils.get_tif_member(ptif, offset)
 			if member is None:
-				utils.log_warn(f"failed to get member {str(ptif)} {hex(offset)}")
+				utils.log_debug(f"failed to get member {str(ptif)} {hex(offset)}")
 				return utils.UNKNOWN_TYPE
 
 			mtif = member.tif
@@ -120,40 +123,43 @@ class VarUse:
 				mtif = utils.str2tif("void*")
 			return utils.make_shifted_ptr(tif, mtif, offset)
 
-		utils.log_warn(f"adding to tif {str(tif)} isnt implemented")
+		utils.log_debug(f"adding to tif {str(tif)} isnt implemented")
 		return utils.UNKNOWN_TYPE
 
 	def transform_ptr(self, tif:idaapi.tinfo_t|utils.ShiftedStruct):
 		if isinstance(tif, utils.ShiftedStruct):
 			tif = tif.tif
+			if tif is utils.UNKNOWN_TYPE:
+				utils.log_debug(f"failed to get member type for ptr transformation")
+				return utils.UNKNOWN_TYPE
 
 		if not tif.is_ptr(): # type:ignore
-			utils.log_warn(f"using non-pointer type as pointer {str(tif)}")
+			utils.log_debug(f"using non-pointer type as pointer {str(tif)}")
 			return utils.UNKNOWN_TYPE
 
 		offset = self.offset
 		if tif.is_shifted_ptr(): # type:ignore
 			tif, shift_offset = utils.get_shifted_base(tif)
 			if tif is None:
-				utils.log_warn("couldnt get base of shifted pointer")
+				utils.log_debug("couldnt get base of shifted pointer")
 				return utils.UNKNOWN_TYPE
 			offset += shift_offset
 
 		ptif = tif.get_pointed_object() # type:ignore
 		if not ptif.is_struct():
-			utils.log_warn(f"access pointer of non-struct isnt implemented {str(tif)}")
+			utils.log_debug(f"access pointer of non-struct isnt implemented {str(tif)}")
 			return utils.UNKNOWN_TYPE
 
 		member = utils.get_tif_member(ptif, offset)
 		if member is None:
-			utils.log_warn(f"failed to get member tif {str(ptif)} {hex(offset)}")
+			utils.log_debug(f"failed to get member tif {str(ptif)} {hex(offset)}")
 			return utils.UNKNOWN_TYPE
 
 		return member
 
 	def transform_ref(self, tif:idaapi.tinfo_t|utils.ShiftedStruct):
 		if self.offset != 0:
-			utils.log_warn(f"non-zero ref isnt implemented yet")
+			utils.log_debug(f"non-zero ref isnt implemented yet")
 			return utils.UNKNOWN_TYPE
 
 		if isinstance(tif, idaapi.tinfo_t):
@@ -161,7 +167,7 @@ class VarUse:
 			ptif.create_ptr(tif)
 			return ptif
 		else:
-			utils.log_warn("shifted member reference isnt implemented yet")
+			utils.log_debug("shifted member reference isnt implemented yet")
 			return utils.UNKNOWN_TYPE
 
 	def __str__(self) -> str:
@@ -195,7 +201,7 @@ class VarUseChain:
 		for i, use in enumerate(self.uses):
 			tif = use.do_transform(tif)
 			if tif is utils.UNKNOWN_TYPE:
-				utils.log_warn(f"failed to calculate next step on {i} of uses {self.uses_str()}")
+				utils.log_debug(f"failed to calculate next step on {i} of uses {self.uses_str()}")
 				break
 
 		return tif
