@@ -216,5 +216,9 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 			# TODO not implemented
 			return UNKNOWN_SEXPR
 
+		elif len(extract_vars(expr, self.actx)) > 1:
+			# TODO not implemented
+			return UNKNOWN_SEXPR
+
 		utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
 		return UNKNOWN_SEXPR
