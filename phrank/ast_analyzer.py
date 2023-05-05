@@ -13,6 +13,14 @@ bool_operations = {
 	idaapi.cot_ule, idaapi.cot_lor, idaapi.cot_ugt,
 }
 
+helper2offset = {
+	"HIBYTE": 1,
+	"LOBYTE": 0,
+	"HIWORD": 2,
+	"LOWORD": 0,
+	"HIDWORD": 4,
+}
+
 
 def get_var(expr:idaapi.cexpr_t, actx:ASTCtx) -> Var|None:
 	expr = utils.strip_casts(expr)
@@ -38,44 +46,31 @@ def extract_vars(expr:idaapi.cexpr_t, actx:ASTCtx) -> set[Var]:
 			vars.update(extract_vars(a, actx))
 	return vars
 
+def get_var_helper(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
+	if expr.op != idaapi.cot_call or expr.x.op != idaapi.cot_helper or len(expr.a) != 1:
+		return None
+	if (offset := helper2offset.get(expr.x.helper)) is None:
+		return None
+
+	if (var := get_var(expr.a[0], actx)) is None:
+		return None
+
+	return VarUseChain(var, VarUse(offset, VarUse.VAR_HELPER))
+
 def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 	# FIXME
 	if expr.op == idaapi.cot_num:
 		return None
 
-	if len(extract_vars(expr, actx)) > 1:
-		# print("WARNING:", f"found multiple variables in {utils.expr2str(expr)}")
-		return None
-
-	var = get_var(expr, actx)
-	if var is not None:
+	if (var := get_var(expr, actx)) is not None:
 		return VarUseChain(var)
 
+	if len(extract_vars(expr, actx)) != 1:
+		return None
+
 	expr = utils.strip_casts(expr)
-	if expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
-		if len(expr.a) == 0: return None
-
-		helper2offset = {
-			"HIBYTE": 1,
-			"LOBYTE": 0,
-			"HIWORD": 2,
-			"LOWORD": 0,
-			"HIDWORD": 4,
-		}
-		offset = helper2offset.get(expr.x.helper)
-		if offset is None:
-			print("WARNING:", f"unknown helper {expr.x.helper} in {idaapi.get_name(actx.addr)}")
-			return None
-
-		vuc = get_var_use_chain(expr.a[0], actx)
-		if vuc is None: return None
-		var, use_chain = vuc.var, vuc.uses
-		if len(use_chain) != 0:
-			print("WARNING:", f"helper of non-variable expr {utils.expr2str(expr)} in {idaapi.get_name(actx.addr)}")
-
-		var_use = VarUse(offset, VarUse.VAR_HELPER)
-		use_chain.append(var_use)
-		return VarUseChain(var, *use_chain)
+	if (var_helper := get_var_helper(expr, actx)) is not None:
+		return var_helper
 
 	op2use_type = {
 		idaapi.cot_ptr: VarUse.VAR_PTR,
