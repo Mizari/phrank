@@ -159,6 +159,12 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 		return 0
 
 	def lift_cexpr(self, expr:idaapi.cexpr_t) -> SExpr:
+		if expr.op == idaapi.cot_cast:
+			unstripped = expr
+			expr = expr.x
+		else:
+			unstripped = None
+
 		if expr.op == idaapi.cot_asg:
 			target = self.lift_cexpr(expr.x)
 			value = self.lift_cexpr(expr.y)
