@@ -166,12 +166,12 @@ def PLUGIN_ENTRY():
 		return
 
 	ch = logging.StreamHandler()
-	# ch.setLevel(logging.DEBUG)
+	ch.setLevel(logging.ERROR)
 	formatter = logging.Formatter('PHRANK.%(levelname)s: %(message)s')
 	ch.setFormatter(formatter)
 
 	logger = logging.getLogger("phrank_logger")
-	# logger.setLevel(logging.DEBUG)
+	logger.setLevel(logging.ERROR)
 	logger.addHandler(ch)
 	logger.propagate = False
 	return PhrankPlugin()
