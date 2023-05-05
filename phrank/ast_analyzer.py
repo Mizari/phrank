@@ -13,6 +13,12 @@ bool_operations = {
 	idaapi.cot_ule, idaapi.cot_lor, idaapi.cot_ugt,
 }
 
+rw_operations = {
+	idaapi.cot_postdec, idaapi.cot_predec, idaapi.cot_preinc,
+	idaapi.cot_postinc, idaapi.cot_asgadd, idaapi.cot_asgmul,
+	idaapi.cot_asgsub, idaapi.cot_asgbor,
+}
+
 helper2offset = {
 	"HIBYTE": 1,
 	"LOBYTE": 0,
@@ -199,6 +205,10 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 			r = SExpr.create_var_use_chain(expr.ea, vuc)
 			self.current_ast_analysis.var_reads.append(r)
 			return r
+
+		elif expr.op in rw_operations:
+			# TODO not implemented
+			return UNKNOWN_SEXPR
 
 		utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
 		return UNKNOWN_SEXPR
