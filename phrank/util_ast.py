@@ -72,7 +72,7 @@ def expr2str(expr:idaapi.cexpr_t, hide_casts=False) -> str:
 		idaapi.cot_obj: lambda e: idaapi.get_name(e.obj_ea),
 		idaapi.cot_sizeof: lambda e: "sizeof(" + e2s(e.x) + ")",
 		idaapi.cot_neg: lambda e: "-" + e2s(e.x),
-		idaapi.cot_helper: lambda e: e.helper + "(" + e2s(e.x) + ")",
+		idaapi.cot_helper: lambda e: e.helper,
 		idaapi.cot_tern: lambda e: e2s(e.x) + ":" + e2s(e.y) + "?" + e2s(e.z),
 		idaapi.cot_ne: lambda e: e2s(e.x) + "!=" + e2s(e.y),
 		idaapi.cot_band: lambda e: e2s(e.x) + "&" + e2s(e.y),
