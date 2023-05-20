@@ -245,6 +245,19 @@ class StructAnalyzer(TypeAnalyzer):
 		elif sexpr.is_explicit_call():
 			return self.analyze_retval(sexpr.function)
 
+		elif sexpr.is_implicit_call():
+			addr = self.get_call_address(sexpr.x) # type:ignore
+			if addr != -1:
+				return self.analyze_retval(addr)
+
+			stype = self.analyze_sexpr_type(sexpr.x) # type:ignore
+			if stype.is_funcptr():
+				pointed_stype = stype.get_pointed_object()
+				rettype = pointed_stype.get_rettype()
+				return rettype
+			if stype.is_func():
+				return stype.get_rettype()
+
 		elif sexpr.is_int():
 			return sexpr.y
 
