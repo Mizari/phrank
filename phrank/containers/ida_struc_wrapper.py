@@ -22,7 +22,8 @@ class IdaStrucWrapper(object):
 	@classmethod
 	def handle_addstrucmember_ret(cls, ret):
 		errmsg = cls.add_struc_member_retvals.get(ret, f"unknown error {str(ret)}")
-		if ret < 0: raise BaseException("Failed to AddStrucMember: " + errmsg)
+		if ret < 0:
+			utils.log_err(f"failed to AddStrucMember {errmsg}")
 
 	def __init__(self, strucid):
 		self.strucid = strucid
@@ -184,8 +185,8 @@ class IdaStrucWrapper(object):
 		mptr = ida_struct.get_member(sptr, member_offset)
 		rv = ida_struct.set_member_tinfo(sptr, mptr, member_offset, member_type, ida_struct.SET_MEMTI_COMPATIBLE | ida_struct.SET_MEMTI_MAY_DESTROY)
 		if rv == 0:
-			utils.log_err(f"{self.name} {hex(member_offset)} {str(member_type)}")
-			raise BaseException("Failed to change member type")
+			utils.log_err(f"failed to change member type in {self.name} to {str(member_type)} at {hex(member_offset)}")
+			return rv
 		return rv
 
 	def add_member(self, member_offset:int, name=None):
