@@ -479,8 +479,15 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def propagate_var(self, var:Var):
 		var_type = self.get_var_type(var)
-		if utils.tif2strucid(var_type) not in self.new_types:
+		if utils.tif2strucid(var_type) == -1:
 			return
+
+		for func_ea in var.get_functions():
+			aa = self.get_ast_analysis(func_ea)
+			for asg in aa.var_writes:
+				if not asg.value.is_var(var): continue
+				if (target_var := asg.target.var) is None: continue
+				self.propagate_type_to_var(target_var, var_type)
 
 		casts = self.get_var_call_casts(var)
 		for call_cast in casts:
@@ -495,22 +502,24 @@ class StructAnalyzer(TypeAnalyzer):
 				continue
 
 			arg_var = Var(call_ea, call_cast.arg_id)
-			current_type = self.var2tinfo.get(arg_var, utils.UNKNOWN_TYPE)
-			if current_type is utils.UNKNOWN_TYPE:
-				lvar_uses = self.get_var_uses(arg_var)
-				arg_assigns = [w for w in lvar_uses.writes if w.is_assign()]
-				if len(arg_assigns) != 0:
-					continue
+			self.propagate_type_to_var(arg_var, var_type)
 
-				self.var2tinfo[arg_var] = var_type
-				self.propagate_var(arg_var)
-				self.add_type_uses(lvar_uses, var_type)
-				continue
+	def propagate_type_to_var(self, var:Var, new_type:idaapi.tinfo_t):
+		current_type = self.var2tinfo.get(var, utils.UNKNOWN_TYPE)
+		if current_type is utils.UNKNOWN_TYPE:
+			lvar_uses = self.get_var_uses(var)
+			arg_assigns = [w for w in lvar_uses.writes if w.is_assign()]
+			if len(arg_assigns) != 0:
+				return
 
-			if current_type != var_type:
-				utils.log_warn(
-					f"failed to propagate {str(var_type)} "\
-					f"to {self.get_lvar_name(call_ea, call_cast.arg_id)} "\
-					f"in {idaapi.get_name(call_ea)} "\
-					f"because variable has different type {current_type}"
-				)
+			self.var2tinfo[var] = new_type
+			self.propagate_var(var)
+			self.add_type_uses(lvar_uses, new_type)
+			return
+
+		if current_type != new_type:
+			utils.log_warn(
+				f"failed to propagate {str(new_type)} "\
+				f"to {str(var)} "\
+				f"because variable has different type {current_type}"
+			)

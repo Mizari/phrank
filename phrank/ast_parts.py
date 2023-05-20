@@ -241,6 +241,16 @@ class SExpr:
 	def is_explicit_call(self): return self.op == self.TYPE_EXPLICIT_CALL
 	def is_implicit_call(self): return self.op == self.TYPE_IMPLICIT_CALL
 
+	def is_var(self, var:Var|None=None) -> bool:
+		if self.var_use_chain is None:
+			return False
+		vuc = self.var_use_chain
+		if len(vuc) != 0:
+			return False
+		if var is not None:
+			return vuc.var == var
+		return True
+
 	def __init__(self, t:int, expr_ea:int) -> None:
 		self.op = t
 		self.expr_ea = expr_ea
@@ -293,6 +303,14 @@ class SExpr:
 	def var_use_chain(self) -> VarUseChain|None:
 		if not isinstance(self.x, VarUseChain): return None
 		return self.x # type:ignore
+
+	@property
+	def var(self) -> Var|None:
+		if self.var_use_chain is None:
+			return None
+		if len(self.var_use_chain) != 0:
+			return None
+		return self.var_use_chain.var
 
 	@property
 	def function(self) -> int:
