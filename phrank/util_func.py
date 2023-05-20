@@ -6,6 +6,7 @@ import idautils
 import re
 
 def is_func_start(addr:int) -> bool:
+	if is_func_import(addr): return True
 	if addr == idaapi.BADADDR: return False
 	return addr == get_func_start(addr)
 
