@@ -4,6 +4,36 @@ import logging
 def get_logger():
 	return logging.getLogger("phrank_logger")
 
+def set_log_debug():
+	logger = get_logger()
+	for h in logger.handlers:
+		h.setLevel(logging.DEBUG)
+	logger.setLevel(logging.DEBUG)
+
+def set_log_info():
+	logger = get_logger()
+	for h in logger.handlers:
+		h.setLevel(logging.INFO)
+	logger.setLevel(logging.INFO)
+
+def set_log_warn():
+	logger = get_logger()
+	for h in logger.handlers:
+		h.setLevel(logging.WARNING)
+	logger.setLevel(logging.WARNING)
+
+def set_log_err():
+	logger = get_logger()
+	for h in logger.handlers:
+		h.setLevel(logging.ERROR)
+	logger.setLevel(logging.ERROR)
+
+def set_log_critical():
+	logger = get_logger()
+	for h in logger.handlers:
+		h.setLevel(logging.CRITICAL)
+	logger.setLevel(logging.CRITICAL)
+
 def log_debug(msg:str):
 	get_logger().debug(msg)
 
