@@ -151,8 +151,21 @@ class PhrankPlugin(idaapi.plugin_t):
 	wanted_hotkey = ""
 
 	def init(self):
+		if not idaapi.init_hexrays_plugin():
+			return idaapi.PLUGIN_SKIP
+
+		ch = logging.StreamHandler()
+		ch.setLevel(logging.ERROR)
+		formatter = logging.Formatter('PHRANK.%(levelname)s: %(message)s')
+		ch.setFormatter(formatter)
+
+		logger = logging.getLogger("phrank_logger")
+		logger.setLevel(logging.ERROR)
+		logger.addHandler(ch)
+		logger.propagate = False
+
 		phrank_api.settings.PTRSIZE = phrank_api.get_pointer_size()
-		return idaapi.PLUGIN_SKIP
+		return idaapi.PLUGIN_KEEP
 
 	def run(self, arg):
 		return
@@ -162,16 +175,4 @@ class PhrankPlugin(idaapi.plugin_t):
 
 
 def PLUGIN_ENTRY():
-	if not idaapi.init_hexrays_plugin():
-		return
-
-	ch = logging.StreamHandler()
-	ch.setLevel(logging.ERROR)
-	formatter = logging.Formatter('PHRANK.%(levelname)s: %(message)s')
-	ch.setFormatter(formatter)
-
-	logger = logging.getLogger("phrank_logger")
-	logger.setLevel(logging.ERROR)
-	logger.addHandler(ch)
-	logger.propagate = False
 	return PhrankPlugin()
