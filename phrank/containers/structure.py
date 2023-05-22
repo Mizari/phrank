@@ -14,7 +14,12 @@ class Structure(IdaStrucWrapper):
 		assert not self.is_union(), "Error, should be struct"
 
 	@classmethod
-	def create(cls, struc_name=None):
+	def new(cls):
+		strucid = idc.add_struc(idaapi.BADADDR, None, False)
+		return cls(strucid)
+
+	@classmethod
+	def create(cls, struc_name:str):
 		strucid = idc.add_struc(idaapi.BADADDR, struc_name, False)
 		if strucid == idaapi.BADADDR:
 			return None

@@ -358,7 +358,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 					# found write outside of cast, new struct then
 					if write_start < 0 or write_end > arg_size:
-						lvar_struct = Structure.create()
+						lvar_struct = Structure.new()
 						self.new_types.add(lvar_struct.strucid)
 						lvar_tinfo = lvar_struct.ptr_tinfo
 						return lvar_tinfo
@@ -369,7 +369,7 @@ class StructAnalyzer(TypeAnalyzer):
 		# TODO check if all writes are actually array writes at various offsets
 
 		# all cases ended, assuming new structure pointer
-		lvar_struct = Structure.create()
+		lvar_struct = Structure.new()
 		self.new_types.add(lvar_struct.strucid)
 		lvar_tinfo = lvar_struct.ptr_tinfo
 		return lvar_tinfo
