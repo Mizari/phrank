@@ -16,6 +16,8 @@ class VtableAnalyzer(TypeAnalyzer):
 		vtbl_name = "vtable_" + hex(addr)[2:]
 		vtbl_name = utils.get_next_available_strucname(vtbl_name)
 		vtbl = Vtable.create(vtbl_name)
+		if vtbl is None:
+			return None
 
 		unknown_func_ptr_tif = utils.str2tif("void*")
 		for func_addr in vfcs:
