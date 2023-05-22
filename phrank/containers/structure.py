@@ -16,6 +16,8 @@ class Structure(IdaStrucWrapper):
 	@classmethod
 	def create(cls, struc_name=None):
 		strucid = idc.add_struc(idaapi.BADADDR, struc_name, False)
+		if strucid == idaapi.BADADDR:
+			return None
 		return cls(strucid)
 
 	def member_names(self):
