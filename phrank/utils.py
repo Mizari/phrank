@@ -17,14 +17,20 @@ def split_list(l:list, cond) -> tuple[list,list]:
 			on_false.append(i)
 	return on_true, on_false
 
-def get_next_available_strucname(strucname:str) -> str:
+def get_next_available_strucname(strucname:str, delimiter='__') -> str:
 	while idaapi.get_struc_id(strucname) != idaapi.BADADDR:
-		prefix, ctr = strucname.rsplit('_', 1)
-		try:
+		splitted = strucname.rsplit(delimiter, 1)
+		if len(splitted) == 1:
+			strucname = strucname + delimiter + '0'
+			continue
+
+		prefix, ctr = splitted
+		if ctr.isdigit():
 			ctr = int(ctr)
-			strucname = prefix + '_' + str(ctr + 1)
-		except ValueError:
-			pass
+			strucname = prefix + delimiter + str(ctr + 1)
+		else:
+			strucname = strucname + delimiter + '0'
+
 	return strucname
 
 def size2dataflags(sz:int) -> int:
