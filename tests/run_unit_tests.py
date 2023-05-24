@@ -38,13 +38,13 @@ def main():
 	if not os.path.exists(phrank_log_file):
 		die(f"Phrank log file {phrank_log_file} does not exist")
 
-	test_script = os.path.join(os.path.dirname(__file__), "analysis_tests.py")
+	test_script = os.path.join(os.path.dirname(__file__), "unit_tests.py")
 	call_args = [ida_binary, "-A", "-t", "-S" + test_script + ' ' + phrank_log_file]
 	rv = subprocess.call(call_args)
 	if rv != 0:
 		die(f"Failed to run script rv={rv}")
 
-	print(f"Successfully run analysis tests. Phrank log at {phrank_log_file}:\n")
+	print(f"Successfully run unit tests. Phrank log at {phrank_log_file}:\n")
 	print(open(phrank_log_file, 'r').read())
 
 

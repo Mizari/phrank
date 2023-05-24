@@ -8,7 +8,7 @@ def main():
 
 	log_file = idc.ARGV[1]
 	phrank_api.set_log_file(log_file)
-	phrank_api.log_critical(f"generic tests finished")
+	phrank_api.log_critical(f"unit tests finished")
 
 	idaapi.qexit(0)
 
