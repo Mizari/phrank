@@ -4,18 +4,27 @@ import logging
 def get_logger():
 	return logging.getLogger("phrank_logger")
 
-def get_formatter():
+def _set_logger_handler(handler):
+	logger = get_logger()
+	handler.setLevel(logger.level)
+	handler.setFormatter(_get_formatter())
+	logger.handlers.clear()
+	logger.addHandler(handler)
+
+def _get_formatter():
 	return logging.Formatter('PHRANK.%(levelname)s: %(message)s')
 
-def create_logger():
-	ch = logging.StreamHandler()
-	ch.setLevel(logging.ERROR)
-	ch.setFormatter(get_formatter())
-
+def create_logger(level=logging.ERROR):
 	logger = get_logger()
-	logger.setLevel(logging.ERROR)
-	logger.addHandler(ch)
+	logger.setLevel(level)
 	logger.propagate = False
+	set_log_stdout()
+
+def set_log_stdout():
+	_set_logger_handler(logging.StreamHandler())
+
+def set_log_file(fname:str):
+	_set_logger_handler(logging.FileHandler(fname))
 
 def set_log_debug():
 	logger = get_logger()
