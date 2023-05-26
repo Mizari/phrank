@@ -2,3 +2,5 @@ cppsamples
 .git
 __pycache__
 .vscode/
+*/.ruff_cache
+*/.mypy_cache
