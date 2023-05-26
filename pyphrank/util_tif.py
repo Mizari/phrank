@@ -74,7 +74,8 @@ def addr2tif(addr:int) -> idaapi.tinfo_t:
 
 @_lru_cache
 def str2tif(type_str:str) -> idaapi.tinfo_t|None:
-	if type_str[-1] != ';': type_str = type_str + ';'
+	if type_str[-1] != ';':
+		type_str = type_str + ';'
 
 	tinfo = idaapi.tinfo_t()
 	idaapi.parse_decl(tinfo, idaapi.get_idati(), type_str, 0)
@@ -129,19 +130,23 @@ class ShiftedStruct:
 
 	def bad_offset(self) -> bool:
 		struc_sz = ida_struct.get_struc_size(self.strucid)
-		if self.offset < 0 or self.offset >= struc_sz: return True
+		if self.offset < 0 or self.offset >= struc_sz:
+			return True
 		return False
 
 	@property
 	def name(self) -> str:
-		if self.bad_offset(): return ""
+		if self.bad_offset():
+			return ""
 		name = idc.get_member_name(self.strucid, self.offset)
-		if name is None: name = ""
+		if name is None:
+			name = ""
 		return name
 
 	@property
 	def tif(self) -> idaapi.tinfo_t:
-		if self.bad_offset(): return UNKNOWN_TYPE
+		if self.bad_offset():
+			return UNKNOWN_TYPE
 		sptr = ida_struct.get_struc(self.strucid)
 		mptr = ida_struct.get_member(sptr, self.offset)
 		# member is unset
@@ -156,9 +161,11 @@ class ShiftedStruct:
 
 	@property
 	def comment(self) -> str:
-		if self.bad_offset(): return ""
+		if self.bad_offset():
+			return ""
 		cmt = idc.get_member_cmt(self.strucid, self.offset, 0)
-		if cmt is None: cmt = ""
+		if cmt is None:
+			cmt = ""
 		return cmt
 
 	def __str__(self) -> str:

@@ -27,7 +27,8 @@ class CppClass(Structure):
 
 	def get_dtor(self):
 		for c in self._cdtors:
-			if c._is_dtor: return c
+			if c._is_dtor:
+				return c
 		return None
 
 	def get_vtable(self, offset):
@@ -144,16 +145,20 @@ class CDtor(object):
 			if vtbl is None:
 				continue
 
-			l = self._vtbl_writes.setdefault(write.get_offset(), [])
-			l.append(vtbl)
+			vtbl_writes = self._vtbl_writes.setdefault(write.get_offset(), [])
+			vtbl_writes.append(vtbl)
 
 	def get_main_vtables(self) -> dict[int,Vtable]:
 		main_vtables: dict[int, Vtable] = {}
 		for offset, vtbls in self.vtbl_writes():
-			if len(vtbls) == 1:  main_vtable = vtbls[0]
-			elif self._is_ctor: main_vtable = vtbls[-1]
-			elif self._is_dtor: main_vtable = vtbls[0]
-			else:                main_vtable = None
+			if len(vtbls) == 1:
+				main_vtable = vtbls[0]
+			elif self._is_ctor:
+				main_vtable = vtbls[-1]
+			elif self._is_dtor:
+				main_vtable = vtbls[0]
+			else:
+				main_vtable = None
 
 			if main_vtable is None:
 				continue

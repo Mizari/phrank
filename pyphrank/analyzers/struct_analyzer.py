@@ -7,7 +7,7 @@ import pyphrank.utils as utils
 from pyphrank.analyzers.type_analyzer import TypeAnalyzer
 from pyphrank.analyzers.vtable_analyzer import VtableAnalyzer
 from pyphrank.containers.structure import Structure
-from pyphrank.ast_parts import *
+from pyphrank.ast_parts import Var, VarUses, SExpr, CallCast
 
 
 class StructAnalyzer(TypeAnalyzer):
@@ -17,7 +17,8 @@ class StructAnalyzer(TypeAnalyzer):
 
 	def add_type_uses(self, var_uses:VarUses, var_type:idaapi.tinfo_t):
 		for var_write in var_uses.writes:
-			if var_write.is_assign(): continue
+			if var_write.is_assign():
+				continue
 
 			write_type = self.analyze_sexpr_type(var_write.value)
 			target = self.analyze_target(var_type, var_write.target)
@@ -38,7 +39,8 @@ class StructAnalyzer(TypeAnalyzer):
 			self.add_member_type(target.strucid, target.offset, utils.UNKNOWN_TYPE)
 
 		for type_cast in var_uses.type_casts:
-			if type_cast.arg.var_use_chain is None: continue
+			if type_cast.arg.var_use_chain is None:
+				continue
 			cast_arg = type_cast.arg.var_use_chain
 
 			# FIXME kostyl
@@ -67,7 +69,8 @@ class StructAnalyzer(TypeAnalyzer):
 			utils.log_warn(f"cant cast {str(var_type)} transformed by {str(cast_arg)} into {str(tif)} to {str(cast_type)}")
 
 		for call_cast in var_uses.call_casts:
-			if call_cast.arg.var_use_chain is None: continue
+			if call_cast.arg.var_use_chain is None:
+				continue
 			cast_arg = call_cast.arg.var_use_chain
 
 			# FIXME kostyl
@@ -183,7 +186,8 @@ class StructAnalyzer(TypeAnalyzer):
 		for func_ea in touched_functions:
 			func_aa = self.get_ast_analysis(func_ea)
 			for func_call in func_aa.calls:
-				if not func_call.is_var_use_chain(): continue
+				if not func_call.is_var_use_chain():
+					continue
 
 				frm = func_call.expr_ea
 				if frm == idaapi.BADADDR:
@@ -298,21 +302,24 @@ class StructAnalyzer(TypeAnalyzer):
 
 		# weeding out non-pointers
 		for w in writes:
-			if w.target.var_use_chain is None: continue
+			if w.target.var_use_chain is None:
+				continue
 			if not w.target.var_use_chain.is_possible_ptr():
 				utils.log_warn("non-pointer writes are not supported for now {w}")
 				return utils.UNKNOWN_TYPE
 
 		# weeding out non-pointers2
 		for c in casts:
-			if c.arg.var_use_chain is None: continue
+			if c.arg.var_use_chain is None:
+				continue
 			if c.arg.var_use_chain.is_possible_ptr() is None:
 				utils.log_warn(f"non-pointer casts are not supported for now {c}")
 				return utils.UNKNOWN_TYPE
 
 		# weeding out non-pointers3
 		for r in reads:
-			if r.var_use_chain is None: continue
+			if r.var_use_chain is None:
+				continue
 			if not r.var_use_chain.is_possible_ptr():
 				utils.log_warn(f"non-pointer reads are not supported for now {r.op}")
 				return utils.UNKNOWN_TYPE
@@ -347,9 +354,11 @@ class StructAnalyzer(TypeAnalyzer):
 			else:
 				# checking that writes do not go outside of casted value
 				for i, w in enumerate(writes):
-					if w.target.var_use_chain is None: continue
+					if w.target.var_use_chain is None:
+						continue
 					write_start = w.target.var_use_chain.get_ptr_offset()
-					if write_start is None: continue
+					if write_start is None:
+						continue
 
 					write_end = writes_types[i].get_size()
 					if write_end == idaapi.BADSIZE and writes_types[i] is not utils.UNKNOWN_TYPE:
@@ -485,8 +494,10 @@ class StructAnalyzer(TypeAnalyzer):
 		for func_ea in var.get_functions():
 			aa = self.get_ast_analysis(func_ea)
 			for asg in aa.var_writes:
-				if not asg.value.is_var(var): continue
-				if (target_var := asg.target.var) is None: continue
+				if not asg.value.is_var(var):
+					continue
+				if (target_var := asg.target.var) is None:
+					continue
 				self.propagate_type_to_var(target_var, var_type)
 
 		casts = self.get_var_call_casts(var)

@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-import idc, idaapi
+import idc
+import idaapi
+import idautils
 
 from pyphrank.util_ast import *
 from pyphrank.util_tif import *
 from pyphrank.util_func import *
 from pyphrank.util_log import *
 
-def split_list(l:list, cond) -> tuple[list,list]:
+def split_list(list_to_split:list, cond) -> tuple[list,list]:
 	on_true = []
 	on_false = []
-	for i in l:
+	for i in list_to_split:
 		if cond(i):
 			on_true.append(i)
 		else:
@@ -51,14 +53,16 @@ def get_pointer_size() -> int:
 
 def str2addr(s:str) -> int:
 	base = 10
-	if s.startswith("0x"): base = 16
+	if s.startswith("0x"):
+		base = 16
 	try:
 		x = int(s, base)
-	except:
+	except ValueError:
 		x = -1
 	if idaapi.is_mapped(x):
 		return x
 
 	rv = idc.get_name_ea_simple(s)
-	if rv == idaapi.BADADDR: rv = -1
+	if rv == idaapi.BADADDR:
+		rv = -1
 	return rv

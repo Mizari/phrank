@@ -6,7 +6,8 @@ import idautils
 import re
 
 def is_func_start(addr:int) -> bool:
-	if addr == idaapi.BADADDR: return False
+	if addr == idaapi.BADADDR:
+		return False
 
 	if is_import_addr(addr):
 		tif = idaapi.tinfo_t()
@@ -72,7 +73,8 @@ def get_trampoline_func_target(func_ea:int) -> int:
 		dis_words = dis_str.split()
 		if dis_words[0] == "jmp":
 			target = dis_words[1]
-			if target.startswith("ds:"): target = target[3:]
+			if target.startswith("ds:"):
+				target = target[3:]
 			val = idc.get_name_ea_simple(target)
 			if val not in (0, idaapi.BADADDR):
 				return val

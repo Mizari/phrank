@@ -1,4 +1,4 @@
-from pyphrank.ast_parts import *
+from pyphrank.ast_parts import SExpr, ASTCtx, CallCast, TypeCast, VarWrite, Var, VarUses
 
 
 class ASTAnalysis():
@@ -15,23 +15,31 @@ class ASTAnalysis():
 
 	def iterate_var_writes(self, var:Var):
 		for w in self.var_writes:
-			if w.target.var_use_chain is None: continue
-			if w.target.var_use_chain.var == var: yield w
+			if w.target.var_use_chain is None:
+				continue
+			if w.target.var_use_chain.var == var:
+				yield w
 
 	def iterate_var_reads(self, var:Var):
 		for r in self.var_reads:
-			if r.var_use_chain is None: continue
-			if r.var_use_chain.var == var: yield r
+			if r.var_use_chain is None:
+				continue
+			if r.var_use_chain.var == var:
+				yield r
 
 	def iterate_var_call_casts(self, var:Var):
 		for c in self.call_casts:
-			if c.arg.var_use_chain is None: continue
-			if c.arg.var_use_chain.var == var: yield c
+			if c.arg.var_use_chain is None:
+				continue
+			if c.arg.var_use_chain.var == var:
+				yield c
 
 	def iterate_var_type_casts(self, var:Var):
 		for c in self.type_casts:
-			if c.arg.var_use_chain is None: continue
-			if c.arg.var_use_chain.var == var: yield c
+			if c.arg.var_use_chain is None:
+				continue
+			if c.arg.var_use_chain.var == var:
+				yield c
 
 	def get_var_uses(self, var:Var) -> VarUses:
 		var_uses = VarUses()

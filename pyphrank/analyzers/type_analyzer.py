@@ -36,7 +36,8 @@ class TypeAnalyzer(FunctionManager):
 		self.new_types.clear()
 
 		for var, new_type_tif in self.var2tinfo.items():
-			if new_type_tif is utils.UNKNOWN_TYPE: continue
+			if new_type_tif is utils.UNKNOWN_TYPE:
+				continue
 
 			if var.is_local():
 				self.set_lvar_tinfo(var.func_ea, var.lvar_id, new_type_tif)

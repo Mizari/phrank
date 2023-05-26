@@ -52,8 +52,10 @@ class CFunctionFactory:
 			func_ea = decompilation_queue[-1]
 			new_functions_to_decompile = set()
 			for subcall in utils.get_func_calls_from(func_ea):
-				if subcall in self.cached_cfuncs: continue
-				if subcall in decompilation_queue: continue
+				if subcall in self.cached_cfuncs:
+					continue
+				if subcall in decompilation_queue:
+					continue
 				new_functions_to_decompile.add(subcall)
 
 			if len(new_functions_to_decompile) == 0:
@@ -66,7 +68,8 @@ class CFunctionFactory:
 				decompilation_queue += list(new_functions_to_decompile)
 
 		cfunc = self.cached_cfuncs.get(func_ea)
-		if cfunc == -1: cfunc = None
+		if cfunc == -1:
+			cfunc = None
 		return cfunc
 
 	def clear_cfunc(self, func_ea:int) -> None:

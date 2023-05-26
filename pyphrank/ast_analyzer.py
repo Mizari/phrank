@@ -3,7 +3,9 @@ from __future__ import annotations
 import idaapi
 
 import pyphrank.utils as utils
-from pyphrank.ast_analysis import *
+from pyphrank.ast_parts import SExpr, ASTCtx, CallCast, TypeCast, VarWrite
+from pyphrank.ast_parts import Var, VarUse, VarUseChain, UNKNOWN_SEXPR
+from pyphrank.ast_analysis import ASTAnalysis
 
 
 bool_operations = {
@@ -107,7 +109,8 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 		offset = utils.get_int(expr.y)
 		if offset is None:
 			return None
-		if expr.op == idaapi.cot_sub: offset = -offset
+		if expr.op == idaapi.cot_sub:
+			offset = -offset
 		if expr.x.type.is_ptr():
 			pointed = expr.x.type.get_pointed_object()
 			offset *= pointed.get_size()
@@ -160,10 +163,7 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 
 	def lift_cexpr(self, expr:idaapi.cexpr_t) -> SExpr:
 		if expr.op == idaapi.cot_cast:
-			unstripped = expr
 			expr = expr.x
-		else:
-			unstripped = None
 
 		if expr.op == idaapi.cot_asg:
 			target = self.lift_cexpr(expr.x)

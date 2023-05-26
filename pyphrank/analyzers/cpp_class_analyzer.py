@@ -8,7 +8,7 @@ from pyphrank.containers.vtable import Vtable
 from pyphrank.containers.vtables_union import VtablesUnion
 from pyphrank.analyzers.type_analyzer import TypeAnalyzer
 from pyphrank.analyzers.vtable_analyzer import VtableAnalyzer
-from pyphrank.ast_parts import *
+from pyphrank.ast_parts import Var
 
 class ClassConstructionContext(object):
 	def __init__(self) -> None:
@@ -256,7 +256,8 @@ class CppClassAnalyzer(TypeAnalyzer):
 		cpp_classes = set()
 		distances = set()
 		for offset, vtbl in main_vtables.items():
-			if vtbl._cpp_class is None: continue
+			if vtbl._cpp_class is None:
+				continue
 			cpp_classes.add(vtbl._cpp_class)
 			distances.add(offset - vtbl._cpp_class_offset)
 
@@ -447,8 +448,6 @@ class CppClassAnalyzer(TypeAnalyzer):
 			self.change_this_in_func(new_arg_tinfo, fea)
 
 	def change_this_in_func(self, new_arg_tinfo, func):
-		func_tinfo = self.get_func_tinfo(func)
-
 		if self.get_func_nargs(func) == 0:
 			return
 

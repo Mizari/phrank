@@ -92,9 +92,12 @@ class VarUse:
 		self.use_type = use_type
 
 	def do_transform(self, tif:idaapi.tinfo_t|utils.ShiftedStruct):
-		if self.is_add(): return self.transform_add(tif)
-		elif self.is_ptr(): return self.transform_ptr(tif)
-		elif self.is_ref(): return self.transform_ref(tif)
+		if self.is_add():
+			return self.transform_add(tif)
+		elif self.is_ptr():
+			return self.transform_ptr(tif)
+		elif self.is_ref():
+			return self.transform_ref(tif)
 		else:
 			utils.log_debug(f"this use {str(self)} isnt implemented")
 			return utils.UNKNOWN_TYPE
@@ -104,7 +107,7 @@ class VarUse:
 		if isinstance(tif, utils.ShiftedStruct):
 			tif = tif.tif
 			if tif is utils.UNKNOWN_TYPE:
-				utils.log_debug(f"failed to get member type for in add transformation")
+				utils.log_debug("failed to get member type for in add transformation")
 				return utils.UNKNOWN_TYPE
 
 		if tif.is_struct(): # type:ignore
@@ -133,7 +136,7 @@ class VarUse:
 		if isinstance(tif, utils.ShiftedStruct):
 			tif = tif.tif
 			if tif is utils.UNKNOWN_TYPE:
-				utils.log_debug(f"failed to get member type for ptr transformation")
+				utils.log_debug("failed to get member type for ptr transformation")
 				return utils.UNKNOWN_TYPE
 
 		if not tif.is_ptr(): # type:ignore
@@ -162,7 +165,7 @@ class VarUse:
 
 	def transform_ref(self, tif:idaapi.tinfo_t|utils.ShiftedStruct):
 		if self.offset != 0:
-			utils.log_debug(f"non-zero ref isnt implemented yet")
+			utils.log_debug("non-zero ref isnt implemented yet")
 			return utils.UNKNOWN_TYPE
 
 		if isinstance(tif, idaapi.tinfo_t):
@@ -299,12 +302,14 @@ class SExpr:
 	@property
 	def func_ea(self) -> int:
 		rv = utils.get_func_start(self.expr_ea)
-		if rv == idaapi.BADADDR: rv = -1
+		if rv == idaapi.BADADDR:
+			rv = -1
 		return rv
 
 	@property
 	def var_use_chain(self) -> VarUseChain|None:
-		if not isinstance(self.x, VarUseChain): return None
+		if not isinstance(self.x, VarUseChain):
+			return None
 		return self.x # type:ignore
 
 	@property
@@ -317,7 +322,8 @@ class SExpr:
 
 	@property
 	def function(self) -> int:
-		if not isinstance(self.x, int): return -1
+		if not isinstance(self.x, int):
+			return -1
 		return self.x # type:ignore
 
 
@@ -331,7 +337,8 @@ class VarWrite:
 		self.value = value
 
 	def is_assign(self):
-		if self.target.var_use_chain is None: return False
+		if self.target.var_use_chain is None:
+			return False
 		return self.target.var_use_chain.is_var_chain()
 
 
@@ -342,7 +349,8 @@ class CallCast:
 		self.arg_id = arg_id
 
 	def is_var_arg(self):
-		if self.arg.var_use_chain is None: return False
+		if self.arg.var_use_chain is None:
+			return False
 		return self.arg.var_use_chain.is_var_chain()
 
 
@@ -352,7 +360,8 @@ class TypeCast:
 		self.tif = tif
 
 	def is_var_arg(self):
-		if self.arg.var_use_chain is None: return False
+		if self.arg.var_use_chain is None:
+			return False
 		return self.arg.var_use_chain.is_var_chain()
 
 

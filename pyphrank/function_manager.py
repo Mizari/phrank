@@ -56,12 +56,14 @@ class FunctionManager:
 		func_tif = self.get_func_tinfo(func_ea)
 		if func_tif is not None and var_id > func_tif.get_nargs():
 			arg_type = func_tif.get_nth_arg(var_id)
-			if not utils.is_tif_correct(arg_type): arg_type = utils.UNKNOWN_TYPE
+			if not utils.is_tif_correct(arg_type):
+				arg_type = utils.UNKNOWN_TYPE
 			if arg_type is not utils.UNKNOWN_TYPE:
 				return arg_type
 
 		arg_type = self.get_arg_type(func_ea, var_id)
-		if not utils.is_tif_correct(arg_type): arg_type = utils.UNKNOWN_TYPE
+		if not utils.is_tif_correct(arg_type):
+			arg_type = utils.UNKNOWN_TYPE
 		if arg_type is not utils.UNKNOWN_TYPE:
 			return arg_type
 
@@ -76,7 +78,8 @@ class FunctionManager:
 
 		var = cfunc.lvars[var_id]
 		arg_type = var.type().copy()
-		if not utils.is_tif_correct(arg_type): arg_type = utils.UNKNOWN_TYPE
+		if not utils.is_tif_correct(arg_type):
+			arg_type = utils.UNKNOWN_TYPE
 		return arg_type
 
 	def set_lvar_tinfo(self, func_ea:int, var_id:int, var_type:idaapi.tinfo_t):
@@ -161,7 +164,7 @@ class FunctionManager:
 		if tif is None:
 			return None
 		rv = tif.create_ptr(tif)
-		if rv == False:
+		if rv is False:
 			utils.log_warn(f"failed to change tinfo of {str(tif)}")
 			return None
 		return tif
@@ -174,7 +177,8 @@ class FunctionManager:
 
 	def get_lvars_counter(self, func_ea:int) -> int:
 		cfunc = self.get_cfunc(func_ea)
-		if cfunc is None: return 0
+		if cfunc is None:
+			return 0
 
 		counter = 0
 		for lv in cfunc.get_lvars():

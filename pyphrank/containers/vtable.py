@@ -86,9 +86,9 @@ class Vtable(Structure):
 			return []
 
 		if settings.PTRSIZE == 8:
-			read_pointer_func = lambda addr: idaapi.get_qword(addr)
+			read_pointer_func = idaapi.get_qword
 		else:
-			read_pointer_func = lambda addr: idaapi.get_dword(addr)
+			read_pointer_func = idaapi.get_dword
 
 		ptrs = [read_pointer_func(addr)]
 		addr += settings.PTRSIZE

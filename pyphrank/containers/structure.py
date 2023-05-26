@@ -35,7 +35,8 @@ class Structure(IdaStrucWrapper):
 
 	def resize(self, new_size: int):
 		current_size = self.size
-		if current_size == new_size: return
+		if current_size == new_size:
+			return
 
 		if current_size > new_size:
 			self.unset_members(new_size, current_size - new_size)
@@ -50,11 +51,14 @@ class Structure(IdaStrucWrapper):
 		idc.expand_struc(self.strucid, current_size, extra_size - 1, False)
 
 	def is_offset_ok(self, offset:int, size:int):
-		if offset + size <= self.size: return True
-		else: return False
+		if offset + size <= self.size:
+			return True
+		else:
+			return False
 
 	def set_member(self, name:str, offset:int, size:int):
-		if not self.is_offset_ok(offset, size): raise BaseException("offset and size are too big")
+		if not self.is_offset_ok(offset, size):
+			raise BaseException("offset and size are too big")
 		original_size = self.size
 		self.unset_members(offset, size)
 		if self.size < original_size - 1:
@@ -62,11 +66,13 @@ class Structure(IdaStrucWrapper):
 
 		ret = idc.add_struc_member(self.strucid, name, offset, utils.size2dataflags(size), -1, size)
 		self.handle_addstrucmember_ret(ret)
-		if ret == idaapi.BADADDR: raise BaseException("Failed to append structure pointer")
+		if ret == idaapi.BADADDR:
+			raise BaseException("Failed to append structure pointer")
 
 	def set_struc(self, name:str, offset:int, struc):
 		size = struc.size
-		if not self.is_offset_ok(offset, size): raise BaseException("offset and size are too big")
+		if not self.is_offset_ok(offset, size):
+			raise BaseException("offset and size are too big")
 		self.unset_members(offset, size)
 		ret = ida_struct.add_struc_member(self.strucid, name, offset, utils.size2dataflags(1), -1, 1)
 		self.handle_addstrucmember_ret(ret)
@@ -74,16 +80,19 @@ class Structure(IdaStrucWrapper):
 
 	def set_strucptr(self, name:str, offset:int, struc):
 		PTRSIZE = settings.PTRSIZE
-		if not self.is_offset_ok(offset, PTRSIZE): raise BaseException("offset and size are too big")
+		if not self.is_offset_ok(offset, PTRSIZE):
+			raise BaseException("offset and size are too big")
 		self.unset_members(offset, PTRSIZE)
 		ret = ida_struct.add_struc_member(self.strucid, name, offset, utils.size2dataflags(PTRSIZE), -1, PTRSIZE)
 		self.handle_addstrucmember_ret(ret)
 		idc.SetType(ida_struct.get_member_id(self.strucid, offset), struc.get_name() + "*")
 
 	def member_exists(self, offset:int) -> bool:
-		if self.strucid == idaapi.BADADDR: raise BaseException("Invalid strucid")
+		if self.strucid == idaapi.BADADDR:
+			raise BaseException("Invalid strucid")
 
-		if offset < 0 or offset >= self.size: return False
+		if offset < 0 or offset >= self.size:
+			return False
 		sptr = ida_struct.get_struc(self.strucid)
 		mptr = ida_struct.get_member(sptr, offset)
 		return mptr is not None
