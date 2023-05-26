@@ -26,8 +26,8 @@ def get_next_available_strucname(strucname:str, delimiter='__') -> str:
 
 		prefix, ctr = splitted
 		if ctr.isdigit():
-			ctr = int(ctr)
-			strucname = prefix + delimiter + str(ctr + 1)
+			ctr = str(int(ctr) + 1)
+			strucname = prefix + delimiter + ctr
 		else:
 			strucname = strucname + delimiter + '0'
 

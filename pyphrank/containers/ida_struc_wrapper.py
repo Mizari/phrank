@@ -74,13 +74,6 @@ class IdaStrucWrapper(object):
 		idc.del_struc(self.strucid)
 		self.strucid = -1
 
-	def member_exists(self, name:str):
-		if idc.get_member_offset(self.strucid, name) == -1:
-			return False
-		if idc.get_member_offset(self.strucid, name) == idaapi.BADADDR:
-			return False
-		return True
-
 	def get_member_size(self, offset:int) -> int:
 		return idc.get_member_size(self.strucid, offset)
 

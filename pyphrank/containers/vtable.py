@@ -9,6 +9,7 @@ import pyphrank.settings as settings
 import pyphrank.utils as utils
 from pyphrank.containers.structure import Structure
 
+
 class Vtable(Structure):
 	REUSE_DELIM = "___V"
 	def __init__(self, strucid):
@@ -110,12 +111,12 @@ class Vtable(Structure):
 		if len(addrs) == len(ptrs):
 			return ptrs
 
-		not_addrs = set(not_addrs)
+		not_addrs = list(set(not_addrs))
 		# create maximum one function
 		if len(not_addrs) != 1 or len(addrs) == 0:
 			return []
 
-		potential_func = not_addrs.pop()
+		potential_func = not_addrs[0]
 		if idaapi.add_func(potential_func, idaapi.BADADDR):
 			utils.log_warn(f"created new function at {hex(potential_func)}")
 			return ptrs

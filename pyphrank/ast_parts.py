@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any
 
 import idaapi
 import pyphrank.utils as utils
@@ -18,8 +19,8 @@ class ASTCtx:
 
 
 class Var:
-	def __init__(self, *varid):
-		self.varid : int|tuple[int,int] = 0
+	def __init__(self, *varid:int) -> None:
+		self.varid : int|tuple[int,...] = 0
 		if len(varid) == 1:  # global
 			self.varid = varid[0]
 		elif len(varid) == 2:
@@ -27,7 +28,9 @@ class Var:
 		else:
 			raise ValueError("Invalid length of variable identifier")
 
-	def __eq__(self, __value:Var) -> bool:
+	def __eq__(self, __value:object) -> bool:
+		if not isinstance(__value, Var):
+			raise NotImplementedError
 		return self.varid == __value.varid
 
 	def __hash__(self) -> int:
@@ -254,8 +257,8 @@ class SExpr:
 	def __init__(self, t:int, expr_ea:int) -> None:
 		self.op = t
 		self.expr_ea = expr_ea
-		self.x = None
-		self.y = None
+		self.x:Any = None
+		self.y:Any = None
 
 	@classmethod
 	def create_var_use_chain(cls, expr_ea:int, vuc:VarUseChain):
@@ -354,7 +357,7 @@ class TypeCast:
 
 
 class VarUses:
-	def __init__(self):
+	def __init__(self) -> None:
 		self.writes:list[VarWrite] = []
 		self.reads:list[SExpr] = []
 		self.call_casts:list[CallCast] = []

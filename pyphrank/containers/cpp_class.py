@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import idaapi
 
 import pyphrank.utils as utils
@@ -6,9 +8,11 @@ from pyphrank.containers.structure import Structure
 from pyphrank.containers.vtables_union import VtablesUnion
 from pyphrank.containers.vtable import Vtable
 from pyphrank.analyzers.vtable_analyzer import VtableAnalyzer
+from pyphrank.ast_analysis import ASTAnalysis, ASTCtx
+
 
 class CppClass(Structure):
-	def __init__(self, strucid):
+	def __init__(self, strucid) -> None:
 		super().__init__(strucid)
 		self._cdtors : set[CDtor] = set()
 		self._vtables : dict[int, Vtable]= {}
@@ -122,15 +126,16 @@ class CppClass(Structure):
 
 class CDtor(object):
 	__slots__ = "_fea", "_is_ctor", "_is_dtor", "_cpp_class", "_vtbl_writes"
-	def __init__(self, fea):
+	def __init__(self, fea) -> None:
 		self._fea : int = fea
 		self._is_ctor : bool = False
 		self._is_dtor : bool = False
-		self._cpp_class : CppClass = None
+		self._cpp_class : CppClass|None = None
 
 		factory = VtableAnalyzer()
-		self._vtbl_writes = {}
-		for write in utils.ASTAnalysis(addr=fea).get_writes_into_var(0):
+		self._vtbl_writes : dict[int,list] = {}
+		ctx = ASTCtx(fea)
+		for write in ASTAnalysis(ctx).get_writes_into_var(0):
 			int_write_val = write.get_int()
 			if int_write_val is None:
 				continue
@@ -142,7 +147,7 @@ class CDtor(object):
 			l = self._vtbl_writes.setdefault(write.get_offset(), [])
 			l.append(vtbl)
 
-	def get_main_vtables(self):
+	def get_main_vtables(self) -> dict[int,Vtable]:
 		main_vtables: dict[int, Vtable] = {}
 		for offset, vtbls in self.vtbl_writes():
 			if len(vtbls) == 1:  main_vtable = vtbls[0]

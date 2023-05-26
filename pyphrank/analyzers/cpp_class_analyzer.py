@@ -11,7 +11,7 @@ from pyphrank.analyzers.vtable_analyzer import VtableAnalyzer
 from pyphrank.ast_parts import *
 
 class ClassConstructionContext(object):
-	def __init__(self):
+	def __init__(self) -> None:
 		self._cdtors : dict[int, CDtor] = {}
 		self._vtables : dict[int, Vtable] = {}
 
@@ -49,7 +49,7 @@ class ClassConstructionContext(object):
 
 
 class CppClassAnalyzer(TypeAnalyzer):
-	def __init__(self, *args, ctors=None, dtors=None, **kwargs):
+	def __init__(self, *args, ctors=None, dtors=None, **kwargs) -> None:
 		super().__init__(*args, **kwargs)
 		self._created_classes : list[CppClass] = []
 		self._created_unions : list[VtablesUnion] = []

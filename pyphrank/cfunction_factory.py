@@ -26,7 +26,7 @@ def should_skip_decompiling(func_ea:int) -> bool:
 
 
 class CFunctionFactory:
-	def __init__(self):
+	def __init__(self) -> None:
 		self.cached_cfuncs:dict[int, idaapi.cfunc_t] = {}
 
 	def get_cfunc(self, func_ea:int) -> idaapi.cfunc_t|None:
@@ -69,7 +69,7 @@ class CFunctionFactory:
 		if cfunc == -1: cfunc = None
 		return cfunc
 
-	def clear_cfunc(self, func_ea:int) -> idaapi.cfunc_t|None:
+	def clear_cfunc(self, func_ea:int) -> None:
 		self.cached_cfuncs.pop(func_ea, None)
 
 	def decompile_all(self):

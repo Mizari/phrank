@@ -4,7 +4,7 @@ import idc
 import idaapi
 
 from pyphrank.function_manager import FunctionManager
-from pyphrank.ast_parts import Var
+from pyphrank.ast_parts import Var, SExpr
 import pyphrank.utils as utils
 
 
@@ -18,8 +18,8 @@ class TypeAnalyzer(FunctionManager):
 		self.retval2tinfo : dict[int, idaapi.tinfo_t] = {}
 
 		# analysis results
-		self.new_types : set[int] = set()    # created types
-		self.new_xrefs = []    # created xrefs
+		self.new_types : set[int] = set() # created types
+		self.new_xrefs : list[tuple[int,int]] = [] # created xrefs
 
 	def clear_analysis(self):
 		# delete temporaly created new types
@@ -63,7 +63,7 @@ class TypeAnalyzer(FunctionManager):
 	def analyze_retval(self, func_ea:int) -> idaapi.tinfo_t:
 		raise NotImplementedError
 
-	def analyze_sexpr_type(self, func_ea:int, cexpr:int) -> idaapi.tinfo_t:
+	def analyze_sexpr_type(self, sexpr:SExpr) -> idaapi.tinfo_t:
 		raise NotImplementedError
 
 	def analyze_structure(self, struct):

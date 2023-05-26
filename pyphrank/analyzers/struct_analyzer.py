@@ -37,14 +37,14 @@ class StructAnalyzer(TypeAnalyzer):
 				continue
 			self.add_member_type(target.strucid, target.offset, utils.UNKNOWN_TYPE)
 
-		for cast in var_uses.type_casts:
-			if cast.arg.var_use_chain is None: continue
-			cast_arg = cast.arg.var_use_chain
+		for type_cast in var_uses.type_casts:
+			if type_cast.arg.var_use_chain is None: continue
+			cast_arg = type_cast.arg.var_use_chain
 
 			# FIXME kostyl
 			if cast_arg.is_var_chain():
 				continue
-			cast_type = cast.tif
+			cast_type = type_cast.tif
 
 			tif = cast_arg.transform_type(var_type)
 			if isinstance(tif, utils.ShiftedStruct):
@@ -66,14 +66,14 @@ class StructAnalyzer(TypeAnalyzer):
 
 			utils.log_warn(f"cant cast {str(var_type)} transformed by {str(cast_arg)} into {str(tif)} to {str(cast_type)}")
 
-		for cast in var_uses.call_casts:
-			if cast.arg.var_use_chain is None: continue
-			cast_arg = cast.arg.var_use_chain
+		for call_cast in var_uses.call_casts:
+			if call_cast.arg.var_use_chain is None: continue
+			cast_arg = call_cast.arg.var_use_chain
 
 			# FIXME kostyl
 			if cast_arg.is_var_chain():
 				continue
-			cast_type = self.get_cast_type(cast)
+			cast_type = self.get_cast_type(call_cast)
 
 			tif = cast_arg.transform_type(var_type)
 			if isinstance(tif, utils.ShiftedStruct):
