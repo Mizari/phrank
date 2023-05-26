@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import idaapi
 
-import phrank.utils as utils
-from phrank.ast_analysis import *
+import pyphrank.utils as utils
+from pyphrank.ast_analysis import *
 
 
 bool_operations = {

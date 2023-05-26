@@ -3,9 +3,9 @@ from __future__ import annotations
 import idc
 import idaapi
 
-from phrank.function_manager import FunctionManager
-from phrank.ast_parts import Var
-import phrank.utils as utils
+from pyphrank.function_manager import FunctionManager
+from pyphrank.ast_parts import Var
+import pyphrank.utils as utils
 
 
 class TypeAnalyzer(FunctionManager):

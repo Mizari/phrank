@@ -4,7 +4,7 @@ import idaapi
 import idc
 import ida_struct
 
-import phrank.utils as utils
+import pyphrank.utils as utils
 
 
 class IdaStrucWrapper(object):

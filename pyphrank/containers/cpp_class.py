@@ -1,11 +1,11 @@
 import idaapi
 
-import phrank.utils as utils
+import pyphrank.utils as utils
 
-from phrank.containers.structure import Structure
-from phrank.containers.vtables_union import VtablesUnion
-from phrank.containers.vtable import Vtable
-from phrank.analyzers.vtable_analyzer import VtableAnalyzer
+from pyphrank.containers.structure import Structure
+from pyphrank.containers.vtables_union import VtablesUnion
+from pyphrank.containers.vtable import Vtable
+from pyphrank.analyzers.vtable_analyzer import VtableAnalyzer
 
 class CppClass(Structure):
 	def __init__(self, strucid):

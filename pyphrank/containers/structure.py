@@ -3,9 +3,9 @@ from __future__ import annotations
 import idaapi
 import idc
 import ida_struct
-import phrank.settings as settings
-from phrank.containers.ida_struc_wrapper import IdaStrucWrapper
-import phrank.utils as utils
+import pyphrank.settings as settings
+from pyphrank.containers.ida_struc_wrapper import IdaStrucWrapper
+import pyphrank.utils as utils
 
 
 class Structure(IdaStrucWrapper):

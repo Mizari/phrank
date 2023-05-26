@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import idaapi
 
-import phrank.utils as utils
+import pyphrank.utils as utils
 
-from phrank.analyzers.type_analyzer import TypeAnalyzer
-from phrank.analyzers.vtable_analyzer import VtableAnalyzer
-from phrank.containers.structure import Structure
-from phrank.ast_parts import *
+from pyphrank.analyzers.type_analyzer import TypeAnalyzer
+from pyphrank.analyzers.vtable_analyzer import VtableAnalyzer
+from pyphrank.containers.structure import Structure
+from pyphrank.ast_parts import *
 
 
 class StructAnalyzer(TypeAnalyzer):

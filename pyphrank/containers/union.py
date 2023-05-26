@@ -1,7 +1,7 @@
 import idc
 import idaapi
 
-from phrank.containers.ida_struc_wrapper import IdaStrucWrapper
+from pyphrank.containers.ida_struc_wrapper import IdaStrucWrapper
 
 class Union(IdaStrucWrapper):
 	def __init__(self, strucid):

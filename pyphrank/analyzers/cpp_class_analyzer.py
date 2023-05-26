@@ -1,14 +1,14 @@
 import idaapi
 import idc
 
-import phrank.utils as utils
+import pyphrank.utils as utils
 
-from phrank.containers.cpp_class import CDtor, CppClass
-from phrank.containers.vtable import Vtable
-from phrank.containers.vtables_union import VtablesUnion
-from phrank.analyzers.type_analyzer import TypeAnalyzer
-from phrank.analyzers.vtable_analyzer import VtableAnalyzer
-from phrank.ast_parts import *
+from pyphrank.containers.cpp_class import CDtor, CppClass
+from pyphrank.containers.vtable import Vtable
+from pyphrank.containers.vtables_union import VtablesUnion
+from pyphrank.analyzers.type_analyzer import TypeAnalyzer
+from pyphrank.analyzers.vtable_analyzer import VtableAnalyzer
+from pyphrank.ast_parts import *
 
 class ClassConstructionContext(object):
 	def __init__(self):

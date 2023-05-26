@@ -1,4 +1,4 @@
-from phrank.ast_parts import *
+from pyphrank.ast_parts import *
 
 
 class ASTAnalysis():

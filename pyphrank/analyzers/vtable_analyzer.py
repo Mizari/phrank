@@ -1,10 +1,10 @@
 import idaapi
-import phrank.utils as utils
+import pyphrank.utils as utils
 
-from phrank.analyzers.type_analyzer import TypeAnalyzer
-from phrank.ast_parts import Var
-from phrank.containers.vtable import Vtable
-import phrank.settings as settings
+from pyphrank.analyzers.type_analyzer import TypeAnalyzer
+from pyphrank.ast_parts import Var
+from pyphrank.containers.vtable import Vtable
+import pyphrank.settings as settings
 
 
 class VtableAnalyzer(TypeAnalyzer):

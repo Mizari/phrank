@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import idc, idaapi
 
-from phrank.util_ast import *
-from phrank.util_tif import *
-from phrank.util_func import *
-from phrank.util_log import *
+from pyphrank.util_ast import *
+from pyphrank.util_tif import *
+from pyphrank.util_func import *
+from pyphrank.util_log import *
 
 def split_list(l:list, cond) -> tuple[list,list]:
 	on_true = []

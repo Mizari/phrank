@@ -5,9 +5,9 @@ import idautils
 import idc
 import ida_struct
 
-import phrank.settings as settings
-import phrank.utils as utils
-from phrank.containers.structure import Structure
+import pyphrank.settings as settings
+import pyphrank.utils as utils
+from pyphrank.containers.structure import Structure
 
 class Vtable(Structure):
 	REUSE_DELIM = "___V"

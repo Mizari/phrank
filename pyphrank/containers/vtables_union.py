@@ -4,8 +4,8 @@ import idaapi
 import idc
 import ida_struct
 
-from phrank.containers.union import Union
-from phrank.containers.vtable import Vtable
+from pyphrank.containers.union import Union
+from pyphrank.containers.vtable import Vtable
 
 
 class VtablesUnion(Union):

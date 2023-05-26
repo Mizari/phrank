@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import idaapi
 
-import phrank.utils as utils
+import pyphrank.utils as utils
 
-from phrank.ast_analyzer import CTreeAnalyzer, ASTAnalysis
-from phrank.cfunction_factory import CFunctionFactory
-from phrank.ast_parts import ASTCtx
+from pyphrank.ast_analyzer import CTreeAnalyzer, ASTAnalysis
+from pyphrank.cfunction_factory import CFunctionFactory
+from pyphrank.ast_parts import ASTCtx
 
 def get_funcname(func_ea: int) -> str:
 	return idaapi.get_name(func_ea)

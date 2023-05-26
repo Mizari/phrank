@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import idaapi
 
-import phrank.settings as settings
-import phrank.utils as utils
+import pyphrank.settings as settings
+import pyphrank.utils as utils
 
 def should_skip_decompiling(func_ea:int) -> bool:
 	fname = idaapi.get_name(func_ea)

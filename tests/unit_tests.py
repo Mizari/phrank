@@ -1,14 +1,14 @@
 import idaapi
 import idc
-import phrank_api
+import phrank
 
 
 def main():
 	idaapi.auto_wait()
 
 	log_file = idc.ARGV[1]
-	phrank_api.set_log_file(log_file)
-	phrank_api.log_critical(f"unit tests finished")
+	phrank.set_log_file(log_file)
+	phrank.log_critical(f"unit tests finished")
 
 	idaapi.qexit(0)
 
