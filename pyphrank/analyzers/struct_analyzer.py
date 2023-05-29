@@ -11,9 +11,9 @@ from pyphrank.ast_parts import Var, VarUses, SExpr, CallCast
 
 
 class StructAnalyzer(TypeAnalyzer):
-	def __init__(self, func_factory=None) -> None:
-		super().__init__(func_factory)
-		self.vtable_analyzer = VtableAnalyzer(func_factory)
+	def __init__(self, cfunc_factory=None, ast_analyzer=None) -> None:
+		super().__init__(cfunc_factory, ast_analyzer=ast_analyzer)
+		self.vtable_analyzer = VtableAnalyzer(cfunc_factory=cfunc_factory, ast_analyzer=ast_analyzer)
 
 	def add_type_uses(self, var_uses:VarUses, var_type:idaapi.tinfo_t):
 		for var_write in var_uses.writes:

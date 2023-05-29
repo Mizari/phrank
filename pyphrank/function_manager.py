@@ -13,11 +13,14 @@ def get_funcname(func_ea: int) -> str:
 
 
 class FunctionManager:
-	def __init__(self, cfunc_factory=None):
+	def __init__(self, cfunc_factory=None, ast_analyzer=None):
 		if cfunc_factory is None:
 			cfunc_factory = CFunctionFactory()
 		self.func_factory = cfunc_factory
-		self.ast_analyzer = CTreeAnalyzer()
+
+		if ast_analyzer is None:
+			ast_analyzer = CTreeAnalyzer()
+		self.ast_analyzer = ast_analyzer
 
 	def get_ast_analysis(self, func_ea:int) -> ASTAnalysis:
 		if not utils.is_func_start(func_ea):

@@ -9,8 +9,8 @@ import pyphrank.utils as utils
 
 
 class TypeAnalyzer(FunctionManager):
-	def __init__(self, func_factory=None) -> None:
-		super().__init__(cfunc_factory=func_factory)
+	def __init__(self, cfunc_factory=None, ast_analyzer=None) -> None:
+		super().__init__(cfunc_factory=cfunc_factory, ast_analyzer=ast_analyzer)
 
 		# analysis context
 		# analyzed types without actually changing types

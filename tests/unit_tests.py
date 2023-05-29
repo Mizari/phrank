@@ -44,6 +44,11 @@ def test_basic_struct_content() -> bool:
 	struc.delete()
 	return True
 
+def test_var_uses_collection() -> bool:
+	ctree_analyzer = phrank.CTreeAnalyzer()
+	sa = phrank.StructAnalyzer()
+	return True
+
 def run_test(test_func:Callable[[], bool]):
 	code = test_func.__code__
 	func_descr = f"{os.path.basename(code.co_filename)}/{test_func.__name__}@{code.co_firstlineno}"
