@@ -128,13 +128,20 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 	def __init__(self):
 		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
 		self.current_ast_analysis: ASTAnalysis = None # type:ignore
+		self.ast_analysis_cache = {}
 
-	def analyze_cfunc(self, cfunc: idaapi.cfunc_t) -> ASTAnalysis:
+	def get_ast_analysis(self, cfunc:idaapi.cfunc_t) -> ASTAnalysis:
+		func_ea = cfunc.entry_ea
+		cached = self.ast_analysis_cache.get(func_ea)
+		if cached is not None:
+			return cached
+
 		actx = ASTCtx.from_cfunc(cfunc)
 		self.current_ast_analysis = ASTAnalysis(actx)
 		self.apply_to(cfunc.body, None)
 
 		rv, self.current_ast_analysis = self.current_ast_analysis, None # type:ignore
+		self.ast_analysis_cache[func_ea] = rv
 		return rv
 
 	@property
