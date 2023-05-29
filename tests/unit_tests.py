@@ -3,6 +3,7 @@ import idc
 import phrank
 import time
 import os
+import sys
 
 from typing import Callable
 
@@ -48,16 +49,10 @@ def run_test(test_func:Callable[[], bool]):
 	func_descr = f"{os.path.basename(code.co_filename)}/{test_func.__name__}@{code.co_firstlineno}"
 
 	try:
-		assert test_func.__name__.startswith("test_")
-
 		if test_func() is False:
 			phrank.log_err(f"{func_descr} failed. doc=\"{test_func.__doc__}\"")
 	except Exception as e:
 		phrank.log_err(f"{func_descr} raised {e}. doc={test_func.__doc__}")
-
-def run_all_tests():
-	run_test(test_basic_struct_creation)
-	run_test(test_basic_struct_content)
 
 
 def main():
@@ -68,8 +63,13 @@ def main():
 	phrank.set_log_debug()
 
 	t0 = time.time()
-	run_all_tests()
+	module = sys.modules[__name__]
+	tests = [v for k,v in vars(module).items() if k.startswith("test_")]
+	phrank.log_info(f"running {len(tests)} tests")
+	for t in tests:
+		run_test(t)
 	t1 = time.time()
+
 	phrank.log_info(f"unit tests finished in {t1 - t0}")
 
 	idaapi.qexit(0)
