@@ -26,35 +26,26 @@ def set_log_stdout():
 def set_log_file(fname:str):
 	_set_logger_handler(logging.FileHandler(fname))
 
-def set_log_debug():
+def set_log_level(level:int):
 	logger = get_logger()
 	for h in logger.handlers:
-		h.setLevel(logging.DEBUG)
-	logger.setLevel(logging.DEBUG)
+		h.setLevel(level)
+	logger.setLevel(level)
+
+def set_log_debug():
+	set_log_level(logging.DEBUG)
 
 def set_log_info():
-	logger = get_logger()
-	for h in logger.handlers:
-		h.setLevel(logging.INFO)
-	logger.setLevel(logging.INFO)
+	set_log_level(logging.INFO)
 
 def set_log_warn():
-	logger = get_logger()
-	for h in logger.handlers:
-		h.setLevel(logging.WARNING)
-	logger.setLevel(logging.WARNING)
+	set_log_level(logging.WARNING)
 
 def set_log_err():
-	logger = get_logger()
-	for h in logger.handlers:
-		h.setLevel(logging.ERROR)
-	logger.setLevel(logging.ERROR)
+	set_log_level(logging.ERROR)
 
 def set_log_critical():
-	logger = get_logger()
-	for h in logger.handlers:
-		h.setLevel(logging.CRITICAL)
-	logger.setLevel(logging.CRITICAL)
+	set_log_level(logging.CRITICAL)
 
 def log_debug(msg:str):
 	get_logger().debug(msg)
