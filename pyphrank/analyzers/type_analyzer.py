@@ -55,9 +55,6 @@ class TypeAnalyzer(FunctionManager):
 
 		self.retval2tinfo.clear()
 
-	def analyze_everything(self):
-		raise NotImplementedError
-
 	def analyze_var(self, var:Var) -> idaapi.tinfo_t:
 		raise NotImplementedError
 
@@ -65,10 +62,4 @@ class TypeAnalyzer(FunctionManager):
 		raise NotImplementedError
 
 	def analyze_sexpr_type(self, sexpr:SExpr) -> idaapi.tinfo_t:
-		raise NotImplementedError
-
-	def analyze_structure(self, struct):
-		raise NotImplementedError
-
-	def analyze_field(self, struct, offset):
 		raise NotImplementedError
