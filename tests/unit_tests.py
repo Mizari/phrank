@@ -15,7 +15,7 @@ def make_ptr_write(offset, value=None):
 	return vw
 
 def test_basic_struct_creation() -> bool:
-	"""testing new struct with two int fields"""
+	"""testing creating new struct with two int assigns"""
 	var_uses = phrank.VarUses()
 	var_uses.writes.append(make_ptr_write(0))
 	var_uses.writes.append(make_ptr_write(4))
@@ -27,6 +27,21 @@ def test_basic_struct_creation() -> bool:
 		rv = False
 	sa.clear_analysis()
 	return rv
+
+def test_basic_struct_content() -> bool:
+	"""testing creating struct fields with two int assigns"""
+	var_uses = phrank.VarUses()
+	var_uses.writes.append(make_ptr_write(0))
+	var_uses.writes.append(make_ptr_write(4))
+	struc = phrank.Structure.new()
+	sa = phrank.StructAnalyzer()
+	sa.new_types.add(struc.strucid)
+	sa.add_type_uses(var_uses, struc.ptr_tinfo)
+	if struc.size != 8:
+		struc.delete()
+		return False
+	struc.delete()
+	return True
 
 def run_test(test_func:Callable[[], bool]):
 	code = test_func.__code__
@@ -42,6 +57,7 @@ def run_test(test_func:Callable[[], bool]):
 
 def run_all_tests():
 	run_test(test_basic_struct_creation)
+	run_test(test_basic_struct_content)
 
 
 def main():
