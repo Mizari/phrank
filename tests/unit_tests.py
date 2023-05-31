@@ -9,7 +9,7 @@ from typing import Callable
 
 
 def make_ptr_write(offset, value=None):
-	target = phrank.SExpr.create_var_use_chain(-1, phrank.VarUseChain(phrank.Var(-1, 0), phrank.VarUse(offset, phrank.VarUse.VAR_PTR)))
+	target = phrank.SExpr.create_var_use_chain(-1, phrank.VarUseChain(phrank.Var(0x123456, 0), phrank.VarUse(offset, phrank.VarUse.VAR_PTR)))
 	if value is None:
 		value = phrank.SExpr.create_int(-1, 0, phrank.str2tif("int"))
 	vw = phrank.VarWrite(target, value)
@@ -45,9 +45,18 @@ def test_basic_struct_content() -> bool:
 	return True
 
 def test_var_uses_collection() -> bool:
+	var = phrank.Var(0x123456, 0)
+	mock_analysis = phrank.ASTAnalysis(phrank.ASTCtx(0x123456))
+	mock_analysis.var_writes.append(make_ptr_write(0))
+
 	ctree_analyzer = phrank.CTreeAnalyzer()
-	sa = phrank.StructAnalyzer()
-	return True
+	ctree_analyzer.cache_analysis(mock_analysis)
+	sa = phrank.StructAnalyzer(ast_analyzer=ctree_analyzer)
+	vu = sa.get_var_uses(var)
+	if len(vu) != 1:
+		return False
+	else:
+		return True
 
 def run_test(test_func:Callable[[], bool]):
 	code = test_func.__code__
