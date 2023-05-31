@@ -35,9 +35,6 @@ class VtableAnalyzer(TypeAnalyzer):
 			vtbl.append_member(member_name, func_ptr_tif, hex(func_addr))
 		return vtbl
 
-	def get_gvar_vtable(self, gvar_ea:int):
-		return Vtable.get_vtable_at_address(gvar_ea)
-
 	def analyze_var(self, var:Var) -> idaapi.tinfo_t:
 		if var.is_local():
 			return utils.UNKNOWN_TYPE
@@ -57,15 +54,3 @@ class VtableAnalyzer(TypeAnalyzer):
 
 		self.var2tinfo[var] = tif
 		return tif
-
-	def analyze_everything(self):
-		for segstart, segend in utils.iterate_segments():
-			self.analyze_segment(segstart, segend)
-
-	def analyze_segment(self, segstart:int, segend:int):
-		while segstart < segend:
-			vtbl = self.analyze_var(Var(segstart))
-			if vtbl is None:
-				segstart += settings.PTRSIZE
-			else:
-				segstart += vtbl.get_size()
