@@ -9,6 +9,7 @@ from pyphrank.containers.structure import Structure
 from pyphrank.containers.union import Union
 from pyphrank.containers.ida_struc_wrapper import IdaStrucWrapper
 from pyphrank.containers.vtable import Vtable
+from pyphrank.ast_analysis import ASTAnalysis
 import pyphrank.settings as settings
 
 from pyphrank.utils import *
