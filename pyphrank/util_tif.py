@@ -73,14 +73,14 @@ def addr2tif(addr:int) -> idaapi.tinfo_t:
 
 
 @_lru_cache
-def str2tif(type_str:str) -> idaapi.tinfo_t|None:
+def str2tif(type_str:str) -> idaapi.tinfo_t:
 	if type_str[-1] != ';':
 		type_str = type_str + ';'
 
 	tinfo = idaapi.tinfo_t()
 	idaapi.parse_decl(tinfo, idaapi.get_idati(), type_str, 0)
 	if not tinfo.is_correct():
-		return None
+		return UNKNOWN_TYPE
 	return tinfo
 
 def get_int_tinfo(size:int=1) -> idaapi.tinfo_t:

@@ -140,7 +140,7 @@ class FunctionManager:
 
 		self.func_factory.clear_cfunc(func_ea)
 
-	def get_func_tinfo(self, func_ea:int) -> idaapi.tinfo_t|None:
+	def get_func_tinfo(self, func_ea:int) -> idaapi.tinfo_t:
 		tif = idaapi.tinfo_t()
 		if idaapi.get_tinfo(tif, func_ea) and tif.is_correct():
 			return tif
@@ -153,21 +153,19 @@ class FunctionManager:
 
 		if utils.is_movrax_ret(func_ea):
 			rv = utils.str2tif("__int64 (*)()")
-			if rv is None:
-				return rv
 			return rv.copy()
 
 		utils.log_warn(f"failed to get tinfo for {hex(func_ea)} {get_funcname(func_ea)}")
-		return None
+		return utils.UNKNOWN_TYPE
 
-	def get_funcptr_tinfo(self, func_ea:int) -> idaapi.tinfo_t|None:
+	def get_funcptr_tinfo(self, func_ea:int) -> idaapi.tinfo_t:
 		tif = self.get_func_tinfo(func_ea)
-		if tif is None:
-			return None
+		if tif is utils.UNKNOWN_TYPE:
+			return utils.UNKNOWN_TYPE
 		rv = tif.create_ptr(tif)
 		if rv is False:
 			utils.log_warn(f"failed to change tinfo of {str(tif)}")
-			return None
+			return utils.UNKNOWN_TYPE
 		return tif
 
 	def get_nargs(self, func_ea:int) -> int:

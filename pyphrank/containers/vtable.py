@@ -18,12 +18,8 @@ class Vtable(Structure):
 
 	@classmethod
 	def get_vtable_at_address(cls, addr: int):
-		addr_type = idc.get_type(addr)
-		if addr_type is None:
-			return None
-
-		addr_tif = utils.str2tif(addr_type)
-		if addr_tif is None:
+		addr_tif = utils.addr2tif(addr)
+		if addr_tif is utils.UNKNOWN_TYPE:
 			return None
 
 		if not Vtable.is_vtable(addr_tif):
