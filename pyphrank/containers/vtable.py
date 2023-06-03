@@ -123,7 +123,3 @@ class Vtable(Structure):
 			return []
 
 		return ptrs
-
-	@staticmethod
-	def calculate_vtable_size(addr:int):
-		return len(Vtable.get_vtable_functions_at_addr(addr))
