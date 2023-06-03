@@ -6,6 +6,7 @@ import ida_struct
 
 from pyphrank.containers.union import Union
 from pyphrank.containers.vtable import Vtable
+import pyphrank.utils as utils
 
 
 class VtablesUnion(Union):
@@ -39,7 +40,8 @@ class VtablesUnion(Union):
 					return False
 
 				mtif = mtif.get_pointed_object()
-				if not Vtable.is_vtable(mtif):
+				strucid = utils.tif2strucid(mtif)
+				if not Vtable.is_strucid_vtable(strucid):
 					return False
 
 			return True

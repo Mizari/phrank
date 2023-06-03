@@ -51,6 +51,9 @@ def str2strucid(s:str) -> int:
 	return rv
 
 def tif2strucid(tif:idaapi.tinfo_t) -> int:
+	if tif is UNKNOWN_TYPE:
+		return -1
+
 	tif = get_final_tif(tif)
 	if not is_tif_correct(tif):
 		return -1

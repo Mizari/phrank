@@ -12,22 +12,12 @@ from pyphrank.containers.structure import Structure
 
 class Vtable(Structure):
 	REUSE_DELIM = "___V"
-	def __init__(self, strucid):
-		super().__init__(strucid)
-		assert Vtable.is_strucid_vtable(self.strucid), "Structure is not vtable"
 
 	@classmethod
 	def get_vtable_at_address(cls, addr: int):
 		addr_tif = utils.addr2tif(addr)
-		if addr_tif is utils.UNKNOWN_TYPE:
-			return None
-
-		if not Vtable.is_vtable(addr_tif):
-			return None
-
 		vtbl_strucid = utils.tif2strucid(addr_tif)
-		if vtbl_strucid == -1:
-			utils.log_warn("failed to get strucid from vtbl tinfo")
+		if not cls.is_strucid_vtable(vtbl_strucid):
 			return None
 
 		return cls(vtbl_strucid)
@@ -36,17 +26,6 @@ class Vtable(Structure):
 		member_name = super().get_member_name(moffset)
 		member_name = member_name.split(Vtable.REUSE_DELIM)[0]
 		return member_name
-
-	@staticmethod
-	def is_vtable(vtbl_tif:idaapi.tinfo_t):
-		if not vtbl_tif.is_struct():
-			return None
-
-		strucid = utils.tif2strucid(vtbl_tif)
-		if strucid == -1:
-			return False
-
-		return Vtable.is_strucid_vtable(strucid)
 
 	@staticmethod
 	def is_strucid_vtable(strucid:int):
