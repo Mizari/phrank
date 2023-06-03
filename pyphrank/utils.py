@@ -35,6 +35,27 @@ def get_next_available_strucname(strucname:str, delimiter='__') -> str:
 
 	return strucname
 
+def get_next_available_membername(strucid:int, member_name:str, delimiter='__'):
+	o = idc.get_member_offset(strucid, member_name)
+	if o == -1 or o == idaapi.BADADDR:
+		return member_name
+	
+	parts = member_name.split(delimiter)
+	if len(parts) == 1:
+		counter = 0
+		base_name = member_name
+	else:
+		counter = int(parts[-1])
+		base_name = "".join(parts[:-1])
+
+	member_name = base_name + delimiter + str(counter)
+	o = idc.get_member_offset(strucid, member_name)
+	while o != idaapi.BADADDR and o != -1:
+		counter += 1
+		member_name = base_name + delimiter + str(counter)
+		o = idc.get_member_offset(strucid, member_name)
+	return member_name
+
 def size2dataflags(sz:int) -> int:
 	df = {8: idaapi.FF_QWORD, 4: idaapi.FF_DWORD, 2: idaapi.FF_WORD, 1: idaapi.FF_BYTE}.get(sz, 0)
 	return df | idaapi.FF_DATA

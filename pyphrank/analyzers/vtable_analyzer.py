@@ -26,7 +26,7 @@ class VtableAnalyzer(TypeAnalyzer):
 				member_name = "field_" + hex(vtbl.size)[2:]
 				utils.log_warn(f"failed to get function name {hex(func_addr)}")
 
-			member_name = vtbl.get_next_available_name(member_name, Vtable.REUSE_DELIM)
+			member_name = utils.get_next_available_membername(vtbl.strucid, member_name, Vtable.REUSE_DELIM)
 
 			func_ptr_tif = self.get_funcptr_tinfo(func_addr)
 			if func_ptr_tif is None:
