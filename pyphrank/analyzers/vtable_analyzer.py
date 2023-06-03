@@ -4,7 +4,6 @@ import pyphrank.utils as utils
 from pyphrank.analyzers.type_analyzer import TypeAnalyzer
 from pyphrank.ast_parts import Var
 from pyphrank.containers.vtable import Vtable
-import pyphrank.settings as settings
 
 
 class VtableAnalyzer(TypeAnalyzer):
@@ -29,7 +28,7 @@ class VtableAnalyzer(TypeAnalyzer):
 			member_name = utils.get_next_available_membername(vtbl.strucid, member_name, Vtable.REUSE_DELIM)
 
 			func_ptr_tif = self.get_funcptr_tinfo(func_addr)
-			if func_ptr_tif is None:
+			if func_ptr_tif is utils.UNKNOWN_TYPE:
 				func_ptr_tif = unknown_func_ptr_tif
 
 			vtbl.append_member(member_name, func_ptr_tif, hex(func_addr))

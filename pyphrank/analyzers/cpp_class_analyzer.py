@@ -418,7 +418,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 					member_name = vtbl.get_member_name(member_offset)
 					func_addr = idc.get_name_ea_simple(member_name)
 					func_ptr_tif = self.get_funcptr_tinfo(func_addr)
-					if func_ptr_tif is None:
+					if func_ptr_tif is utils.UNKNOWN_TYPE:
 						continue
 					vtbl.set_member_type(member_offset, func_ptr_tif)
 
