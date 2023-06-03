@@ -14,6 +14,30 @@ class Vtable(Structure):
 	REUSE_DELIM = "___V"
 
 	@classmethod
+	def from_data(cls, addr:int):
+		vfcs = Vtable.get_vtable_functions_at_addr(addr)
+		if len(vfcs) == 0:
+			return None
+
+		vtbl_name = "vtable_" + hex(addr)[2:]
+		vtbl_name = utils.get_next_available_strucname(vtbl_name)
+		vtbl = cls.create(vtbl_name)
+		if vtbl is None:
+			return None
+
+		voidptr_tif = utils.str2tif("void*")
+		for func_addr in vfcs:
+			member_name = idaapi.get_name(func_addr)
+			if member_name is None:
+				member_name = "field_" + hex(vtbl.size)[2:]
+				utils.log_warn(f"failed to get function name {hex(func_addr)}")
+
+			member_name = utils.get_next_available_membername(vtbl.strucid, member_name, Vtable.REUSE_DELIM)
+
+			vtbl.append_member(member_name, voidptr_tif, hex(func_addr))
+		return vtbl
+
+	@classmethod
 	def get_vtable_at_address(cls, addr: int):
 		addr_tif = utils.addr2tif(addr)
 		vtbl_strucid = utils.tif2strucid(addr_tif)
