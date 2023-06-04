@@ -7,6 +7,7 @@ import pyphrank.utils as utils
 from pyphrank.analyzers.type_analyzer import TypeAnalyzer
 from pyphrank.analyzers.vtable_analyzer import VtableAnalyzer
 from pyphrank.containers.structure import Structure
+from pyphrank.containers.vtable import Vtable
 from pyphrank.ast_parts import Var, VarUses, SExpr, CallCast
 
 
@@ -402,10 +403,12 @@ class StructAnalyzer(TypeAnalyzer):
 			if utils.is_func_import(var.func_ea):
 				return original_var_tinfo
 
-		else:
-			vtbl = self.vtable_analyzer.analyze_var(var)
-			if vtbl is not utils.UNKNOWN_TYPE:
-				return vtbl
+		# global var is vtbl
+		elif (vtbl := Vtable.from_data(var.obj_ea)) is not None:
+			var_tinfo = vtbl.tinfo
+			self.new_types.add(vtbl.strucid)
+			self.var2tinfo[var] = var_tinfo
+			return var_tinfo
 
 		self.var2tinfo[var] = utils.UNKNOWN_TYPE # to break recursion
 

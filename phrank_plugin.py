@@ -1,4 +1,3 @@
-import logging
 import idaapi
 import time
 import phrank
@@ -72,23 +71,6 @@ class HRActionHandler(idaapi.action_handler_t):
 		idaapi.update_action_state(self.action_name, idaapi.AST_ENABLE_ALWAYS)
 
 
-class VtableMaker(HRActionHandler):
-	def handl_expr(self, cfunc, citem) -> int:
-		intval = phrank.get_int(citem)
-		if intval is None:
-			phrank.log_err("failed to get int value")
-			return 0
-
-		vtbl_analyzer = phrank.VtableAnalyzer()
-		vtbl = vtbl_analyzer.analyze_var(phrank.Var(intval))
-		if vtbl is None:
-			phrank.log_err(f"failed to create vtable at {hex(intval)}")
-			return 0
-		else:
-			vtbl_analyzer.apply_analysis()
-			return 1
-
-
 class StructMaker(HRActionHandler):
 	def handle_function(self, func_ea):
 		struct_analyzer = phrank.StructAnalyzer()
@@ -133,9 +115,6 @@ class StructMaker(HRActionHandler):
 		phrank.log_info(f"unknown citem under cursor {citem.opname}")
 		return 0
 
-
-# will create vtable structure from the address calculated from int cexpr value
-VtableMaker("phrank::vtable_maker", "Alt-Q", "make vtable").register()
 
 # will calculate size of the pointer in variable at cursor
 # then will create struct structure with that size or adjust size of existing one
