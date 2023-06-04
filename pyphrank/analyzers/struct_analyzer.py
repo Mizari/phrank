@@ -5,7 +5,6 @@ import idaapi
 import pyphrank.utils as utils
 
 from pyphrank.analyzers.type_analyzer import TypeAnalyzer
-from pyphrank.analyzers.vtable_analyzer import VtableAnalyzer
 from pyphrank.containers.structure import Structure
 from pyphrank.containers.vtable import Vtable
 from pyphrank.ast_parts import Var, VarUses, SExpr, CallCast
@@ -14,7 +13,6 @@ from pyphrank.ast_parts import Var, VarUses, SExpr, CallCast
 class StructAnalyzer(TypeAnalyzer):
 	def __init__(self, cfunc_factory=None, ast_analyzer=None) -> None:
 		super().__init__(cfunc_factory, ast_analyzer=ast_analyzer)
-		self.vtable_analyzer = VtableAnalyzer(cfunc_factory=cfunc_factory, ast_analyzer=ast_analyzer)
 
 	def add_type_uses(self, var_uses:VarUses, var_type:idaapi.tinfo_t):
 		for var_write in var_uses.writes:
@@ -201,11 +199,6 @@ class StructAnalyzer(TypeAnalyzer):
 				self.new_xrefs.append((frm, call_ea))
 
 		super().apply_analysis()
-		self.vtable_analyzer.apply_analysis()
-
-	def clear_analysis(self):
-		super().clear_analysis()
-		self.vtable_analyzer.clear_analysis()
 
 	def get_var_uses(self, var:Var) -> VarUses:
 		var_uses = VarUses()
