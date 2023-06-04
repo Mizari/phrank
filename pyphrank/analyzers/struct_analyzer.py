@@ -383,18 +383,6 @@ class StructAnalyzer(TypeAnalyzer):
 		lvar_tinfo = lvar_struct.ptr_tinfo
 		return lvar_tinfo
 
-	def get_original_var_type(self, var:Var) -> idaapi.tinfo_t:
-		if var.is_local():
-			return self.get_cfunc_lvar_type(var.func_ea, var.lvar_id)
-		else:
-			return utils.addr2tif(var.obj_ea)
-
-	def set_var_type(self, var:Var, var_tinfo:idaapi.tinfo_t):
-		self.var2tinfo[var] = var_tinfo
-
-	def get_var_type(self, var:Var) -> idaapi.tinfo_t:
-		return self.var2tinfo.get(var, utils.UNKNOWN_TYPE)
-
 	def analyze_var(self, var:Var) -> idaapi.tinfo_t:
 		current_lvar_tinfo = self.var2tinfo.get(var)
 		if current_lvar_tinfo is not None:
