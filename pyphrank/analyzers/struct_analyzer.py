@@ -10,6 +10,34 @@ from pyphrank.containers.vtable import Vtable
 from pyphrank.ast_parts import Var, VarUses, SExpr, CallCast
 
 
+def select_type(*tifs):
+	if len(tifs) == 0:
+		utils.log_warn(f"trying to select type from 0 types")
+		return utils.UNKNOWN_TYPE
+
+	# single assign can only be one type
+	if len(tifs) == 1:
+		return tifs[0]
+
+	# try to resolve multiple assigns
+	# prefer types over non-types
+	strucid_assign_types = []
+	for tif in tifs:
+		if tif is utils.UNKNOWN_TYPE:
+			continue
+
+		strucid = utils.tif2strucid(tif)
+		if strucid != -1:
+			strucid_assign_types.append(tif)
+
+	if len(strucid_assign_types) == 1:
+		return strucid_assign_types[0]
+
+	# multiple different assignments is unknown
+	else:
+		return utils.UNKNOWN_TYPE
+
+
 class StructAnalyzer(TypeAnalyzer):
 	def __init__(self, cfunc_factory=None, ast_analyzer=None) -> None:
 		super().__init__(cfunc_factory, ast_analyzer=ast_analyzer)
@@ -272,27 +300,8 @@ class StructAnalyzer(TypeAnalyzer):
 		assigns = [w for w in var_uses.writes if w.is_assign()]
 
 		assigns_types = [self.analyze_sexpr_type(t.value) for t in assigns]
-		# single assign can only be one type
-		if len(assigns) == 1:
-			return assigns_types[0]
-
-		# try to resolve multiple assigns
-		if len(assigns) > 1:
-			# prefer types over non-types
-			strucid_assign_types = []
-			for i, asg in enumerate(assigns):
-				assign_type = assigns_types[i]
-				if assign_type is utils.UNKNOWN_TYPE:
-					continue
-				strucid = utils.tif2strucid(assign_type)
-				if strucid != -1:
-					strucid_assign_types.append(assign_type)
-
-			if len(strucid_assign_types) == 1:
-				return strucid_assign_types[0]
-			# multiple different assignments is unknown
-			else:
-				return utils.UNKNOWN_TYPE
+		if len(assigns_types) != 0:
+			return select_type(*assigns_types)
 
 		# weeding out non-pointers
 		for w in writes:
@@ -427,24 +436,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 		aa = self.get_ast_analysis(func_ea)
 		r_types = [self.analyze_sexpr_type(r) for r in aa.returns]
-
-		if len(r_types) == 1:
-			retval_type = r_types[0]
-		elif len(r_types) == 0:
-			retval_type = utils.UNKNOWN_TYPE
-		else:
-			rv0 = r_types[0]
-			for i in range(1, len(r_types)):
-				if r_types[i] != rv0:
-					utils.log_warn(
-						f"multiple retval types are not supported "\
-						f"{hex(func_ea)} {idaapi.get_name(func_ea)}"
-					)
-					retval_type = utils.UNKNOWN_TYPE
-					break
-			else:
-				retval_type = rv0
-
+		retval_type = select_type(*r_types)
 		self.retval2tinfo[func_ea] = retval_type
 		return retval_type
 
