@@ -294,15 +294,12 @@ class StructAnalyzer(TypeAnalyzer):
 		if len(var_uses) == 0:
 			return utils.UNKNOWN_TYPE
 
-		casts = var_uses.call_casts
-		reads = var_uses.reads
-		writes = [w for w in var_uses.writes if not w.is_assign()]
 		assigns = [w for w in var_uses.writes if w.is_assign()]
-
-		assigns_types = [self.analyze_sexpr_type(t.value) for t in assigns]
+		assigns_types = [self.analyze_sexpr_type(asg.value) for asg in assigns]
 		if len(assigns_types) != 0:
 			return select_type(*assigns_types)
 
+		writes = [w for w in var_uses.writes if not w.is_assign()]
 		# weeding out non-pointers
 		for w in writes:
 			if w.target.var_use_chain is None:
@@ -311,6 +308,7 @@ class StructAnalyzer(TypeAnalyzer):
 				utils.log_warn("non-pointer writes are not supported for now {w}")
 				return utils.UNKNOWN_TYPE
 
+		casts = var_uses.call_casts
 		# weeding out non-pointers2
 		for c in casts:
 			if c.arg.var_use_chain is None:
@@ -319,6 +317,7 @@ class StructAnalyzer(TypeAnalyzer):
 				utils.log_warn(f"non-pointer casts are not supported for now {c}")
 				return utils.UNKNOWN_TYPE
 
+		reads = var_uses.reads
 		# weeding out non-pointers3
 		for r in reads:
 			if r.var_use_chain is None:
