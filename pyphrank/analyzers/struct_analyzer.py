@@ -49,18 +49,18 @@ class StructAnalyzer(TypeAnalyzer):
 			if target is None:
 				utils.log_warn(f"cant add member={str(write_type)} to type={str(var_type)} from write {str(var_write)}")
 				continue
-			self.add_member_type(target.strucid, target.offset, write_type)
+			self.container_manager.add_member_type(target.strucid, target.offset, write_type)
 
 			if var_write.value.is_function():
 				addr = var_write.value.function
-				self.add_member_name(target.strucid, target.offset, idaapi.get_name(addr))
+				self.container_manager.add_member_name(target.strucid, target.offset, idaapi.get_name(addr))
 
 		for var_read in var_uses.reads:
 			target = self.analyze_target(var_type, var_read)
 			if target is None:
 				utils.log_warn(f"cant read type={str(var_type)} from expr {var_read}")
 				continue
-			self.add_member_type(target.strucid, target.offset, utils.UNKNOWN_TYPE)
+			self.container_manager.add_member_type(target.strucid, target.offset, utils.UNKNOWN_TYPE)
 
 		for type_cast in var_uses.type_casts:
 			if type_cast.arg.var_use_chain is None:
@@ -74,20 +74,20 @@ class StructAnalyzer(TypeAnalyzer):
 
 			tif = cast_arg.transform_type(var_type)
 			if isinstance(tif, utils.ShiftedStruct):
-				self.add_member_type(tif.strucid, tif.offset, cast_type)
+				self.container_manager.add_member_type(tif.strucid, tif.offset, cast_type)
 				continue
 
 			base, offset = utils.get_shifted_base(tif)
 			if base is not None and utils.is_struct_ptr(base):
 				strucid = utils.tif2strucid(base)
 				if cast_type is utils.UNKNOWN_TYPE:
-					self.add_member_type(strucid, offset, cast_type)
+					self.container_manager.add_member_type(strucid, offset, cast_type)
 					continue
 				elif cast_type.is_ptr():
-					self.add_member_type(strucid, offset, cast_type.get_pointed_object())
+					self.container_manager.add_member_type(strucid, offset, cast_type.get_pointed_object())
 					continue
 				elif cast_type.is_array():
-					self.add_member_type(strucid, offset, cast_type)
+					self.container_manager.add_member_type(strucid, offset, cast_type)
 					continue
 
 			utils.log_warn(f"cant cast {str(var_type)} transformed by {str(cast_arg)} into {str(tif)} to {str(cast_type)}")
@@ -104,17 +104,17 @@ class StructAnalyzer(TypeAnalyzer):
 
 			tif = cast_arg.transform_type(var_type)
 			if isinstance(tif, utils.ShiftedStruct):
-				self.add_member_type(tif.strucid, tif.offset, cast_type)
+				self.container_manager.add_member_type(tif.strucid, tif.offset, cast_type)
 				continue
 
 			base, offset = utils.get_shifted_base(tif)
 			if base is not None and utils.is_struct_ptr(base):
 				strucid = utils.tif2strucid(base)
 				if cast_type is utils.UNKNOWN_TYPE:
-					self.add_member_type(strucid, offset, cast_type)
+					self.container_manager.add_member_type(strucid, offset, cast_type)
 					continue
 				elif cast_type.is_ptr():
-					self.add_member_type(strucid, offset, cast_type.get_pointed_object())
+					self.container_manager.add_member_type(strucid, offset, cast_type.get_pointed_object())
 					continue
 
 			utils.log_warn(f"cant cast {str(var_type)} transformed by {str(cast_arg)} into {str(tif)} to {str(cast_type)}")
@@ -135,68 +135,6 @@ class StructAnalyzer(TypeAnalyzer):
 				return None
 			return utils.ShiftedStruct(strucid, offset)
 		return None
-
-	def add_member_type(self, strucid:int, offset:int, member_type:idaapi.tinfo_t):
-		# rogue shifted struct
-		if offset < 0:
-			return
-
-		# do not modificate existing types
-		if strucid not in self.new_types:
-			return
-
-		lvar_struct = Structure(strucid)
-
-		# use of the member exists, thus there should be the field
-		if not lvar_struct.member_exists(offset):
-			lvar_struct.add_member(offset)
-
-		# if unknown, then simply creating new member is enough
-		if member_type is utils.UNKNOWN_TYPE:
-			return
-
-		next_offset = lvar_struct.get_next_member_offset(offset)
-		if next_offset != -1 and offset + member_type.get_size() > next_offset:
-			# TODO remove when struct sizes are remembered
-			# currently struct size is set by adding 1byte int at the end
-			# if that is the case, then allow member type setting
-			if lvar_struct.get_member_size(next_offset) != 1 or lvar_struct.size != next_offset + 1:
-				utils.log_warn(
-					f"failed to change type of "\
-					f"{lvar_struct.name} at {hex(offset)} "\
-					f"to {str(member_type)} "\
-					f"because it overwrites next field at "\
-					f"{hex(next_offset)} skipping member type change"
-				)
-				return
-
-		member_offset = lvar_struct.get_member_start(offset)
-		current_type = lvar_struct.get_member_type(offset)
-		if  current_type is not None and \
-			current_type.is_struct() and \
-			current_type.get_size() > member_type.get_size():
-
-			strucid = utils.tif2strucid(current_type)
-			self.add_member_type(strucid, offset - member_offset, member_type)
-		else:
-			lvar_struct.set_member_type(offset, member_type)
-
-	def add_member_name(self, strucid:int, offset:int, name:str):
-		# rogue shifted struct
-		if offset < 0:
-			return
-
-		# do not modificate existing types
-		if strucid not in self.new_types:
-			return
-
-		lvar_struct = Structure(strucid)
-
-		# use of the member exists, thus there should be the field
-		if not lvar_struct.member_exists(offset):
-			lvar_struct.add_member(offset)
-
-		lvar_struct.set_member_name(offset, name)
 
 	def apply_analysis(self):
 		var_to_propagate = [v for v in self.var2tinfo.keys()]
@@ -367,7 +305,7 @@ class StructAnalyzer(TypeAnalyzer):
 					# found write outside of cast, new struct then
 					if write_start < 0 or write_end > arg_size:
 						lvar_struct = Structure.new()
-						self.new_types.add(lvar_struct.strucid)
+						self.container_manager.add_struct(lvar_struct)
 						lvar_tinfo = lvar_struct.ptr_tinfo
 						return lvar_tinfo
 				return arg_type
@@ -378,7 +316,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 		# all cases ended, assuming new structure pointer
 		lvar_struct = Structure.new()
-		self.new_types.add(lvar_struct.strucid)
+		self.container_manager.add_struct(lvar_struct)
 		lvar_tinfo = lvar_struct.ptr_tinfo
 		return lvar_tinfo
 
@@ -404,7 +342,7 @@ class StructAnalyzer(TypeAnalyzer):
 		# global var is vtbl
 		elif (vtbl := Vtable.from_data(var.obj_ea)) is not None:
 			var_tinfo = vtbl.tinfo
-			self.new_types.add(vtbl.strucid)
+			self.container_manager.add_struct(vtbl)
 			self.var2tinfo[var] = var_tinfo
 			return var_tinfo
 

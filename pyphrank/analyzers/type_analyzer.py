@@ -5,21 +5,18 @@ import idaapi
 
 from pyphrank.function_manager import FunctionManager
 from pyphrank.ast_parts import Var, SExpr
+from pyphrank.container_manager import ContainerManager
 import pyphrank.utils as utils
 
 
 class TypeAnalyzer(FunctionManager):
 	def __init__(self, cfunc_factory=None, ast_analyzer=None) -> None:
 		super().__init__(cfunc_factory=cfunc_factory, ast_analyzer=ast_analyzer)
+		self.container_manager = ContainerManager()
 
-		# analysis context
-		# analyzed types without actually changing types
 		self.var2tinfo : dict[Var, idaapi.tinfo_t] = {}
 		self.retval2tinfo : dict[int, idaapi.tinfo_t] = {}
-
-		# analysis results
-		self.new_types : set[int] = set() # created types
-		self.new_xrefs : list[tuple[int,int]] = [] # created xrefs
+		self.new_xrefs : list[tuple[int,int]] = []
 
 	def get_original_var_type(self, var:Var) -> idaapi.tinfo_t:
 		if var.is_local():
@@ -35,9 +32,7 @@ class TypeAnalyzer(FunctionManager):
 
 	def clear_analysis(self):
 		# delete temporaly created new types
-		for t in self.new_types:
-			idc.del_struc(t)
-		self.new_types.clear()
+		self.container_manager.delete_containers()
 
 		self.new_xrefs.clear()
 		self.var2tinfo.clear()
@@ -45,7 +40,7 @@ class TypeAnalyzer(FunctionManager):
 
 	def apply_analysis(self):
 		# new types are already created, simply skip them
-		self.new_types.clear()
+		self.container_manager.clear()
 
 		for var, new_type_tif in self.var2tinfo.items():
 			if new_type_tif is utils.UNKNOWN_TYPE:
