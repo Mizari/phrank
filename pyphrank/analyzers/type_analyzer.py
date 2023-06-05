@@ -45,7 +45,6 @@ class TypeAnalyzer(FunctionManager):
 
 		self.var2tinfo : dict[Var, idaapi.tinfo_t] = {}
 		self.retval2tinfo : dict[int, idaapi.tinfo_t] = {}
-		self.new_xrefs : list[tuple[int,int]] = []
 
 	def get_original_var_type(self, var:Var) -> idaapi.tinfo_t:
 		if var.is_local():
@@ -63,7 +62,6 @@ class TypeAnalyzer(FunctionManager):
 		# delete new temporarily created types
 		self.container_manager.delete_containers()
 
-		self.new_xrefs.clear()
 		self.var2tinfo.clear()
 		self.retval2tinfo.clear()
 
@@ -76,6 +74,7 @@ class TypeAnalyzer(FunctionManager):
 		for var in self.var2tinfo.keys():
 			touched_functions.update(var.get_functions())
 
+		new_xrefs = []
 		for func_ea in touched_functions:
 			func_aa = self.get_ast_analysis(func_ea)
 			for func_call in func_aa.calls:
@@ -90,10 +89,13 @@ class TypeAnalyzer(FunctionManager):
 				if call_ea == -1:
 					continue
 
-				self.new_xrefs.append((frm, call_ea))
+				new_xrefs.append((frm, call_ea))
 
-		# new types are already created, simply skip them
-		self.container_manager.clear()
+		for frm, to in new_xrefs:
+			rv = idaapi.add_cref(frm, to, idaapi.fl_CN)
+			if not rv:
+				utils.log_warn(f"failed to add code reference from {hex(frm)} to {hex(to)}")
+
 
 		for var, new_type_tif in self.var2tinfo.items():
 			if new_type_tif is utils.UNKNOWN_TYPE:
@@ -105,15 +107,11 @@ class TypeAnalyzer(FunctionManager):
 				rv = idc.SetType(var.obj_ea, str(new_type_tif) + ';')
 				if rv == 0:
 					utils.log_warn(f"setting {hex(var.obj_ea)} to {new_type_tif} failed")
+
 		self.var2tinfo.clear()
-
-		for frm, to in self.new_xrefs:
-			rv = idaapi.add_cref(frm, to, idaapi.fl_CN)
-			if not rv:
-				utils.log_warn(f"failed to add code reference from {hex(frm)} to {hex(to)}")
-		self.new_xrefs.clear()
-
 		self.retval2tinfo.clear()
+		# new types are already created, simply skip them without deleting
+		self.container_manager.clear()
 
 	def analyze_var(self, var:Var) -> idaapi.tinfo_t:
 		current_lvar_tinfo = self.var2tinfo.get(var)
