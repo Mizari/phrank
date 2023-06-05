@@ -66,7 +66,7 @@ class TypeAnalyzer(FunctionManager):
 	def get_var_type(self, var:Var) -> idaapi.tinfo_t:
 		return self.var2tinfo.get(var, utils.UNKNOWN_TYPE)
 
-	def clear_analysis(self):
+	def skip_analysis(self):
 		# delete new temporarily created types
 		self.container_manager.delete_containers()
 

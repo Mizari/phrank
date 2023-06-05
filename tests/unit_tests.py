@@ -26,7 +26,7 @@ def test_basic_struct_creation() -> bool:
 		rv = True
 	else:
 		rv = False
-	sa.clear_analysis()
+	sa.skip_analysis()
 	return rv
 
 def test_basic_struct_content() -> bool:
