@@ -46,11 +46,19 @@ class TypeAnalyzer(FunctionManager):
 		self.var2tinfo : dict[Var, idaapi.tinfo_t] = {}
 		self.retval2tinfo : dict[int, idaapi.tinfo_t] = {}
 
-	def get_original_var_type(self, var:Var) -> idaapi.tinfo_t:
+	def get_db_var_type(self, var:Var) -> idaapi.tinfo_t:
 		if var.is_local():
 			return self.get_cfunc_lvar_type(var.func_ea, var.lvar_id)
 		else:
 			return utils.addr2tif(var.obj_ea)
+
+	def set_db_var_type(self, var:Var, var_type:idaapi.tinfo_t):
+		if var.is_local():
+			self.set_lvar_tinfo(var.func_ea, var.lvar_id, var_type)
+		else:
+			rv = idc.SetType(var.obj_ea, str(var_type) + ';')
+			if rv == 0:
+				utils.log_warn(f"setting {hex(var.obj_ea)} to {var_type} failed")
 
 	def set_var_type(self, var:Var, var_tinfo:idaapi.tinfo_t):
 		self.var2tinfo[var] = var_tinfo
@@ -96,17 +104,11 @@ class TypeAnalyzer(FunctionManager):
 			if not rv:
 				utils.log_warn(f"failed to add code reference from {hex(frm)} to {hex(to)}")
 
-
 		for var, new_type_tif in self.var2tinfo.items():
 			if new_type_tif is utils.UNKNOWN_TYPE:
 				continue
 
-			if var.is_local():
-				self.set_lvar_tinfo(var.func_ea, var.lvar_id, new_type_tif)
-			else:
-				rv = idc.SetType(var.obj_ea, str(new_type_tif) + ';')
-				if rv == 0:
-					utils.log_warn(f"setting {hex(var.obj_ea)} to {new_type_tif} failed")
+			self.set_db_var_type(var, new_type_tif)
 
 		self.var2tinfo.clear()
 		self.retval2tinfo.clear()
@@ -118,7 +120,7 @@ class TypeAnalyzer(FunctionManager):
 		if current_lvar_tinfo is not None:
 			return current_lvar_tinfo
 
-		original_var_tinfo = self.get_original_var_type(var)
+		original_var_tinfo = self.get_db_var_type(var)
 		if utils.tif2strucid(original_var_tinfo) != -1:
 			# TODO check correctness of writes, read, casts
 			return original_var_tinfo

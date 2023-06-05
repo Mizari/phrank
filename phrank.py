@@ -17,7 +17,7 @@ from pyphrank.ast_parts import *
 
 def propagate_var(var:Var):
 	struct_analyzer = StructAnalyzer()
-	var_type = struct_analyzer.get_original_var_type(var)
+	var_type = struct_analyzer.get_db_var_type(var)
 	struct_analyzer.set_var_type(var, var_type)
 	strucid = tif2strucid(var_type)
 	struct_analyzer.new_types.add(strucid)
