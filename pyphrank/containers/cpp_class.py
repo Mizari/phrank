@@ -7,7 +7,6 @@ import pyphrank.utils as utils
 from pyphrank.containers.structure import Structure
 from pyphrank.containers.vtables_union import VtablesUnion
 from pyphrank.containers.vtable import Vtable
-from pyphrank.analyzers.vtable_analyzer import VtableAnalyzer
 from pyphrank.ast_analysis import ASTAnalysis, ASTCtx
 
 

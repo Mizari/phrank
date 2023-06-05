@@ -7,7 +7,6 @@ from pyphrank.containers.cpp_class import CDtor, CppClass
 from pyphrank.containers.vtable import Vtable
 from pyphrank.containers.vtables_union import VtablesUnion
 from pyphrank.analyzers.type_analyzer import TypeAnalyzer
-from pyphrank.analyzers.vtable_analyzer import VtableAnalyzer
 from pyphrank.ast_parts import Var
 
 class ClassConstructionContext(object):
