@@ -9,6 +9,7 @@ from pyphrank.containers.union import Union
 from pyphrank.containers.ida_struc_wrapper import IdaStrucWrapper
 from pyphrank.containers.vtable import Vtable
 from pyphrank.ast_analysis import ASTAnalysis
+from pyphrank.ida_plugin import IDAPlugin
 import pyphrank.settings as settings
 
 from pyphrank.utils import *
@@ -23,3 +24,6 @@ def propagate_var(var:Var):
 	struct_analyzer.new_types.add(strucid)
 	struct_analyzer.propagate_var(var)
 	struct_analyzer.apply_analysis()
+
+def get_plugin_instance():
+	return IDAPlugin.get_instance()
