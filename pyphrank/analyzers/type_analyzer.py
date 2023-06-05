@@ -145,7 +145,7 @@ class TypeAnalyzer(FunctionManager):
 
 		var_uses = self.get_var_uses(var)
 		if len(var_uses) == 0:
-			utils.log_warn(f"found no var uses for {str(var)}")
+			utils.log_warn(f"found no var uses for {var}")
 			self.var2tinfo[var] = utils.UNKNOWN_TYPE
 			return utils.UNKNOWN_TYPE
 
@@ -255,8 +255,8 @@ class TypeAnalyzer(FunctionManager):
 
 		if current_type != new_type:
 			utils.log_warn(
-				f"failed to propagate {str(new_type)} "\
-				f"to {str(var)} "\
+				f"failed to propagate {new_type} "\
+				f"to {var} "\
 				f"because variable has different type {current_type}"
 			)
 
@@ -287,7 +287,7 @@ class TypeAnalyzer(FunctionManager):
 			write_type = self.analyze_sexpr_type(var_write.value)
 			target = self.analyze_target(var_type, var_write.target)
 			if target is None:
-				utils.log_warn(f"cant add member={str(write_type)} to type={str(var_type)} from write {str(var_write)}")
+				utils.log_warn(f"cant add member={write_type} to type={var_type} from write {var_write}")
 				continue
 			self.container_manager.add_member_type(target.strucid, target.offset, write_type)
 
@@ -298,7 +298,7 @@ class TypeAnalyzer(FunctionManager):
 		for var_read in var_uses.reads:
 			target = self.analyze_target(var_type, var_read)
 			if target is None:
-				utils.log_warn(f"cant read type={str(var_type)} from expr {var_read}")
+				utils.log_warn(f"cant read type={var_type} from expr {var_read}")
 				continue
 			self.container_manager.add_member_type(target.strucid, target.offset, utils.UNKNOWN_TYPE)
 
@@ -330,7 +330,7 @@ class TypeAnalyzer(FunctionManager):
 					self.container_manager.add_member_type(strucid, offset, cast_type)
 					continue
 
-			utils.log_warn(f"cant cast {str(var_type)} transformed by {str(cast_arg)} into {str(tif)} to {str(cast_type)}")
+			utils.log_warn(f"cant cast {var_type} transformed by {cast_arg} into {tif} to {cast_type}")
 
 		for call_cast in var_uses.call_casts:
 			if call_cast.arg.var_use_chain is None:
@@ -357,7 +357,7 @@ class TypeAnalyzer(FunctionManager):
 					self.container_manager.add_member_type(strucid, offset, cast_type.get_pointed_object())
 					continue
 
-			utils.log_warn(f"cant cast {str(var_type)} transformed by {str(cast_arg)} into {str(tif)} to {str(cast_type)}")
+			utils.log_warn(f"cant cast {var_type} transformed by {cast_arg} into {tif} to {cast_type}")
 
 	def analyze_target(self, var_type:idaapi.tinfo_t, sexpr:SExpr) -> utils.ShiftedStruct|None:
 		if sexpr.var_use_chain is None:
@@ -401,6 +401,6 @@ class TypeAnalyzer(FunctionManager):
 				addr = utils.str2addr(member.name)
 		else:
 			addr = -1
-			utils.log_warn(f"failed to get final member from {var_tif} {str(vuc)}")
+			utils.log_warn(f"failed to get final member from {var_tif} {vuc}")
 
 		return addr
