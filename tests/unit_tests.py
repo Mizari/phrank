@@ -36,12 +36,12 @@ def test_basic_struct_content() -> bool:
 	var_uses.writes.append(make_ptr_write(4))
 	struc = phrank.Structure.new()
 	sa = phrank.StructAnalyzer()
-	sa.new_types.add(struc.strucid)
+	sa.container_manager.add_struct(struc)
 	sa.add_type_uses(var_uses, struc.ptr_tinfo)
 	if struc.size != 8:
-		struc.delete()
+		sa.container_manager.delete_containers()
 		return False
-	struc.delete()
+	sa.container_manager.delete_containers()
 	return True
 
 def test_var_uses_collection() -> bool:
