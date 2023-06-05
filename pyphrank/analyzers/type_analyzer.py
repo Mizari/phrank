@@ -153,8 +153,9 @@ class TypeAnalyzer(FunctionManager):
 		# TODO check that var uses are compatible
 		assigns = [w for w in var_uses.writes if w.is_assign()]
 		assigns_types = [self.analyze_sexpr_type(asg.value) for asg in assigns]
-		if len(assigns_types) != 0:
-			return select_type(*assigns_types)
+		if len(assigns_types) != 0 and (var_tinfo := select_type(*assigns_types)) is not utils.UNKNOWN_TYPE:
+			self.var2tinfo[var] = var_tinfo
+			return var_tinfo
 
 		var_tinfo = self.calculate_var_type_by_uses(var_uses)
 		if utils.tif2strucid(var_tinfo) != -1:
