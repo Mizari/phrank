@@ -21,8 +21,7 @@ def test_basic_struct_creation() -> bool:
 	var_uses.writes.append(make_ptr_write(0))
 	var_uses.writes.append(make_ptr_write(4))
 	sa = phrank.StructAnalyzer()
-	t = sa.calculate_var_type_by_uses(var_uses)
-	if phrank.is_struct_ptr(t):
+	if sa.is_strucptr(var_uses):
 		rv = True
 	else:
 		rv = False

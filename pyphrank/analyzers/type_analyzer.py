@@ -5,6 +5,7 @@ import idaapi
 
 from pyphrank.function_manager import FunctionManager
 from pyphrank.ast_parts import Var, SExpr, VarUses, CallCast
+from pyphrank.containers.structure import Structure
 from pyphrank.containers.vtable import Vtable
 from pyphrank.container_manager import ContainerManager
 import pyphrank.utils as utils
@@ -162,9 +163,14 @@ class TypeAnalyzer(FunctionManager):
 			self.var2tinfo[var] = var_tinfo
 			return var_tinfo
 
-		var_tinfo = self.calculate_var_type_by_uses(var_uses)
-		if utils.tif2strucid(var_tinfo) != -1:
+		if self.is_strucptr(var_uses):
+			lvar_struct = Structure.new()
+			self.container_manager.add_struct(lvar_struct)
+			var_tinfo = lvar_struct.ptr_tinfo
 			self.add_type_uses(var_uses, var_tinfo)
+		else:
+			var_tinfo = utils.UNKNOWN_TYPE
+
 		self.var2tinfo[var] = var_tinfo
 		return var_tinfo
 
@@ -410,7 +416,7 @@ class TypeAnalyzer(FunctionManager):
 
 		return addr
 
-	def calculate_var_type_by_uses(self, var_uses: VarUses):
+	def is_strucptr(self, var_uses: VarUses) -> bool:
 		raise NotImplementedError
 
 	def get_existing_type(self, var_uses:VarUses) -> idaapi.tinfo_t:

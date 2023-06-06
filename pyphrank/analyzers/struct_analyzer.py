@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import idaapi
-
 import pyphrank.utils as utils
 
 from pyphrank.analyzers.type_analyzer import TypeAnalyzer
-from pyphrank.containers.structure import Structure
 from pyphrank.ast_parts import VarUses
 
 
 class StructAnalyzer(TypeAnalyzer):
-	def calculate_var_type_by_uses(self, var_uses: VarUses):
+	def is_strucptr(self, var_uses: VarUses) -> bool:
 		if len(var_uses) == 0:
-			return utils.UNKNOWN_TYPE
+			return False
 
 		writes = [w for w in var_uses.writes if not w.is_assign()]
 		# weeding out non-pointers
@@ -21,7 +18,7 @@ class StructAnalyzer(TypeAnalyzer):
 				continue
 			if not w.target.var_use_chain.is_possible_ptr():
 				utils.log_warn("non-pointer writes are not supported for now {w}")
-				return utils.UNKNOWN_TYPE
+				return False
 
 		casts = var_uses.call_casts
 		# weeding out non-pointers2
@@ -30,7 +27,7 @@ class StructAnalyzer(TypeAnalyzer):
 				continue
 			if c.arg.var_use_chain.is_possible_ptr() is None:
 				utils.log_warn(f"non-pointer casts are not supported for now {c}")
-				return utils.UNKNOWN_TYPE
+				return False
 
 		reads = var_uses.reads
 		# weeding out non-pointers3
@@ -39,10 +36,7 @@ class StructAnalyzer(TypeAnalyzer):
 				continue
 			if not r.var_use_chain.is_possible_ptr():
 				utils.log_warn(f"non-pointer reads are not supported for now {r.op}")
-				return utils.UNKNOWN_TYPE
+				return False
 
 		# all cases ended, assuming new structure pointer
-		lvar_struct = Structure.new()
-		self.container_manager.add_struct(lvar_struct)
-		lvar_tinfo = lvar_struct.ptr_tinfo
-		return lvar_tinfo
+		return True
