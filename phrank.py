@@ -13,13 +13,3 @@ import pyphrank.settings as settings
 
 from pyphrank.utils import *
 from pyphrank.ast_parts import *
-
-
-def propagate_var(var:Var):
-	struct_analyzer = TypeAnalyzer()
-	var_type = struct_analyzer.get_db_var_type(var)
-	struct_analyzer.set_var_type(var, var_type)
-	strucid = tif2strucid(var_type)
-	struct_analyzer.new_types.add(strucid)
-	struct_analyzer.propagate_var(var)
-	struct_analyzer.apply_analysis()
