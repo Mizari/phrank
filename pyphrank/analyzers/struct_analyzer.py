@@ -51,7 +51,7 @@ class StructAnalyzer(TypeAnalyzer):
 
 		# single cast at offset 0 might be existing type
 		if len(casts) == 1 and casts[0].is_var_arg():
-			arg_type = self.get_cast_type(casts[0])
+			arg_type = self.analyze_call_cast_type(casts[0])
 
 			# casting to something unknown yield unknown
 			if arg_type is utils.UNKNOWN_TYPE:

@@ -340,7 +340,7 @@ class TypeAnalyzer(FunctionManager):
 			# FIXME kostyl
 			if cast_arg.is_var_chain():
 				continue
-			cast_type = self.get_cast_type(call_cast)
+			cast_type = self.analyze_call_cast_type(call_cast)
 
 			tif = cast_arg.transform_type(var_type)
 			if isinstance(tif, utils.ShiftedStruct):
@@ -376,7 +376,7 @@ class TypeAnalyzer(FunctionManager):
 			return utils.ShiftedStruct(strucid, offset)
 		return None
 
-	def get_cast_type(self, call_cast:CallCast) -> idaapi.tinfo_t:
+	def analyze_call_cast_type(self, call_cast:CallCast) -> idaapi.tinfo_t:
 		address = self.get_call_address(call_cast.func_call)
 		if address == -1:
 			return utils.UNKNOWN_TYPE
