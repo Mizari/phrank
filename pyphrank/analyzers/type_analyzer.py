@@ -404,3 +404,6 @@ class TypeAnalyzer(FunctionManager):
 			utils.log_warn(f"failed to get final member from {var_tif} {vuc}")
 
 		return addr
+
+	def calculate_var_type_by_uses(self, var_uses: VarUses):
+		raise NotImplementedError
