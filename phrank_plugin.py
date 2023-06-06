@@ -73,7 +73,7 @@ class HRActionHandler(idaapi.action_handler_t):
 
 class StructMaker(HRActionHandler):
 	def handle_function(self, func_ea):
-		struct_analyzer = phrank.StructAnalyzer()
+		struct_analyzer = phrank.TypeAnalyzer()
 		for i in range(struct_analyzer.get_lvars_counter(func_ea)):
 			struct_analyzer.analyze_var(phrank.Var(func_ea, i))
 
@@ -83,7 +83,7 @@ class StructMaker(HRActionHandler):
 
 	def handle_var(self, var:phrank.Var) -> int:
 		start = time.time()
-		struct_analyzer = phrank.StructAnalyzer()
+		struct_analyzer = phrank.TypeAnalyzer()
 		struct_analyzer.analyze_var(var)
 		struct_analyzer.apply_analysis()
 		phrank.log_info(f"Analysis completed in {time.time() - start}")

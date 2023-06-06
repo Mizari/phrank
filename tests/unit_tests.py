@@ -20,7 +20,7 @@ def test_basic_struct_creation() -> bool:
 	var_uses = phrank.VarUses()
 	var_uses.writes.append(make_ptr_write(0))
 	var_uses.writes.append(make_ptr_write(4))
-	sa = phrank.StructAnalyzer()
+	sa = phrank.TypeAnalyzer()
 	if sa.is_strucptr(var_uses):
 		rv = True
 	else:
@@ -34,7 +34,7 @@ def test_basic_struct_content() -> bool:
 	var_uses.writes.append(make_ptr_write(0))
 	var_uses.writes.append(make_ptr_write(4))
 	struc = phrank.Structure.new()
-	sa = phrank.StructAnalyzer()
+	sa = phrank.TypeAnalyzer()
 	sa.container_manager.add_struct(struc)
 	sa.add_type_uses(var_uses, struc.ptr_tinfo)
 	if struc.size != 8:
@@ -50,7 +50,7 @@ def test_var_uses_collection() -> bool:
 
 	ctree_analyzer = phrank.CTreeAnalyzer()
 	ctree_analyzer.cache_analysis(mock_analysis)
-	sa = phrank.StructAnalyzer(ast_analyzer=ctree_analyzer)
+	sa = phrank.TypeAnalyzer(ast_analyzer=ctree_analyzer)
 	vu = sa.get_var_uses(var)
 	if len(vu) != 1:
 		return False
