@@ -157,6 +157,11 @@ class TypeAnalyzer(FunctionManager):
 			self.var2tinfo[var] = var_tinfo
 			return var_tinfo
 
+		var_tinfo = self.get_existing_type(var_uses)
+		if var_tinfo is not utils.UNKNOWN_TYPE:
+			self.var2tinfo[var] = var_tinfo
+			return var_tinfo
+
 		var_tinfo = self.calculate_var_type_by_uses(var_uses)
 		if utils.tif2strucid(var_tinfo) != -1:
 			self.add_type_uses(var_uses, var_tinfo)
@@ -407,3 +412,59 @@ class TypeAnalyzer(FunctionManager):
 
 	def calculate_var_type_by_uses(self, var_uses: VarUses):
 		raise NotImplementedError
+
+	def get_existing_type(self, var_uses:VarUses) -> idaapi.tinfo_t:
+		writes = [w for w in var_uses.writes if not w.is_assign()]
+		writes_types = [self.analyze_sexpr_type(w.value) for w in writes]
+
+		# single write at offset 0 does not create new type
+		if len(var_uses) == 1 and len(writes) == 1 and writes[0].target.var_use_chain is not None and writes[0].target.var_use_chain.get_ptr_offset() == 0:
+			write_type = writes_types[0].copy()
+			write_type.create_ptr(write_type)
+			return write_type
+
+		casts = var_uses.call_casts
+
+		# single cast at offset 0 might be existing type
+		if len(casts) == 1 and casts[0].is_var_arg():
+			arg_type = self.analyze_call_cast_type(casts[0])
+
+			# casting to something unknown yields unknown
+			if arg_type is utils.UNKNOWN_TYPE:
+				return utils.UNKNOWN_TYPE
+
+			# simple variable passing does not create new type
+			if len(writes) == 0:
+				return arg_type
+
+			# single cast and writes into casted type
+			if arg_type.is_ptr():
+				arg_size = arg_type.get_pointed_object().get_size()
+			else:
+				arg_size = arg_type.get_size()
+			if arg_size == idaapi.BADSIZE and arg_type is not utils.UNKNOWN_TYPE:
+				utils.log_warn(f"failed to calculate size of argument {str(arg_type)}")
+			else:
+				# checking that writes do not go outside of casted value
+				for i, w in enumerate(writes):
+					if w.target.var_use_chain is None:
+						continue
+					write_start = w.target.var_use_chain.get_ptr_offset()
+					if write_start is None:
+						continue
+
+					write_end = writes_types[i].get_size()
+					if write_end == idaapi.BADSIZE and writes_types[i] is not utils.UNKNOWN_TYPE:
+						utils.log_warn(f"failed to calculate write size of {str(writes_types[i])}")
+						continue
+
+					# found write outside of cast, new type then
+					if write_start < 0 or write_end > arg_size:
+						return utils.UNKNOWN_TYPE
+				return arg_type
+
+		# TODO writes into array of one type casts, that start at offset 0
+		# TODO check if all writes are to the same offset
+		# TODO check if all writes are actually array writes at various offsets
+
+		return utils.UNKNOWN_TYPE
