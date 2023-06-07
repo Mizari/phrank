@@ -7,7 +7,7 @@ import pyphrank.settings as settings
 
 from pyphrank.ast_parts import Var, ASTCtx
 from pyphrank.ast_analyzer import extract_vars
-from pyphrank.analyzers.struct_analyzer import StructAnalyzer
+from pyphrank.analyzers.type_analyzer import TypeAnalyzer
 
 
 
@@ -81,7 +81,7 @@ class HRActionHandler(idaapi.action_handler_t):
 
 class StructMaker(HRActionHandler):
 	def handle_function(self, func_ea):
-		struct_analyzer = StructAnalyzer()
+		struct_analyzer = TypeAnalyzer()
 		for i in range(struct_analyzer.get_lvars_counter(func_ea)):
 			struct_analyzer.analyze_var(Var(func_ea, i))
 
@@ -91,7 +91,7 @@ class StructMaker(HRActionHandler):
 
 	def handle_var(self, var:Var) -> int:
 		start = time.time()
-		struct_analyzer = StructAnalyzer()
+		struct_analyzer = TypeAnalyzer()
 		struct_analyzer.analyze_var(var)
 		struct_analyzer.apply_analysis()
 		utils.log_info(f"Analysis completed in {time.time() - start}")
