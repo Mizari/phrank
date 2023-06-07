@@ -380,8 +380,8 @@ class TypeAnalyzer(FunctionManager):
 			return tif
 
 		# kostyl for UNKNOWN member pointer
-		if var_type.is_ptr() and (ptif := var_type.get_pointed_object()).is_struct() and (offset := vuc.get_ptr_offset()) is not None:
-			strucid = utils.tif2strucid(ptif)
+		if utils.is_struct_ptr(var_type) and (offset := vuc.get_ptr_offset()) is not None:
+			strucid = utils.tif2strucid(var_type)
 			if strucid == -1:
 				return None
 			return utils.ShiftedStruct(strucid, offset)
