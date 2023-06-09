@@ -142,35 +142,7 @@ class TypeAnalyzer(FunctionManager):
 			self.var2tinfo[var] = var_tinfo
 			return var_tinfo
 
-		self.var2tinfo[var] = utils.UNKNOWN_TYPE # to break recursion
-
-		var_uses = self.get_var_uses(var)
-		if len(var_uses) == 0:
-			utils.log_warn(f"found no var uses for {var}")
-			self.var2tinfo[var] = utils.UNKNOWN_TYPE
-			return utils.UNKNOWN_TYPE
-
-		# TODO check that var is not recursively dependant on itself
-		# TODO check that var uses are compatible
-		assigns = [w for w in var_uses.writes if w.is_assign()]
-		assigns_types = [self.analyze_sexpr_type(asg.value) for asg in assigns]
-		if len(assigns_types) != 0 and (var_tinfo := select_type(*assigns_types)) is not utils.UNKNOWN_TYPE:
-			self.var2tinfo[var] = var_tinfo
-			return var_tinfo
-
-		var_tinfo = self.get_existing_type(var_uses)
-		if var_tinfo is not utils.UNKNOWN_TYPE:
-			self.var2tinfo[var] = var_tinfo
-			return var_tinfo
-
-		if self.is_strucptr(var_uses):
-			lvar_struct = Structure.new()
-			self.container_manager.add_struct(lvar_struct)
-			var_tinfo = lvar_struct.ptr_tinfo
-			self.add_type_uses(var_uses, var_tinfo)
-		else:
-			var_tinfo = utils.UNKNOWN_TYPE
-
+		var_tinfo = self.analyze_by_type_uses(self, var)
 		self.var2tinfo[var] = var_tinfo
 		return var_tinfo
 
@@ -289,6 +261,35 @@ class TypeAnalyzer(FunctionManager):
 			var_uses.call_casts += va.call_casts
 			var_uses.type_casts += va.type_casts
 		return var_uses
+
+	def analyze_by_type_uses(self, var:Var) -> idaapi.tinfo_t:
+		self.var2tinfo[var] = utils.UNKNOWN_TYPE # to break recursion
+
+		var_uses = self.get_var_uses(var)
+		if len(var_uses) == 0:
+			utils.log_warn(f"found no var uses for {var}")
+			return utils.UNKNOWN_TYPE
+
+		# TODO check that var is not recursively dependent on itself
+		# TODO check that var uses are compatible
+		assigns = [w for w in var_uses.writes if w.is_assign()]
+		assigns_types = [self.analyze_sexpr_type(asg.value) for asg in assigns]
+		if len(assigns_types) != 0 and (var_tinfo := select_type(*assigns_types)) is not utils.UNKNOWN_TYPE:
+			return var_tinfo
+
+		var_tinfo = self.get_existing_type(var_uses)
+		if var_tinfo is not utils.UNKNOWN_TYPE:
+			return var_tinfo
+
+		if self.is_strucptr(var_uses):
+			lvar_struct = Structure.new()
+			self.container_manager.add_struct(lvar_struct)
+			var_tinfo = lvar_struct.ptr_tinfo
+			self.add_type_uses(var_uses, var_tinfo)
+		else:
+			var_tinfo = utils.UNKNOWN_TYPE
+
+		return var_tinfo
 
 	def add_type_uses(self, var_uses:VarUses, var_type:idaapi.tinfo_t):
 		for var_write in var_uses.writes:
