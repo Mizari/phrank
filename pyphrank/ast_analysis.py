@@ -13,30 +13,10 @@ class ASTAnalysis():
 		self.var_assigns  : list[VarWrite]  = []
 		self.var_reads   : list[SExpr]   = []
 
-	def iterate_var_assigns(self, var:Var):
-		for w in self.var_assigns:
-			if w.target.is_var_use(var):
-				yield w
-
-	def iterate_var_reads(self, var:Var):
-		for r in self.var_reads:
-			if r.is_var_use(var):
-				yield r
-
-	def iterate_var_call_casts(self, var:Var):
-		for c in self.call_casts:
-			if c.arg.is_var_use(var):
-				yield c
-
-	def iterate_var_type_casts(self, var:Var):
-		for c in self.type_casts:
-			if c.arg.is_var_use(var):
-				yield c
-
 	def get_var_uses(self, var:Var) -> VarUses:
 		var_uses = VarUses()
-		var_uses.writes = [w for w in self.iterate_var_assigns(var)]
-		var_uses.reads = [r for r in self.iterate_var_reads(var)]
-		var_uses.call_casts = [c for c in self.iterate_var_call_casts(var)]
-		var_uses.type_casts = [c for c in self.iterate_var_type_casts(var)]
+		var_uses.writes = [w for w in self.var_assigns if w.target.is_var_use(var)]
+		var_uses.reads = [r for r in self.var_reads if r.is_var_use(var)]
+		var_uses.call_casts = [c for c in self.call_casts if c.arg.is_var_use(var)]
+		var_uses.type_casts = [c for c in self.type_casts if c.arg.is_var_use(var)]
 		return var_uses
