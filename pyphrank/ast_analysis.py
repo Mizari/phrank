@@ -15,30 +15,22 @@ class ASTAnalysis():
 
 	def iterate_var_assigns(self, var:Var):
 		for w in self.var_assigns:
-			if w.target.var_use_chain is None:
-				continue
-			if w.target.var_use_chain.var == var:
+			if w.target.is_var_use(var):
 				yield w
 
 	def iterate_var_reads(self, var:Var):
 		for r in self.var_reads:
-			if r.var_use_chain is None:
-				continue
-			if r.var_use_chain.var == var:
+			if r.is_var_use(var):
 				yield r
 
 	def iterate_var_call_casts(self, var:Var):
 		for c in self.call_casts:
-			if c.arg.var_use_chain is None:
-				continue
-			if c.arg.var_use_chain.var == var:
+			if c.arg.is_var_use(var):
 				yield c
 
 	def iterate_var_type_casts(self, var:Var):
 		for c in self.type_casts:
-			if c.arg.var_use_chain is None:
-				continue
-			if c.arg.var_use_chain.var == var:
+			if c.arg.is_var_use(var):
 				yield c
 
 	def get_var_uses(self, var:Var) -> VarUses:
