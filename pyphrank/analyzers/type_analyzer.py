@@ -4,7 +4,7 @@ import idc
 import idaapi
 
 from pyphrank.function_manager import FunctionManager
-from pyphrank.ast_parts import Var, SExpr, VarUses, CallCast
+from pyphrank.ast_parts import Var, SExpr, VarUses, CallCast, VarUseChain
 from pyphrank.containers.structure import Structure
 from pyphrank.containers.vtable import Vtable
 from pyphrank.container_manager import ContainerManager
@@ -304,54 +304,39 @@ class TypeAnalyzer(FunctionManager):
 			# FIXME kostyl
 			if cast_arg.is_var_chain():
 				continue
-			cast_type = type_cast.tif
-
-			tif = cast_arg.transform_type(var_type)
-			if isinstance(tif, utils.ShiftedStruct):
-				self.container_manager.add_member_type(tif.strucid, tif.offset, cast_type)
-				continue
-
-			base, offset = utils.get_shifted_base(tif)
-			if base is not None and utils.is_struct_ptr(base):
-				strucid = utils.tif2strucid(base)
-				if cast_type is utils.UNKNOWN_TYPE:
-					self.container_manager.add_member_type(strucid, offset, cast_type)
-					continue
-				elif cast_type.is_ptr():
-					self.container_manager.add_member_type(strucid, offset, cast_type.get_pointed_object())
-					continue
-				elif cast_type.is_array():
-					self.container_manager.add_member_type(strucid, offset, cast_type)
-					continue
-
-			utils.log_warn(f"cant cast {var_type} transformed by {cast_arg} into {tif} to {cast_type}")
+			self.add_type_cast(cast_arg, type_cast.tif, var_type)
 
 		for call_cast in var_uses.call_casts:
-			if call_cast.arg.var_use_chain is None:
-				continue
 			cast_arg = call_cast.arg.var_use_chain
-
-			# FIXME kostyl
+			if cast_arg is None:
+				continue
+			# TODO
 			if cast_arg.is_var_chain():
 				continue
 			cast_type = self.analyze_call_cast_type(call_cast)
+			self.add_type_cast(cast_arg, cast_type, var_type)
 
-			tif = cast_arg.transform_type(var_type)
-			if isinstance(tif, utils.ShiftedStruct):
-				self.container_manager.add_member_type(tif.strucid, tif.offset, cast_type)
-				continue
+	def add_type_cast(self, cast_arg:VarUseChain, cast_type:idaapi.tinfo_t, var_type:idaapi.tinfo_t):
 
-			base, offset = utils.get_shifted_base(tif)
-			if base is not None and utils.is_struct_ptr(base):
-				strucid = utils.tif2strucid(base)
-				if cast_type is utils.UNKNOWN_TYPE:
-					self.container_manager.add_member_type(strucid, offset, cast_type)
-					continue
-				elif cast_type.is_ptr():
-					self.container_manager.add_member_type(strucid, offset, cast_type.get_pointed_object())
-					continue
+		tif = cast_arg.transform_type(var_type)
+		if isinstance(tif, utils.ShiftedStruct):
+			self.container_manager.add_member_type(tif.strucid, tif.offset, cast_type)
+			return
 
-			utils.log_warn(f"cant cast {var_type} transformed by {cast_arg} into {tif} to {cast_type}")
+		base, offset = utils.get_shifted_base(tif)
+		if base is not None and utils.is_struct_ptr(base):
+			strucid = utils.tif2strucid(base)
+			if cast_type is utils.UNKNOWN_TYPE:
+				self.container_manager.add_member_type(strucid, offset, cast_type)
+				return
+			elif cast_type.is_ptr():
+				self.container_manager.add_member_type(strucid, offset, cast_type.get_pointed_object())
+				return
+			elif cast_type.is_array():
+				self.container_manager.add_member_type(strucid, offset, cast_type)
+				return
+
+		utils.log_warn(f"cant cast {var_type} transformed by {cast_arg} into {tif} to {cast_type}")
 
 	def analyze_target(self, var_type:idaapi.tinfo_t, sexpr:SExpr) -> utils.ShiftedStruct|None:
 		if sexpr.var_use_chain is None:
