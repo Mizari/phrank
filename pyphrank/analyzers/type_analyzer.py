@@ -142,7 +142,7 @@ class TypeAnalyzer(FunctionManager):
 			self.var2tinfo[var] = var_tinfo
 			return var_tinfo
 
-		var_tinfo = self.analyze_by_type_uses(self, var)
+		var_tinfo = self.analyze_by_type_uses(var)
 		self.var2tinfo[var] = var_tinfo
 		return var_tinfo
 
