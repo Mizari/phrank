@@ -199,17 +199,13 @@ class TypeAnalyzer(FunctionManager):
 		if utils.tif2strucid(var_type) == -1:
 			return
 
-		for func_ea in var.get_functions():
-			aa = self.get_ast_analysis(func_ea)
-			for asg in aa.var_assigns:
-				if not asg.value.is_var(var):
-					continue
-				if (target_var := asg.target.var) is None:
-					continue
-				self.propagate_type_to_var(target_var, var_type)
+		var_uses = self.get_var_uses(var)
+		for target in var_uses.moves_from:
+			if (target_var := target.var) is None:
+				continue
+			self.propagate_type_to_var(target_var, var_type)
 
-		casts = self.get_var_call_casts(var)
-		for call_cast in casts:
+		for call_cast in var_uses.call_casts:
 			call_ea = self.get_call_address(call_cast.func_call)
 			if call_ea == -1:
 				continue
@@ -227,10 +223,6 @@ class TypeAnalyzer(FunctionManager):
 		current_type = self.var2tinfo.get(var, utils.UNKNOWN_TYPE)
 		if current_type is utils.UNKNOWN_TYPE:
 			lvar_uses = self.get_var_uses(var)
-			arg_moves_to = [w for w in lvar_uses.writes if w.is_move_to()]
-			if len(arg_moves_to) != 0:
-				return
-
 			self.var2tinfo[var] = new_type
 			self.propagate_var(var)
 			self.add_type_uses(lvar_uses, new_type)
@@ -243,19 +235,13 @@ class TypeAnalyzer(FunctionManager):
 				f"because variable has different type {current_type}"
 			)
 
-	def get_var_call_casts(self, var:Var) -> list[CallCast]:
-		casts = []
-		for func_ea in var.get_functions():
-			aa = self.get_ast_analysis(func_ea)
-			va = aa.get_var_uses(var)
-			casts += va.call_casts
-		return casts
-
 	def get_var_uses(self, var:Var) -> VarUses:
 		var_uses = VarUses()
 		for func_ea in var.get_functions():
 			aa = self.get_ast_analysis(func_ea)
 			va = aa.get_var_uses(var)
+			var_uses.moves_from += va.moves_from
+			var_uses.moves_to += va.moves_to
 			var_uses.writes += va.writes
 			var_uses.reads += va.reads
 			var_uses.call_casts += va.call_casts
@@ -272,8 +258,7 @@ class TypeAnalyzer(FunctionManager):
 
 		# TODO check that var is not recursively dependent on itself
 		# TODO check that var uses are compatible
-		moves_to = [w for w in var_uses.writes if w.is_move_to()]
-		moves_types = [self.analyze_sexpr_type(asg.value) for asg in moves_to]
+		moves_types = [self.analyze_sexpr_type(asg) for asg in var_uses.moves_to]
 		if len(moves_types) != 0 and (var_tinfo := select_type(*moves_types)) is not utils.UNKNOWN_TYPE:
 			return var_tinfo
 
@@ -293,9 +278,6 @@ class TypeAnalyzer(FunctionManager):
 
 	def add_type_uses(self, var_uses:VarUses, var_type:idaapi.tinfo_t):
 		for var_write in var_uses.writes:
-			if var_write.is_move_to():
-				continue
-
 			write_type = self.analyze_sexpr_type(var_write.value)
 			target = self.analyze_target(var_type, var_write.target)
 			if target is None:
@@ -421,9 +403,8 @@ class TypeAnalyzer(FunctionManager):
 		if len(var_uses) == 0:
 			return False
 
-		writes = [w for w in var_uses.writes if not w.is_move_to()]
 		# weeding out non-pointers
-		for w in writes:
+		for w in var_uses.writes:
 			if w.target.var_use_chain is None:
 				continue
 			if not w.target.var_use_chain.is_possible_ptr():
@@ -452,7 +433,7 @@ class TypeAnalyzer(FunctionManager):
 		return True
 
 	def get_existing_type(self, var_uses:VarUses) -> idaapi.tinfo_t:
-		writes = [w for w in var_uses.writes if not w.is_move_to()]
+		writes = var_uses.writes
 		writes_types = [self.analyze_sexpr_type(w.value) for w in writes]
 
 		# single write at offset 0 does not create new type

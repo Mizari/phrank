@@ -15,7 +15,14 @@ class ASTAnalysis():
 
 	def get_var_uses(self, var:Var) -> VarUses:
 		var_uses = VarUses()
-		var_uses.writes = [w for w in self.var_assigns if w.target.is_var_use(var)]
+		for w in self.var_assigns:
+			if w.target.is_var(var):
+				var_uses.moves_to.append(w.value)
+			if w.target.is_var_use(var):
+				var_uses.writes.append(w)
+			if w.value.is_var(var):
+				var_uses.moves_from.append(w.target)
+
 		var_uses.reads = [r for r in self.var_reads if r.is_var_use(var)]
 		var_uses.call_casts = [c for c in self.call_casts if c.arg.is_var_use(var)]
 		var_uses.type_casts = [c for c in self.type_casts if c.arg.is_var_use(var)]

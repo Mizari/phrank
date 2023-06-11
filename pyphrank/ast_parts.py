@@ -340,11 +340,6 @@ class VarWrite:
 		self.target = target
 		self.value = value
 
-	def is_move_to(self):
-		if self.target.var_use_chain is None:
-			return False
-		return self.target.var_use_chain.is_var_chain()
-
 
 class CallCast:
 	def __init__(self, arg:SExpr, arg_id:int, func_call:SExpr):
@@ -363,18 +358,15 @@ class TypeCast:
 		self.arg = arg
 		self.tif = tif
 
-	def is_var_arg(self):
-		if self.arg.var_use_chain is None:
-			return False
-		return self.arg.var_use_chain.is_var_chain()
-
 
 class VarUses:
 	def __init__(self) -> None:
+		self.moves_to:list[SExpr] = []
+		self.moves_from:list[SExpr] = []
 		self.writes:list[VarWrite] = []
 		self.reads:list[SExpr] = []
 		self.call_casts:list[CallCast] = []
 		self.type_casts:list[TypeCast] = []
 
 	def __len__(self):
-		return len(self.writes) + len(self.reads) + len(self.call_casts)
+		return len(self.writes) + len(self.reads) + len(self.call_casts) + len(self.moves_to) + len(self.moves_from)
