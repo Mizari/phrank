@@ -46,7 +46,7 @@ def test_basic_struct_content() -> bool:
 def test_var_uses_collection() -> bool:
 	var = phrank.Var(0x123456, 0)
 	mock_analysis = phrank.ASTAnalysis(phrank.ASTCtx(0x123456))
-	mock_analysis.var_writes.append(make_ptr_write(0))
+	mock_analysis.var_assigns.append(make_ptr_write(0))
 
 	ctree_analyzer = phrank.CTreeAnalyzer()
 	ctree_analyzer.cache_analysis(mock_analysis)

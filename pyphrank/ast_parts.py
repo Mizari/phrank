@@ -336,7 +336,7 @@ class VarWrite:
 		self.target = target
 		self.value = value
 
-	def is_assign(self):
+	def is_move_to(self):
 		if self.target.var_use_chain is None:
 			return False
 		return self.target.var_use_chain.is_var_chain()

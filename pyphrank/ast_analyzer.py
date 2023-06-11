@@ -179,7 +179,7 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 			target = self.lift_cexpr(expr.x)
 			value = self.lift_cexpr(expr.y)
 			w = VarWrite(target, value)
-			self.current_ast_analysis.var_writes.append(w)
+			self.current_ast_analysis.var_assigns.append(w)
 			return UNKNOWN_SEXPR
 
 		elif expr.op == idaapi.cot_call and expr.x.op != idaapi.cot_helper:

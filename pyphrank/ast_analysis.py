@@ -10,11 +10,11 @@ class ASTAnalysis():
 		self.type_casts: list[TypeCast] = []
 		self.calls : list[SExpr] = []
 
-		self.var_writes  : list[VarWrite]  = []
+		self.var_assigns  : list[VarWrite]  = []
 		self.var_reads   : list[SExpr]   = []
 
-	def iterate_var_writes(self, var:Var):
-		for w in self.var_writes:
+	def iterate_var_assigns(self, var:Var):
+		for w in self.var_assigns:
 			if w.target.var_use_chain is None:
 				continue
 			if w.target.var_use_chain.var == var:
@@ -43,7 +43,7 @@ class ASTAnalysis():
 
 	def get_var_uses(self, var:Var) -> VarUses:
 		var_uses = VarUses()
-		var_uses.writes = [w for w in self.iterate_var_writes(var)]
+		var_uses.writes = [w for w in self.iterate_var_assigns(var)]
 		var_uses.reads = [r for r in self.iterate_var_reads(var)]
 		var_uses.call_casts = [c for c in self.iterate_var_call_casts(var)]
 		var_uses.type_casts = [c for c in self.iterate_var_type_casts(var)]

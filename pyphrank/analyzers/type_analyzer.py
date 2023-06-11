@@ -201,7 +201,7 @@ class TypeAnalyzer(FunctionManager):
 
 		for func_ea in var.get_functions():
 			aa = self.get_ast_analysis(func_ea)
-			for asg in aa.var_writes:
+			for asg in aa.var_assigns:
 				if not asg.value.is_var(var):
 					continue
 				if (target_var := asg.target.var) is None:
@@ -227,8 +227,8 @@ class TypeAnalyzer(FunctionManager):
 		current_type = self.var2tinfo.get(var, utils.UNKNOWN_TYPE)
 		if current_type is utils.UNKNOWN_TYPE:
 			lvar_uses = self.get_var_uses(var)
-			arg_assigns = [w for w in lvar_uses.writes if w.is_assign()]
-			if len(arg_assigns) != 0:
+			arg_moves_to = [w for w in lvar_uses.writes if w.is_move_to()]
+			if len(arg_moves_to) != 0:
 				return
 
 			self.var2tinfo[var] = new_type
@@ -272,9 +272,9 @@ class TypeAnalyzer(FunctionManager):
 
 		# TODO check that var is not recursively dependent on itself
 		# TODO check that var uses are compatible
-		assigns = [w for w in var_uses.writes if w.is_assign()]
-		assigns_types = [self.analyze_sexpr_type(asg.value) for asg in assigns]
-		if len(assigns_types) != 0 and (var_tinfo := select_type(*assigns_types)) is not utils.UNKNOWN_TYPE:
+		moves_to = [w for w in var_uses.writes if w.is_move_to()]
+		moves_types = [self.analyze_sexpr_type(asg.value) for asg in moves_to]
+		if len(moves_types) != 0 and (var_tinfo := select_type(*moves_types)) is not utils.UNKNOWN_TYPE:
 			return var_tinfo
 
 		var_tinfo = self.get_existing_type(var_uses)
@@ -293,7 +293,7 @@ class TypeAnalyzer(FunctionManager):
 
 	def add_type_uses(self, var_uses:VarUses, var_type:idaapi.tinfo_t):
 		for var_write in var_uses.writes:
-			if var_write.is_assign():
+			if var_write.is_move_to():
 				continue
 
 			write_type = self.analyze_sexpr_type(var_write.value)
@@ -421,7 +421,7 @@ class TypeAnalyzer(FunctionManager):
 		if len(var_uses) == 0:
 			return False
 
-		writes = [w for w in var_uses.writes if not w.is_assign()]
+		writes = [w for w in var_uses.writes if not w.is_move_to()]
 		# weeding out non-pointers
 		for w in writes:
 			if w.target.var_use_chain is None:
@@ -452,7 +452,7 @@ class TypeAnalyzer(FunctionManager):
 		return True
 
 	def get_existing_type(self, var_uses:VarUses) -> idaapi.tinfo_t:
-		writes = [w for w in var_uses.writes if not w.is_assign()]
+		writes = [w for w in var_uses.writes if not w.is_move_to()]
 		writes_types = [self.analyze_sexpr_type(w.value) for w in writes]
 
 		# single write at offset 0 does not create new type
