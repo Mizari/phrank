@@ -15,6 +15,10 @@ bool_operations = {
 	idaapi.cot_ule, idaapi.cot_lor, idaapi.cot_ugt,
 }
 
+binary_operations = {
+	idaapi.cot_mul, idaapi.cot_sub,
+}
+
 rw_operations = {
 	idaapi.cot_postdec, idaapi.cot_predec, idaapi.cot_preinc,
 	idaapi.cot_postinc, idaapi.cot_asgadd, idaapi.cot_asgmul,
@@ -177,13 +181,22 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 
 		if expr.op == idaapi.cot_asg:
 			target = self.lift_cexpr(expr.x)
+			# dont add target var_use_chain to reads, because it is write
+			# if its not var_use_chain, then it gets added to reads there
+
+			# var_use_chain value IS a read though
 			value = self.lift_cexpr(expr.y)
+			if value.is_var_use_chain() and value.var is None:
+				self.current_ast_analysis.var_reads.append(value)
 			w = VarWrite(target, value)
 			self.current_ast_analysis.var_assigns.append(w)
 			return UNKNOWN_SEXPR
 
 		elif expr.op == idaapi.cot_call and expr.x.op != idaapi.cot_helper:
 			call_func = self.lift_cexpr(expr.x)
+			if call_func.is_var_use_chain() and call_func.var is None:
+				self.current_ast_analysis.var_reads.append(call_func)
+
 			if call_func.is_function():
 				fc = SExpr.create_explicit_function(expr.ea, call_func.function)
 				self.current_ast_analysis.calls.append(fc)
@@ -195,6 +208,8 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 			for arg_id, arg in enumerate(expr.a):
 				arg = utils.strip_casts(arg)
 				arg_sexpr = self.lift_cexpr(arg)
+				if arg_sexpr.is_var_use_chain() and arg_sexpr.var is None:
+					self.current_ast_analysis.var_reads.append(arg_sexpr)
 				call_cast = CallCast(arg_sexpr, arg_id, call_func)
 				self.current_ast_analysis.call_casts.append(call_cast)
 			return fc
@@ -206,6 +221,7 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 				n = 1
 			type_cast = TypeCast(arg_sexpr, utils.str2tif(f"char [{n}]"))
 			self.current_ast_analysis.type_casts.append(type_cast)
+			# TODO potential type casts of arg1 and arg2
 			return UNKNOWN_SEXPR
 
 		elif expr.op == idaapi.cot_num:
@@ -217,17 +233,20 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 		elif expr.op in bool_operations:
 			return SExpr.create_bool_op(expr.ea)
 
-		elif (vuc := get_var_use_chain(expr, self.actx)) is not None and len(vuc) != 0:
-			r = SExpr.create_var_use_chain(expr.ea, vuc)
-			self.current_ast_analysis.var_reads.append(r)
-			return r
+		elif (vuc := get_var_use_chain(expr, self.actx)) is not None:
+			return SExpr.create_var_use_chain(expr.ea, vuc)
 
 		elif expr.op in rw_operations:
 			# TODO not implemented
 			return UNKNOWN_SEXPR
 
-		elif len(extract_vars(expr, self.actx)) > 1:
-			# TODO not implemented
+		elif expr.op in binary_operations and len(extract_vars(expr, self.actx)) > 1:
+			x = self.lift_cexpr(expr.x)
+			if x.is_var_use_chain() and x.var is None:
+				self.current_ast_analysis.var_reads.append(x)
+			y = self.lift_cexpr(expr.y)
+			if y.is_var_use_chain() and y.var is None:
+				self.current_ast_analysis.var_reads.append(y)
 			return UNKNOWN_SEXPR
 
 		utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
