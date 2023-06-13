@@ -262,8 +262,9 @@ class TypeAnalyzer(FunctionManager):
 		if len(moves_types) != 0 and (var_tinfo := select_type(*moves_types)) is not utils.UNKNOWN_TYPE:
 			return var_tinfo
 
-		var_tinfo = self.get_existing_type(var_uses)
+		var_tinfo = self.analyze_existing_type(var)
 		if var_tinfo is not utils.UNKNOWN_TYPE:
+			self.add_type_uses(var_uses, var_tinfo)
 			return var_tinfo
 
 		if self.is_strucptr(var_uses):
@@ -417,7 +418,12 @@ class TypeAnalyzer(FunctionManager):
 		# all cases ended, assuming new structure pointer
 		return True
 
-	def get_existing_type(self, var_uses:VarUses) -> idaapi.tinfo_t:
+	def analyze_existing_type(self, var:Var) -> idaapi.tinfo_t:
+		var_uses = self.get_var_uses(var)
+		if len(var_uses) == 0:
+			utils.log_warn(f"found no var uses for {var}")
+			return utils.UNKNOWN_TYPE
+
 		writes = var_uses.writes
 		writes_types = [self.analyze_sexpr_type(w.value) for w in writes]
 
