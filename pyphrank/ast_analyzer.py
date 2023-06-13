@@ -217,7 +217,7 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 		elif expr.op in bool_operations:
 			return SExpr.create_bool_op(expr.ea)
 
-		elif (vuc := get_var_use_chain(expr, self.actx)) is not None:
+		elif (vuc := get_var_use_chain(expr, self.actx)) is not None and len(vuc) != 0:
 			r = SExpr.create_var_use_chain(expr.ea, vuc)
 			self.current_ast_analysis.var_reads.append(r)
 			return r
