@@ -18,7 +18,7 @@ class ASTAnalysis():
 		for w in self.var_assigns:
 			if w.target.is_var(var):
 				var_uses.moves_to.append(w.value)
-			if w.target.is_var_use(var):
+			elif w.target.is_var_use(var):
 				var_uses.writes.append(w)
 			if w.value.is_var(var):
 				var_uses.moves_from.append(w.target)
