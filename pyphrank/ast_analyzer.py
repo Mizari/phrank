@@ -163,10 +163,10 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 	def handle_return(self, insn:idaapi.cinsn_t) -> bool:
 		retval = utils.strip_casts(insn.creturn.expr)
 
-		if (vuc := get_var_use_chain(retval, self.actx)) is None:
-			return True
+		rw = self.lift_cexpr(retval)
+		if rw.is_var_use_chain() and rw.var is None:
+			self.current_ast_analysis.var_reads.append(rw)
 
-		rw = SExpr.create_var_use_chain(retval.ea, vuc)
 		self.current_ast_analysis.returns.append(rw)
 		return True
 
