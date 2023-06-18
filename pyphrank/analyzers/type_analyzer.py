@@ -307,16 +307,25 @@ class TypeAnalyzer(FunctionManager):
 		type_uses.call_casts = call_casts
 
 		rw_ptr_uses = set()
+		max_ptr_offset = 0
 		for w in writes:
 			vuc = w.target.var_use_chain
 			if vuc is None:
 				continue
 			rw_ptr_uses.add(vuc.get_ptr_offset())
+			write_type = self.analyze_sexpr_type(w.value)
+			write_end = write_type.get_size()
+			if write_end == idaapi.BADSIZE and write_type is not utils.UNKNOWN_TYPE:
+				utils.log_warn(f"failed to calculate write size of {str(write_type)}")
+				continue
+			max_ptr_offset = max(max_ptr_offset, write_end)
 		for r in reads:
 			vuc = r.var_use_chain
 			if vuc is None:
 				continue
-			rw_ptr_uses.add(vuc.get_ptr_offset())
+			offset = vuc.get_ptr_offset()
+			rw_ptr_uses.add(offset)
+			max_ptr_offset = max(max_ptr_offset, offset)
 		rw_ptr_uses.discard(None) # get_ptr_offset can return None
 
 		if type_uses.casts_len() == 0:
@@ -355,7 +364,7 @@ class TypeAnalyzer(FunctionManager):
 				return utils.UNKNOWN_TYPE
 
 			# simple variable passing does not create new type
-			if len(writes) == 0:
+			if len(writes) == 0 and len(reads) == 0:
 				return arg_type
 
 			# single cast and writes into casted type
@@ -363,30 +372,22 @@ class TypeAnalyzer(FunctionManager):
 				arg_size = arg_type.get_pointed_object().get_size()
 			else:
 				arg_size = arg_type.get_size()
-			if arg_size == idaapi.BADSIZE and arg_type is not utils.UNKNOWN_TYPE:
-				utils.log_warn(f"failed to calculate size of argument {str(arg_type)}")
+
+			if arg_size == idaapi.BADSIZE:
+				utils.log_warn(f"failed to calculate size of argument {str(arg_type)} for {str(var)}")
+				return utils.UNKNOWN_TYPE
+
+			# have use outside of type => new type
+			if max_ptr_offset > arg_size:
+				lvar_struct = Structure.new()
+				self.container_manager.add_struct(lvar_struct)
+				type_tif = lvar_struct.ptr_tinfo
+				self.add_type_uses(type_uses, type_tif)
+				return type_tif
+
+			# otherwise not new type
+			# TODO check incompatible uses, should create new type if found
 			else:
-				# checking that writes do not go outside of casted value
-				for w in writes:
-					if w.target.var_use_chain is None:
-						continue
-					write_start = w.target.var_use_chain.get_ptr_offset()
-					if write_start is None:
-						continue
-
-					write_type = self.analyze_sexpr_type(w.value)
-					write_end = write_type.get_size()
-					if write_end == idaapi.BADSIZE and write_type is not utils.UNKNOWN_TYPE:
-						utils.log_warn(f"failed to calculate write size of {str(write_type)}")
-						continue
-
-					# found write outside of cast, new type then
-					if write_start < 0 or write_end > arg_size:
-						lvar_struct = Structure.new()
-						self.container_manager.add_struct(lvar_struct)
-						type_tif = lvar_struct.ptr_tinfo
-						self.add_type_uses(type_uses, type_tif)
-						return type_tif
 				self.add_type_uses(type_uses, arg_type)
 				return arg_type
 
