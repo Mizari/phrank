@@ -329,24 +329,24 @@ class TypeAnalyzer(FunctionManager):
 		rw_ptr_uses.discard(None) # get_ptr_offset can return None
 
 		if type_uses.casts_len() == 0:
-			# ptr uses of offset0 do not create new type
-			if rw_ptr_uses == {0}:
-				# cant determine ptr use without writes to it
-				if len(writes) == 0:
-					return utils.UNKNOWN_TYPE
+			# ptr uses other than offset0 create new type
+			if rw_ptr_uses != {0}:
+				lvar_struct = Structure.new()
+				self.container_manager.add_struct(lvar_struct)
+				type_tif = lvar_struct.ptr_tinfo
+				self.add_type_uses(type_uses, type_tif)
+				return type_tif
 
-				write_types = [self.analyze_sexpr_type(w.value) for w in writes]
-				write_type = select_type(*write_types)
-				if write_type is utils.UNKNOWN_TYPE:
-					return utils.UNKNOWN_TYPE
-				write_type.create_ptr(write_type)
-				return write_type
+			# cant determine ptr use without writes to it
+			if len(writes) == 0:
+				return utils.UNKNOWN_TYPE
 
-			lvar_struct = Structure.new()
-			self.container_manager.add_struct(lvar_struct)
-			type_tif = lvar_struct.ptr_tinfo
-			self.add_type_uses(type_uses, type_tif)
-			return type_tif
+			write_types = [self.analyze_sexpr_type(w.value) for w in writes]
+			write_type = select_type(*write_types)
+			if write_type is utils.UNKNOWN_TYPE:
+				return utils.UNKNOWN_TYPE
+			write_type.create_ptr(write_type)
+			return write_type
 
 		if type_uses.uses_len() == 1 and type_uses.casts_len() == 1:
 			# single cast without rw uses does not create new type
