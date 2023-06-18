@@ -49,6 +49,9 @@ class TypeUses:
 	def uses_len(self):
 		return self.__len__()
 
+	def casts_len(self):
+		return len(self.call_casts) + len(self.type_casts)
+
 	def __len__(self):
 		return len(self.writes) + len(self.reads) + len(self.call_casts) + len(self.type_casts)
 
@@ -316,7 +319,7 @@ class TypeAnalyzer(FunctionManager):
 			rw_ptr_uses.add(vuc.get_ptr_offset())
 		rw_ptr_uses.discard(None) # get_ptr_offset can return None
 
-		if var_uses.casts_len() == 0:
+		if type_uses.casts_len() == 0:
 			# ptr uses of offset0 do not create new type
 			if rw_ptr_uses == {0}:
 				# cant determine ptr use without writes to it
@@ -336,11 +339,12 @@ class TypeAnalyzer(FunctionManager):
 			self.add_type_uses(type_uses, type_tif)
 			return type_tif
 
-		# single call cast does not create new type
-		if var_uses.uses_len() == 1 and len(call_casts) == 1 and call_casts[0].arg.is_var() and self.get_call_address(call_casts[0].func_call) != -1:
-			addr = self.get_call_address(call_casts[0].func_call)
-			arg_var = Var(addr, call_casts[0].arg_id)
-			return self.analyze_var(arg_var)
+		if type_uses.uses_len() == 1 and type_uses.casts_len() == 1:
+			# single cast without rw uses does not create new type
+			if len(type_uses.call_casts) == 1 and type_uses.call_casts[0].arg.is_var() and self.get_call_address(call_casts[0].func_call) != -1:
+				addr = self.get_call_address(call_casts[0].func_call)
+				arg_var = Var(addr, call_casts[0].arg_id)
+				return self.analyze_var(arg_var)
 
 		# single cast at offset 0 might be existing type
 		if len(call_casts) == 1 and call_casts[0].is_var_arg():
