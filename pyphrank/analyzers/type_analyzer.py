@@ -303,10 +303,30 @@ class TypeAnalyzer(FunctionManager):
 		type_uses.type_casts = type_casts
 		type_uses.call_casts = call_casts
 
+		rw_ptr_uses = set()
+		for w in writes:
+			vuc = w.target.var_use_chain
+			if vuc is None:
+				continue
+			rw_ptr_uses.add(vuc.get_ptr_offset())
+		for r in reads:
+			vuc = r.var_use_chain
+			if vuc is None:
+				continue
+			rw_ptr_uses.add(vuc.get_ptr_offset())
+		rw_ptr_uses.discard(None) # get_ptr_offset can return None
+
 		if var_uses.casts_len() == 0:
-			# single write at offset 0 does not create new type
-			if var_uses.uses_len() == 1 and len(writes) == 1 and writes[0].target.var_use_chain is not None and writes[0].target.var_use_chain.get_ptr_offset() == 0:
-				write_type = self.analyze_sexpr_type(writes[0].value)
+			# ptr uses of offset0 do not create new type
+			if rw_ptr_uses == {0}:
+				# cant determine ptr use without writes to it
+				if len(writes) == 0:
+					return utils.UNKNOWN_TYPE
+
+				write_types = [self.analyze_sexpr_type(w.value) for w in writes]
+				write_type = select_type(*write_types)
+				if write_type is utils.UNKNOWN_TYPE:
+					return utils.UNKNOWN_TYPE
 				write_type.create_ptr(write_type)
 				return write_type
 
