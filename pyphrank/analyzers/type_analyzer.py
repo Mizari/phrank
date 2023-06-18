@@ -39,6 +39,20 @@ def select_type(*tifs):
 		return utils.UNKNOWN_TYPE
 
 
+class TypeUses:
+	def __init__(self) -> bool:
+		self.writes = []
+		self.reads = []
+		self.call_casts = []
+		self.type_casts = []
+
+	def uses_len(self):
+		return self.__len__()
+
+	def __len__(self):
+		return len(self.writes) + len(self.reads) + len(self.call_casts) + len(self.type_casts)
+
+
 class TypeAnalyzer(FunctionManager):
 	def __init__(self, cfunc_factory=None, ast_analyzer=None) -> None:
 		super().__init__(cfunc_factory=cfunc_factory, ast_analyzer=ast_analyzer)
@@ -121,28 +135,13 @@ class TypeAnalyzer(FunctionManager):
 		if current_lvar_tinfo is not None:
 			return current_lvar_tinfo
 
-		original_var_tinfo = self.get_db_var_type(var)
-		if utils.tif2strucid(original_var_tinfo) != -1:
-			# TODO check correctness of writes, read, casts
-			return original_var_tinfo
-
-		# local/global specific analysis
-		if var.is_local():
-			cfunc_lvar = self.get_cfunc_lvar(var.func_ea, var.lvar_id)
-			if cfunc_lvar is not None and cfunc_lvar.is_stk_var() and not cfunc_lvar.is_arg_var:
-				return utils.UNKNOWN_TYPE
-
-			if utils.is_func_import(var.func_ea):
-				return original_var_tinfo
-
-		# global var is vtbl
-		elif (vtbl := Vtable.from_data(var.obj_ea)) is not None:
-			var_tinfo = vtbl.tinfo
-			self.container_manager.add_struct(vtbl)
+		var_tinfo = self.analyze_by_heuristics(var)
+		if var_tinfo is not utils.UNKNOWN_TYPE:
 			self.var2tinfo[var] = var_tinfo
 			return var_tinfo
 
-		var_tinfo = self.analyze_by_type_uses(var)
+		self.var2tinfo[var] = utils.UNKNOWN_TYPE # to break recursion
+		var_tinfo = self.analyze_by_var_uses(var)
 		self.var2tinfo[var] = var_tinfo
 		return var_tinfo
 
@@ -248,34 +247,117 @@ class TypeAnalyzer(FunctionManager):
 			var_uses.type_casts += va.type_casts
 		return var_uses
 
-	def analyze_by_type_uses(self, var:Var) -> idaapi.tinfo_t:
-		self.var2tinfo[var] = utils.UNKNOWN_TYPE # to break recursion
+	def analyze_by_heuristics(self, var:Var) -> idaapi.tinfo_t:
+		original_var_tinfo = self.get_db_var_type(var)
+		if utils.tif2strucid(original_var_tinfo) != -1:
+			# TODO check correctness of writes, read, casts
+			return original_var_tinfo
 
+		# local/global specific analysis
+		if var.is_local():
+			cfunc_lvar = self.get_cfunc_lvar(var.func_ea, var.lvar_id)
+			if cfunc_lvar is not None and cfunc_lvar.is_stk_var() and not cfunc_lvar.is_arg_var:
+				return utils.UNKNOWN_TYPE
+
+			if utils.is_func_import(var.func_ea):
+				return original_var_tinfo
+
+		# global var is vtbl
+		elif (vtbl := Vtable.from_data(var.obj_ea)) is not None:
+			self.container_manager.add_struct(vtbl)
+			return vtbl.tinfo
+		return utils.UNKNOWN_TYPE
+
+	def analyze_by_var_uses(self, var:Var) -> idaapi.tinfo_t:
 		var_uses = self.get_var_uses(var)
-		if len(var_uses) == 0:
+		if var_uses.total_len() == 0:
 			utils.log_warn(f"found no var uses for {var}")
 			return utils.UNKNOWN_TYPE
 
-		# TODO check that var is not recursively dependent on itself
-		# TODO check that var uses are compatible
 		moves_types = [self.analyze_sexpr_type(asg) for asg in var_uses.moves_to]
 		if len(moves_types) != 0 and (var_tinfo := select_type(*moves_types)) is not utils.UNKNOWN_TYPE:
 			return var_tinfo
 
-		var_tinfo = self.analyze_existing_type(var)
-		if var_tinfo is not utils.UNKNOWN_TYPE:
-			self.add_type_uses(var_uses, var_tinfo)
-			return var_tinfo
+		if not self.is_ptr(var_uses):
+			return utils.UNKNOWN_TYPE
 
-		if self.is_strucptr(var_uses):
+		writes = var_uses.writes
+		reads = var_uses.reads
+		type_uses = TypeUses()
+		type_uses.writes = writes
+		type_uses.reads = reads
+		type_uses.type_casts = var_uses.type_casts
+		type_uses.call_casts = var_uses.call_casts
+		if var_uses.casts_len() == 0:
+			# single write at offset 0 does not create new type
+			if var_uses.uses_len() == 1 and len(writes) == 1 and writes[0].target.var_use_chain is not None and writes[0].target.var_use_chain.get_ptr_offset() == 0:
+				write_type = self.analyze_sexpr_type(writes[0].value)
+				write_type.create_ptr(write_type)
+				return write_type
+
+			# TODO check that some ptr uses are not 0
 			lvar_struct = Structure.new()
 			self.container_manager.add_struct(lvar_struct)
-			var_tinfo = lvar_struct.ptr_tinfo
-			self.add_type_uses(var_uses, var_tinfo)
-		else:
-			var_tinfo = utils.UNKNOWN_TYPE
+			type_tif = lvar_struct.ptr_tinfo
+			self.add_type_uses(type_uses, type_tif)
+			return type_tif
 
-		return var_tinfo
+		casts = var_uses.call_casts
+		# single call cast does not create new type
+		if var_uses.uses_len() == 1 and len(casts) == 1 and casts[0].arg.is_var() and self.get_call_address(casts[0].func_call) != -1:
+			addr = self.get_call_address(casts[0].func_call)
+			arg_var = Var(addr, casts[0].arg_id)
+			return self.analyze_var(arg_var)
+
+		# single cast at offset 0 might be existing type
+		if len(casts) == 1 and casts[0].is_var_arg():
+			arg_type = self.analyze_call_cast_type(casts[0])
+
+			# casting to something unknown yields unknown
+			if arg_type is utils.UNKNOWN_TYPE:
+				return utils.UNKNOWN_TYPE
+
+			# simple variable passing does not create new type
+			if len(writes) == 0:
+				return arg_type
+
+			# single cast and writes into casted type
+			if arg_type.is_ptr():
+				arg_size = arg_type.get_pointed_object().get_size()
+			else:
+				arg_size = arg_type.get_size()
+			if arg_size == idaapi.BADSIZE and arg_type is not utils.UNKNOWN_TYPE:
+				utils.log_warn(f"failed to calculate size of argument {str(arg_type)}")
+			else:
+				# checking that writes do not go outside of casted value
+				for w in writes:
+					if w.target.var_use_chain is None:
+						continue
+					write_start = w.target.var_use_chain.get_ptr_offset()
+					if write_start is None:
+						continue
+
+					write_type = self.analyze_sexpr_type(w.value)
+					write_end = write_type.get_size()
+					if write_end == idaapi.BADSIZE and write_type is not utils.UNKNOWN_TYPE:
+						utils.log_warn(f"failed to calculate write size of {str(write_type)}")
+						continue
+
+					# found write outside of cast, new type then
+					if write_start < 0 or write_end > arg_size:
+						lvar_struct = Structure.new()
+						self.container_manager.add_struct(lvar_struct)
+						type_tif = lvar_struct.ptr_tinfo
+						self.add_type_uses(type_uses, type_tif)
+						return type_tif
+				self.add_type_uses(type_uses, arg_type)
+				return arg_type
+
+		lvar_struct = Structure.new()
+		self.container_manager.add_struct(lvar_struct)
+		type_tif = lvar_struct.ptr_tinfo
+		self.add_type_uses(type_uses, type_tif)
+		return type_tif
 
 	def add_type_uses(self, var_uses:VarUses, var_type:idaapi.tinfo_t):
 		for var_write in var_uses.writes:
@@ -385,8 +467,8 @@ class TypeAnalyzer(FunctionManager):
 
 		return addr
 
-	def is_strucptr(self, var_uses: VarUses) -> bool:
-		if len(var_uses) == 0:
+	def is_ptr(self, var_uses: VarUses) -> bool:
+		if var_uses.uses_len() == 0:
 			return False
 
 		# weeding out non-pointers
@@ -420,19 +502,7 @@ class TypeAnalyzer(FunctionManager):
 
 	def analyze_existing_type(self, var:Var) -> idaapi.tinfo_t:
 		var_uses = self.get_var_uses(var)
-		if len(var_uses) == 0:
-			utils.log_warn(f"found no var uses for {var}")
-			return utils.UNKNOWN_TYPE
-
 		writes = var_uses.writes
-		writes_types = [self.analyze_sexpr_type(w.value) for w in writes]
-
-		# single write at offset 0 does not create new type
-		if len(var_uses) == 1 and len(writes) == 1 and writes[0].target.var_use_chain is not None and writes[0].target.var_use_chain.get_ptr_offset() == 0:
-			write_type = writes_types[0].copy()
-			write_type.create_ptr(write_type)
-			return write_type
-
 		casts = var_uses.call_casts
 
 		# single cast at offset 0 might be existing type
@@ -463,9 +533,10 @@ class TypeAnalyzer(FunctionManager):
 					if write_start is None:
 						continue
 
-					write_end = writes_types[i].get_size()
-					if write_end == idaapi.BADSIZE and writes_types[i] is not utils.UNKNOWN_TYPE:
-						utils.log_warn(f"failed to calculate write size of {str(writes_types[i])}")
+					write_type = self.analyze_sexpr_type(w.value)
+					write_end = write_type.get_size()
+					if write_end == idaapi.BADSIZE and write_type is not utils.UNKNOWN_TYPE:
+						utils.log_warn(f"failed to calculate write size of {str(write_type)}")
 						continue
 
 					# found write outside of cast, new type then

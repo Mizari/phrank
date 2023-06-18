@@ -368,5 +368,11 @@ class VarUses:
 		self.call_casts:list[CallCast] = []
 		self.type_casts:list[TypeCast] = []
 
-	def __len__(self):
+	def casts_len(self):
+		return len(self.call_casts) + len(self.type_casts)
+
+	def uses_len(self):
 		return len(self.writes) + len(self.reads) + len(self.call_casts) + len(self.type_casts)
+
+	def total_len(self):
+		return self.uses_len() + len(self.moves_to) + len(self.moves_from)
