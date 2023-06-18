@@ -4,7 +4,7 @@ import idc
 import idaapi
 
 from pyphrank.function_manager import FunctionManager
-from pyphrank.ast_parts import Var, SExpr, VarUses, CallCast, VarUseChain
+from pyphrank.ast_parts import Var, SExpr, VarUses, CallCast, TypeCast, VarUseChain
 from pyphrank.containers.structure import Structure
 from pyphrank.containers.vtable import Vtable
 from pyphrank.container_manager import ContainerManager
@@ -283,11 +283,26 @@ class TypeAnalyzer(FunctionManager):
 
 		writes = var_uses.writes
 		reads = var_uses.reads
+		type_casts = var_uses.type_casts
+		call_casts = []
+		for c in var_uses.call_casts:
+			if (addr := self.get_call_address(c.func_call)) == -1:
+				call_casts.append(c)
+				continue
+
+			arg_var = Var(addr, c.arg_id)
+			if (arg_type := self.var2tinfo.get(arg_var)) is None:
+				call_casts.append(c)
+				continue
+
+			type_casts.append(TypeCast(c.arg, arg_type))
+
 		type_uses = TypeUses()
 		type_uses.writes = writes
 		type_uses.reads = reads
-		type_uses.type_casts = var_uses.type_casts
-		type_uses.call_casts = var_uses.call_casts
+		type_uses.type_casts = type_casts
+		type_uses.call_casts = call_casts
+
 		if var_uses.casts_len() == 0:
 			# single write at offset 0 does not create new type
 			if var_uses.uses_len() == 1 and len(writes) == 1 and writes[0].target.var_use_chain is not None and writes[0].target.var_use_chain.get_ptr_offset() == 0:
@@ -295,23 +310,21 @@ class TypeAnalyzer(FunctionManager):
 				write_type.create_ptr(write_type)
 				return write_type
 
-			# TODO check that some ptr uses are not 0
 			lvar_struct = Structure.new()
 			self.container_manager.add_struct(lvar_struct)
 			type_tif = lvar_struct.ptr_tinfo
 			self.add_type_uses(type_uses, type_tif)
 			return type_tif
 
-		casts = var_uses.call_casts
 		# single call cast does not create new type
-		if var_uses.uses_len() == 1 and len(casts) == 1 and casts[0].arg.is_var() and self.get_call_address(casts[0].func_call) != -1:
-			addr = self.get_call_address(casts[0].func_call)
-			arg_var = Var(addr, casts[0].arg_id)
+		if var_uses.uses_len() == 1 and len(call_casts) == 1 and call_casts[0].arg.is_var() and self.get_call_address(call_casts[0].func_call) != -1:
+			addr = self.get_call_address(call_casts[0].func_call)
+			arg_var = Var(addr, call_casts[0].arg_id)
 			return self.analyze_var(arg_var)
 
 		# single cast at offset 0 might be existing type
-		if len(casts) == 1 and casts[0].is_var_arg():
-			arg_type = self.analyze_call_cast_type(casts[0])
+		if len(call_casts) == 1 and call_casts[0].is_var_arg():
+			arg_type = self.analyze_call_cast_type(call_casts[0])
 
 			# casting to something unknown yields unknown
 			if arg_type is utils.UNKNOWN_TYPE:
