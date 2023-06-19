@@ -316,23 +316,32 @@ class TypeAnalyzer(FunctionManager):
 			vuc = w.target.var_use_chain
 			if vuc is None:
 				continue
-			rw_ptr_uses.add(vuc.get_ptr_offset())
+			write_offset = vuc.get_ptr_offset()
+			rw_ptr_uses.add(write_offset)
 			write_type = self.analyze_sexpr_type(w.value)
-			write_end = write_type.get_size()
-			if write_end == idaapi.BADSIZE and write_type is not utils.UNKNOWN_TYPE:
-				utils.log_warn(f"failed to calculate write size of {str(write_type)}")
-				continue
-			max_ptr_offset = max(max_ptr_offset, write_end)
+			if write_type is utils.UNKNOWN_TYPE:
+				# TODO get original write size write_end = max(1, orig_sz)
+				write_sz = 1
+			else:
+				write_sz = write_type.get_size()
+				if write_sz == idaapi.BADSIZE:
+					write_sz = 1
+					utils.log_warn(f"failed to calculate write size of {str(write_type)}, using size=1")
+			max_ptr_offset = max(max_ptr_offset, write_offset + write_sz)
 		for r in reads:
 			vuc = r.var_use_chain
 			if vuc is None:
 				continue
-			offset = vuc.get_ptr_offset()
-			rw_ptr_uses.add(offset)
-			max_ptr_offset = max(max_ptr_offset, offset)
+			read_offset = vuc.get_ptr_offset()
+			rw_ptr_uses.add(read_offset)
+			max_ptr_offset = max(max_ptr_offset, read_offset)
 		rw_ptr_uses.discard(None) # get_ptr_offset can return None
 
 		if type_uses.casts_len() == 0:
+			# cant determine ptr use without writes to it
+			if len(writes) == 0:
+				return utils.UNKNOWN_TYPE
+
 			# ptr uses other than offset0 create new type
 			if rw_ptr_uses != {0}:
 				lvar_struct = Structure.new()
@@ -340,10 +349,6 @@ class TypeAnalyzer(FunctionManager):
 				type_tif = lvar_struct.ptr_tinfo
 				self.add_type_uses(type_uses, type_tif)
 				return type_tif
-
-			# cant determine ptr use without writes to it
-			if len(writes) == 0:
-				return utils.UNKNOWN_TYPE
 
 			write_types = [self.analyze_sexpr_type(w.value) for w in writes]
 			write_type = select_type(*write_types)
