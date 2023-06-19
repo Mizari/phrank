@@ -4,7 +4,7 @@ import idc
 import idaapi
 
 from pyphrank.function_manager import FunctionManager
-from pyphrank.ast_parts import Var, SExpr, VarUses, CallCast, TypeCast, VarUseChain
+from pyphrank.ast_parts import Var, SExpr, VarUses, CallCast, TypeCast, VarUseChain, VarWrite
 from pyphrank.containers.structure import Structure
 from pyphrank.containers.vtable import Vtable
 from pyphrank.container_manager import ContainerManager
@@ -201,7 +201,7 @@ class TypeAnalyzer(FunctionManager):
 		if utils.tif2strucid(var_type) == -1:
 			return
 
-		var_uses = self.get_var_uses(var)
+		var_uses = self.get_all_var_uses(var)
 		for target in var_uses.moves_from:
 			if (target_var := target.var) is None:
 				continue
@@ -224,7 +224,7 @@ class TypeAnalyzer(FunctionManager):
 	def propagate_type_to_var(self, var:Var, new_type:idaapi.tinfo_t):
 		current_type = self.var2tinfo.get(var, utils.UNKNOWN_TYPE)
 		if current_type is utils.UNKNOWN_TYPE:
-			lvar_uses = self.get_var_uses(var)
+			lvar_uses = self.get_all_var_uses(var)
 			self.var2tinfo[var] = new_type
 			self.propagate_var(var)
 			self.add_type_uses(lvar_uses, new_type)
@@ -237,11 +237,27 @@ class TypeAnalyzer(FunctionManager):
 				f"because variable has different type {current_type}"
 			)
 
-	def get_var_uses(self, var:Var) -> VarUses:
+	def get_func_var_uses(self, func_ea:int, var:Var) -> VarUses:
+		var_uses = VarUses()
+		aa = self.get_ast_analysis(func_ea)
+		for asg in aa.assigns:
+			if asg.target.is_var(var):
+				var_uses.moves_to.append(asg.value)
+			elif asg.target.is_var_use(var):
+				write = VarWrite(asg.target.var_use_chain, asg.value)
+				var_uses.writes.append(write)
+			if asg.value.is_var(var):
+				var_uses.moves_from.append(asg.target)
+
+		var_uses.reads = [r for r in aa.var_reads if r.var == var]
+		var_uses.call_casts = [c for c in aa.call_casts if c.arg.is_var_use(var)]
+		var_uses.type_casts = [c for c in aa.type_casts if c.arg.is_var_use(var)]
+		return var_uses
+
+	def get_all_var_uses(self, var:Var) -> VarUses:
 		var_uses = VarUses()
 		for func_ea in var.get_functions():
-			aa = self.get_ast_analysis(func_ea)
-			va = aa.get_var_uses(var)
+			va = self.get_func_var_uses(func_ea, var)
 			var_uses.moves_from += va.moves_from
 			var_uses.moves_to += va.moves_to
 			var_uses.writes += va.writes
@@ -272,7 +288,7 @@ class TypeAnalyzer(FunctionManager):
 		return utils.UNKNOWN_TYPE
 
 	def analyze_by_var_uses(self, var:Var) -> idaapi.tinfo_t:
-		var_uses = self.get_var_uses(var)
+		var_uses = self.get_all_var_uses(var)
 		if var_uses.total_len() == 0:
 			utils.log_warn(f"found no var uses for {var}")
 			return utils.UNKNOWN_TYPE

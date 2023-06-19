@@ -50,8 +50,8 @@ def test_var_uses_collection() -> bool:
 
 	ctree_analyzer = phrank.CTreeAnalyzer()
 	ctree_analyzer.cache_analysis(mock_analysis)
-	sa = phrank.TypeAnalyzer(ast_analyzer=ctree_analyzer)
-	vu = sa.get_var_uses(var)
+	ta = phrank.TypeAnalyzer(ast_analyzer=ctree_analyzer)
+	vu = ta.get_all_var_uses(var)
 	if len(vu) != 1:
 		return False
 	else:
