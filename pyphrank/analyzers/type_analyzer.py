@@ -43,8 +43,8 @@ class TypeUses:
 	def __init__(self) -> bool:
 		self.writes = []
 		self.reads = []
-		self.call_casts = []
-		self.type_casts = []
+		self.call_casts:list[CallCast]= []
+		self.type_casts:list[TypeCast] = []
 
 	def uses_len(self):
 		return self.__len__()
@@ -277,7 +277,11 @@ class TypeAnalyzer(FunctionManager):
 			utils.log_warn(f"found no var uses for {var}")
 			return utils.UNKNOWN_TYPE
 
-		moves_types = [self.analyze_sexpr_type(asg) for asg in var_uses.moves_to]
+		moves_types = []
+		for m in var_uses.moves_to:
+			mtype = self.analyze_sexpr_type(m)
+			if mtype not in moves_types:
+				moves_types.append(mtype)
 		if len(moves_types) != 0 and (var_tinfo := select_type(*moves_types)) is not utils.UNKNOWN_TYPE:
 			return var_tinfo
 
@@ -348,23 +352,30 @@ class TypeAnalyzer(FunctionManager):
 			write_type.create_ptr(write_type)
 			return write_type
 
-		if type_uses.uses_len() == 1 and type_uses.casts_len() == 1:
-			# single cast without rw uses does not create new type
-			if len(type_uses.call_casts) == 1 and type_uses.call_casts[0].arg.is_var() and self.get_call_address(call_casts[0].func_call) != -1:
-				addr = self.get_call_address(call_casts[0].func_call)
-				arg_var = Var(addr, call_casts[0].arg_id)
-				return self.analyze_var(arg_var)
+		if type_uses.casts_len() == 1:
+			if len(type_uses.call_casts) == 1:
+				cast = type_uses.call_casts[0]
+				cast_arg = cast.arg
+				addr = self.get_call_address(cast.func_call)
+				if addr == -1:
+					arg_type = utils.UNKNOWN_TYPE
+				else:
+					arg_var = Var(addr, cast.arg_id)
+					arg_type = self.analyze_var(arg_var)
+			else:
+				cast_arg = type_uses.type_casts[0].arg
+				arg_type = type_uses.type_casts[0].tif
 
-		# single cast at offset 0 might be existing type
-		if len(call_casts) == 1 and call_casts[0].is_var_arg():
-			arg_type = self.analyze_call_cast_type(call_casts[0])
+			# offseted cast yields new type
+			if not cast_arg.is_var():
+				lvar_struct = Structure.new()
+				self.container_manager.add_struct(lvar_struct)
+				type_tif = lvar_struct.ptr_tinfo
+				self.add_type_uses(type_uses, type_tif)
+				return type_tif
 
-			# casting to something unknown yields unknown
-			if arg_type is utils.UNKNOWN_TYPE:
-				return utils.UNKNOWN_TYPE
-
-			# simple variable passing does not create new type
-			if len(writes) == 0 and len(reads) == 0:
+			# if no other uses but single cast
+			if type_uses.uses_len() == 1:
 				return arg_type
 
 			# single cast and writes into casted type
