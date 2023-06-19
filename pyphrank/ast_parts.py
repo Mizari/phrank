@@ -334,15 +334,20 @@ class SExpr:
 UNKNOWN_SEXPR = SExpr(-1, -1)
 
 
+class Assign:
+	def __init__(self, target:SExpr, value:SExpr) -> None:
+		self.target = target
+		self.value = value
+
 
 class VarWrite:
-	def __init__(self, target:SExpr, value:SExpr):
+	def __init__(self, target:VarUseChain, value:SExpr) -> None:
 		self.target = target
 		self.value = value
 
 
 class CallCast:
-	def __init__(self, arg:SExpr, arg_id:int, func_call:SExpr):
+	def __init__(self, arg:SExpr, arg_id:int, func_call:SExpr) -> None:
 		self.arg = arg
 		self.func_call = func_call
 		self.arg_id = arg_id
@@ -364,7 +369,7 @@ class VarUses:
 		self.moves_to:list[SExpr] = []
 		self.moves_from:list[SExpr] = []
 		self.writes:list[VarWrite] = []
-		self.reads:list[SExpr] = []
+		self.reads:list[VarUseChain] = []
 		self.call_casts:list[CallCast] = []
 		self.type_casts:list[TypeCast] = []
 

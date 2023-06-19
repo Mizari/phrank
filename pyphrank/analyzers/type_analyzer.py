@@ -313,9 +313,7 @@ class TypeAnalyzer(FunctionManager):
 		rw_ptr_uses = set()
 		max_ptr_offset = 0
 		for w in writes:
-			vuc = w.target.var_use_chain
-			if vuc is None:
-				continue
+			vuc = w.target
 			write_offset = vuc.get_ptr_offset()
 			rw_ptr_uses.add(write_offset)
 			write_type = self.analyze_sexpr_type(w.value)
@@ -329,10 +327,7 @@ class TypeAnalyzer(FunctionManager):
 					utils.log_warn(f"failed to calculate write size of {str(write_type)}, using size=1")
 			max_ptr_offset = max(max_ptr_offset, write_offset + write_sz)
 		for r in reads:
-			vuc = r.var_use_chain
-			if vuc is None:
-				continue
-			read_offset = vuc.get_ptr_offset()
+			read_offset = r.get_ptr_offset()
 			rw_ptr_uses.add(read_offset)
 			max_ptr_offset = max(max_ptr_offset, read_offset)
 		rw_ptr_uses.discard(None) # get_ptr_offset can return None
@@ -475,17 +470,13 @@ class TypeAnalyzer(FunctionManager):
 
 		utils.log_warn(f"cant cast {var_type} transformed by {cast_arg} into {tif} to {cast_type}")
 
-	def analyze_target(self, var_type:idaapi.tinfo_t, sexpr:SExpr) -> utils.ShiftedStruct|None:
-		if sexpr.var_use_chain is None:
-			return None
-		vuc = sexpr.var_use_chain
-
-		tif = vuc.transform_type(var_type)
+	def analyze_target(self, var_type:idaapi.tinfo_t, target:VarUseChain) -> utils.ShiftedStruct|None:
+		tif = target.transform_type(var_type)
 		if isinstance(tif, utils.ShiftedStruct):
 			return tif
 
 		# kostyl for UNKNOWN member pointer
-		if utils.is_struct_ptr(var_type) and (offset := vuc.get_ptr_offset()) is not None:
+		if utils.is_struct_ptr(var_type) and (offset := target.get_ptr_offset()) is not None:
 			strucid = utils.tif2strucid(var_type)
 			if strucid == -1:
 				return None
@@ -527,9 +518,7 @@ class TypeAnalyzer(FunctionManager):
 
 		# weeding out non-pointers
 		for w in var_uses.writes:
-			if w.target.var_use_chain is None:
-				continue
-			if not w.target.var_use_chain.is_possible_ptr():
+			if not w.target.is_possible_ptr():
 				utils.log_warn("non-pointer writes are not supported for now {w}")
 				return False
 
@@ -545,10 +534,8 @@ class TypeAnalyzer(FunctionManager):
 		reads = var_uses.reads
 		# weeding out non-pointers3
 		for r in reads:
-			if r.var_use_chain is None:
-				continue
-			if not r.var_use_chain.is_possible_ptr():
-				utils.log_warn(f"non-pointer reads are not supported for now {r.op}")
+			if not r.is_possible_ptr():
+				utils.log_warn(f"non-pointer reads are not supported for now {r}")
 				return False
 
 		# all cases ended, assuming new structure pointer
