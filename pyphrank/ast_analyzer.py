@@ -137,17 +137,19 @@ class CTreeAnalyzer:
 		self.ast_analysis_cache[analysis.actx.addr] = analysis
 
 	def get_ast_analysis(self, cfunc:idaapi.cfunc_t) -> ASTAnalysis:
-		func_ea = cfunc.entry_ea
-		cached = self.ast_analysis_cache.get(func_ea)
+		cached = self.ast_analysis_cache.get(cfunc.entry_ea)
 		if cached is not None:
 			return cached
 
+		rv = self.lift_cfunc(cfunc)
+		self.cache_analysis(rv)
+		return rv
+
+	def lift_cfunc(self, cfunc:idaapi.cfunc_t) -> ASTAnalysis:
 		actx = ASTCtx.from_cfunc(cfunc)
 		self.current_ast_analysis = ASTAnalysis(actx)
 		self.lift_block(cfunc.body.cblock)
-
 		rv, self.current_ast_analysis = self.current_ast_analysis, None # type:ignore
-		self.cache_analysis(rv)
 		return rv
 
 	def lift_block(self, cblock):
