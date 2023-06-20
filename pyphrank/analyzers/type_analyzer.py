@@ -103,7 +103,7 @@ class TypeAnalyzer(FunctionManager):
 		new_xrefs = []
 		for func_ea in touched_functions:
 			func_aa = self.get_ast_analysis(func_ea)
-			for func_call in func_aa.calls:
+			for func_call in func_aa.iterate_calls():
 				if not func_call.is_var_use_chain():
 					continue
 
@@ -240,7 +240,7 @@ class TypeAnalyzer(FunctionManager):
 	def get_func_var_uses(self, func_ea:int, var:Var) -> VarUses:
 		var_uses = VarUses()
 		aa = self.get_ast_analysis(func_ea)
-		for asg in aa.assigns:
+		for asg in aa.iterate_assigns():
 			if asg.target.is_var(var):
 				var_uses.moves_to.append(asg.value)
 			elif asg.target.is_var_use(var):
@@ -249,9 +249,9 @@ class TypeAnalyzer(FunctionManager):
 			if asg.value.is_var(var):
 				var_uses.moves_from.append(asg.target)
 
-		var_uses.reads = [r for r in aa.var_reads if r.var == var]
-		var_uses.call_casts = [c for c in aa.call_casts if c.arg.is_var_use(var)]
-		var_uses.type_casts = [c for c in aa.type_casts if c.arg.is_var_use(var)]
+		var_uses.reads = [r for r in aa.iterate_var_reads() if r.var == var]
+		var_uses.call_casts = [c for c in aa.iterate_call_casts() if c.arg.is_var_use(var)]
+		var_uses.type_casts = [c for c in aa.iterate_type_casts() if c.arg.is_var_use(var)]
 		return var_uses
 
 	def get_all_var_uses(self, var:Var) -> VarUses:
