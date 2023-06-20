@@ -217,12 +217,11 @@ class CTreeAnalyzer:
 
 			if call_func.is_function():
 				fc = SExpr.create_explicit_function(expr.ea, call_func.function)
-				self.current_ast_analysis.calls.append(fc)
 			elif call_func is UNKNOWN_SEXPR:
 				fc = UNKNOWN_SEXPR
 			else:
 				fc = SExpr.create_implicit_function(expr.ea, call_func)
-				self.current_ast_analysis.calls.append(fc)
+				self.current_ast_analysis.implicit_calls.append(fc)
 			for arg_id, arg in enumerate(expr.a):
 				arg = utils.strip_casts(arg)
 				arg_sexpr = self.lift_cexpr(arg)

@@ -9,7 +9,7 @@ class ASTAnalysis():
 
 		self.call_casts : list[CallCast] = []
 		self.type_casts: list[TypeCast] = []
-		self.calls : list[SExpr] = []
+		self.implicit_calls : list[SExpr] = []
 		self.assigns  : list[SExpr]  = []
 		self.var_reads   : list[VarUseChain]   = []
 
@@ -25,8 +25,8 @@ class ASTAnalysis():
 		for c in self.type_casts:
 			yield c
 
-	def iterate_calls(self):
-		for c in self.calls:
+	def iterate_implicit_calls(self):
+		for c in self.implicit_calls:
 			yield c
 
 	def iterate_assigns(self):
