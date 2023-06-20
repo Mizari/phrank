@@ -239,6 +239,7 @@ class SExpr:
 	TYPE_BOOL_OP = 3
 	TYPE_EXPLICIT_CALL = 4
 	TYPE_IMPLICIT_CALL = 5
+	TYPE_ASSIGN = 6
 
 	def is_int(self): return self.op == self.TYPE_INT
 	def is_var_use_chain(self): return self.op == self.TYPE_VAR_USE_CHAIN
@@ -246,6 +247,7 @@ class SExpr:
 	def is_bool_op(self): return self.op == self.TYPE_BOOL_OP
 	def is_explicit_call(self): return self.op == self.TYPE_EXPLICIT_CALL
 	def is_implicit_call(self): return self.op == self.TYPE_IMPLICIT_CALL
+	def is_assign(self): return self.op == self.TYPE_ASSIGN
 
 	def is_var_use(self, var:Var|None=None) -> bool:
 		if self.var_use_chain is None:
@@ -303,6 +305,13 @@ class SExpr:
 		obj.y = int_type
 		return obj
 
+	@classmethod
+	def create_assign(cls, expr_ea:int, target:SExpr, value:SExpr):
+		obj = cls(cls.TYPE_ASSIGN, expr_ea)
+		obj.x = target
+		obj.y = value
+		return obj
+
 	@property
 	def func_ea(self) -> int:
 		rv = utils.get_func_start(self.expr_ea)
@@ -330,14 +339,16 @@ class SExpr:
 			return -1
 		return self.x # type:ignore
 
+	@property
+	def target(self) -> SExpr:
+		return self.x
+
+	@property
+	def value(self) -> SExpr:
+		return self.y
+
 
 UNKNOWN_SEXPR = SExpr(-1, -1)
-
-
-class Assign:
-	def __init__(self, target:SExpr, value:SExpr) -> None:
-		self.target = target
-		self.value = value
 
 
 class VarWrite:

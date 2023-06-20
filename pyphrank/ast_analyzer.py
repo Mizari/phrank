@@ -3,7 +3,7 @@ from __future__ import annotations
 import idaapi
 
 import pyphrank.utils as utils
-from pyphrank.ast_parts import SExpr, ASTCtx, CallCast, TypeCast, Assign
+from pyphrank.ast_parts import SExpr, ASTCtx, CallCast, TypeCast
 from pyphrank.ast_parts import Var, VarUse, VarUseChain, UNKNOWN_SEXPR
 from pyphrank.ast_analysis import ASTAnalysis
 
@@ -206,7 +206,7 @@ class CTreeAnalyzer:
 			value = self.lift_cexpr(expr.y)
 			if value.is_var_use_chain() and value.var is None:
 				self.current_ast_analysis.var_reads.append(value.var_use_chain)
-			asg = Assign(target, value)
+			asg = SExpr.create_assign(expr.ea, target, value)
 			self.current_ast_analysis.assigns.append(asg)
 			return UNKNOWN_SEXPR
 

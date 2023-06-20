@@ -1,4 +1,4 @@
-from pyphrank.ast_parts import SExpr, ASTCtx, CallCast, TypeCast, VarWrite, Var, VarUses, Assign, VarUseChain
+from pyphrank.ast_parts import SExpr, ASTCtx, CallCast, TypeCast, VarWrite, Var, VarUses, VarUseChain
 
 
 class ASTAnalysis():
@@ -10,7 +10,7 @@ class ASTAnalysis():
 		self.call_casts : list[CallCast] = []
 		self.type_casts: list[TypeCast] = []
 		self.calls : list[SExpr] = []
-		self.assigns  : list[Assign]  = []
+		self.assigns  : list[SExpr]  = []
 		self.var_reads   : list[VarUseChain]   = []
 
 	def iterate_returns(self):
