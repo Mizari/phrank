@@ -215,7 +215,7 @@ class TypeAnalyzer(FunctionManager):
 			if utils.is_func_import(call_ea):
 				continue
 
-			if not call_cast.is_var_arg():
+			if not call_cast.arg.is_var():
 				continue
 
 			arg_var = Var(call_ea, call_cast.arg_id)

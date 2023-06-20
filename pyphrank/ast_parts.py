@@ -363,11 +363,6 @@ class CallCast:
 		self.func_call = func_call
 		self.arg_id = arg_id
 
-	def is_var_arg(self):
-		if self.arg.var_use_chain is None:
-			return False
-		return self.arg.var_use_chain.is_var_chain()
-
 
 class TypeCast:
 	def __init__(self, arg:SExpr, tif:idaapi.tinfo_t) -> None:
