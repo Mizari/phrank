@@ -128,9 +128,8 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 	return VarUseChain(var, *use_chain)
 
 
-class CTreeAnalyzer(idaapi.ctree_visitor_t):
+class CTreeAnalyzer:
 	def __init__(self):
-		idaapi.ctree_visitor_t.__init__(self, idaapi.CV_FAST)
 		self.current_ast_analysis: ASTAnalysis = None # type:ignore
 		self.ast_analysis_cache = {}
 
@@ -145,35 +144,52 @@ class CTreeAnalyzer(idaapi.ctree_visitor_t):
 
 		actx = ASTCtx.from_cfunc(cfunc)
 		self.current_ast_analysis = ASTAnalysis(actx)
-		self.apply_to(cfunc.body, None)
+		self.lift_block(cfunc.body.cblock)
 
 		rv, self.current_ast_analysis = self.current_ast_analysis, None # type:ignore
 		self.cache_analysis(rv)
 		return rv
 
+	def lift_block(self, cblock):
+		for instr in cblock:
+			self.lift_instr(instr)
+
+	def lift_instr(self, cinstr):
+		if cinstr.op == idaapi.cit_expr:
+			sexpr = self.lift_cexpr(cinstr.cexpr)
+		elif cinstr.op == idaapi.cit_if:
+			sexpr = self.lift_cexpr(cinstr.cif.expr)
+			self.lift_block(cinstr.cif.ithen.cblock)
+			if cinstr.cif.ielse is not None:
+				self.lift_block(cinstr.cif.ielse.cblock)
+		elif cinstr.op == idaapi.cit_for:
+			init = self.lift_cexpr(cinstr.cfor.init)
+			expr = self.lift_cexpr(cinstr.cfor.expr)
+			step = self.lift_cexpr(cinstr.cfor.step)
+			self.lift_block(cinstr.cfor.body.cblock)
+		elif cinstr.op == idaapi.cit_while:
+			self.lift_cexpr(cinstr.cwhile.expr)
+			self.lift_block(cinstr.cwhile.body.cblock)
+		elif cinstr.op == idaapi.cit_do:
+			self.lift_cexpr(cinstr.cdo.expr)
+			self.lift_block(cinstr.cdo.body.cblock)
+		elif cinstr.op in (idaapi.cit_asm, idaapi.cit_empty, idaapi.cit_goto, idaapi.cit_end, idaapi.cit_break, idaapi.cit_continue):
+			pass
+		elif cinstr.op == idaapi.cit_return:
+			sexpr = self.lift_cexpr(cinstr.creturn.expr)
+			if sexpr.is_var_use_chain() and sexpr.var is None:
+				self.current_ast_analysis.var_reads.append(sexpr.var_use_chain)
+
+			self.current_ast_analysis.returns.append(sexpr)
+		elif cinstr.op == idaapi.cit_switch:
+			# cinstr.cswitch.cases + cinstr.cswitch.expr
+			pass
+		else:
+			utils.log_err(f"unknown instr operand {cinstr.opname}")
+
 	@property
 	def actx(self) -> ASTCtx:
 		return self.current_ast_analysis.actx
-
-	def visit_insn(self, insn: idaapi.cinsn_t) -> int:
-		if insn.op == idaapi.cit_return and self.handle_return(insn):
-			self.prune_now()
-		return 0
-
-	def handle_return(self, insn:idaapi.cinsn_t) -> bool:
-		retval = utils.strip_casts(insn.creturn.expr)
-
-		rw = self.lift_cexpr(retval)
-		if rw.is_var_use_chain() and rw.var is None:
-			self.current_ast_analysis.var_reads.append(rw.var_use_chain)
-
-		self.current_ast_analysis.returns.append(rw)
-		return True
-
-	def visit_expr(self, expr: idaapi.cexpr_t) -> int:
-		self.lift_cexpr(expr)
-		self.prune_now()
-		return 0
 
 	def lift_cexpr(self, expr:idaapi.cexpr_t) -> SExpr:
 		if expr.op == idaapi.cot_cast:
