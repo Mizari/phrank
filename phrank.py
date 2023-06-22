@@ -1,7 +1,7 @@
 
 # forward imports
 from pyphrank.analyzers.cpp_class_analyzer import CppClassAnalyzer
-from pyphrank.analyzers.type_analyzer import TypeAnalyzer
+from pyphrank.analyzers.type_analyzer import TypeAnalyzer, TypeUses, VarUses, VarWrite, select_type
 from pyphrank.ast_analyzer import CTreeAnalyzer, get_var, get_var_use_chain, extract_vars
 from pyphrank.cfunction_factory import CFunctionFactory
 from pyphrank.containers.structure import Structure

@@ -179,9 +179,6 @@ class CTreeAnalyzer:
 			pass
 		elif cinstr.op == idaapi.cit_return:
 			sexpr = self.lift_cexpr(cinstr.creturn.expr)
-			if sexpr.is_var_use_chain() and sexpr.var is None:
-				self.current_ast_analysis.var_reads.append(sexpr.var_use_chain)
-
 			self.current_ast_analysis.returns.append(sexpr)
 		elif cinstr.op == idaapi.cit_switch:
 			# cinstr.cswitch.cases + cinstr.cswitch.expr
@@ -199,21 +196,13 @@ class CTreeAnalyzer:
 
 		if expr.op == idaapi.cot_asg:
 			target = self.lift_cexpr(expr.x)
-			# dont add target var_use_chain to reads, because it is write
-			# if its not var_use_chain, then it gets added to reads there
-
-			# var_use_chain value IS a read though
 			value = self.lift_cexpr(expr.y)
-			if value.is_var_use_chain() and value.var is None:
-				self.current_ast_analysis.var_reads.append(value.var_use_chain)
 			asg = SExpr.create_assign(expr.ea, target, value)
-			self.current_ast_analysis.assigns.append(asg)
+			self.current_ast_analysis.sexprs.append(asg)
 			return UNKNOWN_SEXPR
 
 		elif expr.op == idaapi.cot_call and expr.x.op != idaapi.cot_helper:
 			call_func = self.lift_cexpr(expr.x)
-			if call_func.is_var_use_chain() and call_func.var is None:
-				self.current_ast_analysis.var_reads.append(call_func.var_use_chain)
 
 			if call_func.is_function():
 				fc = SExpr.create_explicit_function(expr.ea, call_func.function)
@@ -221,12 +210,10 @@ class CTreeAnalyzer:
 				fc = UNKNOWN_SEXPR
 			else:
 				fc = SExpr.create_implicit_function(expr.ea, call_func)
-				self.current_ast_analysis.implicit_calls.append(fc)
+				self.current_ast_analysis.sexprs.append(fc)
 			for arg_id, arg in enumerate(expr.a):
 				arg = utils.strip_casts(arg)
 				arg_sexpr = self.lift_cexpr(arg)
-				if arg_sexpr.is_var_use_chain() and arg_sexpr.var is None:
-					self.current_ast_analysis.var_reads.append(arg_sexpr.var_use_chain)
 				call_cast = CallCast(arg_sexpr, arg_id, call_func)
 				self.current_ast_analysis.call_casts.append(call_cast)
 			return fc
@@ -258,12 +245,14 @@ class CTreeAnalyzer:
 			return UNKNOWN_SEXPR
 
 		elif expr.op in binary_operations and len(extract_vars(expr, self.actx)) > 1:
+			"""
 			x = self.lift_cexpr(expr.x)
 			if x.is_var_use_chain() and x.var is None:
 				self.current_ast_analysis.var_reads.append(x.var_use_chain)
 			y = self.lift_cexpr(expr.y)
 			if y.is_var_use_chain() and y.var is None:
 				self.current_ast_analysis.var_reads.append(y.var_use_chain)
+			"""
 			return UNKNOWN_SEXPR
 
 		utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")

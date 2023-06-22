@@ -4,7 +4,7 @@ import idc
 import idaapi
 
 from pyphrank.function_manager import FunctionManager
-from pyphrank.ast_parts import Var, SExpr, VarUses, CallCast, TypeCast, VarUseChain, VarWrite
+from pyphrank.ast_parts import Var, SExpr, CallCast, TypeCast, VarUseChain
 from pyphrank.containers.structure import Structure
 from pyphrank.containers.vtable import Vtable
 from pyphrank.container_manager import ContainerManager
@@ -37,6 +37,31 @@ def select_type(*tifs):
 	# multiple different assignments is unknown
 	else:
 		return utils.UNKNOWN_TYPE
+
+
+class VarWrite:
+	def __init__(self, target:VarUseChain, value:SExpr) -> None:
+		self.target = target
+		self.value = value
+
+
+class VarUses:
+	def __init__(self) -> None:
+		self.moves_to:list[SExpr] = []
+		self.moves_from:list[SExpr] = []
+		self.writes:list[VarWrite] = []
+		self.reads:list[VarUseChain] = []
+		self.call_casts:list[CallCast] = []
+		self.type_casts:list[TypeCast] = []
+
+	def casts_len(self):
+		return len(self.call_casts) + len(self.type_casts)
+
+	def uses_len(self):
+		return len(self.writes) + len(self.reads) + len(self.call_casts) + len(self.type_casts)
+
+	def total_len(self):
+		return self.uses_len() + len(self.moves_to) + len(self.moves_from)
 
 
 class TypeUses:

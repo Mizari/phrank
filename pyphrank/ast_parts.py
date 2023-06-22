@@ -231,7 +231,6 @@ class VarUseChain:
 		return f"{str(self.var)},{self.uses_str()}"
 
 
-
 class SExpr:
 	TYPE_INT = 0
 	TYPE_VAR_USE_CHAIN = 1
@@ -351,12 +350,6 @@ class SExpr:
 UNKNOWN_SEXPR = SExpr(-1, -1)
 
 
-class VarWrite:
-	def __init__(self, target:VarUseChain, value:SExpr) -> None:
-		self.target = target
-		self.value = value
-
-
 class CallCast:
 	def __init__(self, arg:SExpr, arg_id:int, func_call:SExpr) -> None:
 		self.arg = arg
@@ -368,22 +361,3 @@ class TypeCast:
 	def __init__(self, arg:SExpr, tif:idaapi.tinfo_t) -> None:
 		self.arg = arg
 		self.tif = tif
-
-
-class VarUses:
-	def __init__(self) -> None:
-		self.moves_to:list[SExpr] = []
-		self.moves_from:list[SExpr] = []
-		self.writes:list[VarWrite] = []
-		self.reads:list[VarUseChain] = []
-		self.call_casts:list[CallCast] = []
-		self.type_casts:list[TypeCast] = []
-
-	def casts_len(self):
-		return len(self.call_casts) + len(self.type_casts)
-
-	def uses_len(self):
-		return len(self.writes) + len(self.reads) + len(self.call_casts) + len(self.type_casts)
-
-	def total_len(self):
-		return self.uses_len() + len(self.moves_to) + len(self.moves_from)
