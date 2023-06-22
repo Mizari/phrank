@@ -1,4 +1,4 @@
-from pyphrank.ast_parts import SExpr, ASTCtx, CallCast, TypeCast, Var, VarUseChain
+from pyphrank.ast_parts import SExpr, ASTCtx, CallCastNode, TypeCastNode, Var, VarUseChain, Node
 
 
 def extract_implicit_calls(sexpr:SExpr):
@@ -28,64 +28,62 @@ def extract_var_reads(sexpr:SExpr):
 		yield from extract_var_reads(sexpr.y)
 
 
-def extract_implicit_calls(sexpr:SExpr):
-	# TODO in binary ops
-	# in assigns
-	return
-
-
 class ASTAnalysis():
 	def __init__(self, actx:ASTCtx):
 		self.actx = actx
+		self.nodes : list[Node] = []
 
-		self.returns : list[SExpr] = []
-		self.sexprs : list[SExpr] = []
-		self.call_casts : list[CallCast] = []
-		self.type_casts: list[TypeCast] = []
+	def iterate_sexprs(self):
+		for node in self.nodes:
+			if node.is_expr():
+				yield node.sexpr
 
 	def iterate_returns(self):
-		for r in self.returns:
-			yield r
+		for node in self.nodes:
+			if node.is_return():
+				yield node.sexpr
 
 	def iterate_call_casts(self):
-		for c in self.call_casts:
-			yield c
+		for node in self.nodes:
+			if node.is_call_cast():
+				yield node
 
 	def iterate_type_casts(self):
-		for c in self.type_casts:
-			yield c
+		for node in self.nodes:
+			if node.is_type_cast():
+				yield node
 
 	def iterate_implicit_calls(self):
-		for c in self.sexprs:
+		for c in self.iterate_sexprs():
 			yield from extract_implicit_calls(c)
 
-		for r in self.returns:
+		for r in self.iterate_returns():
 			yield from extract_implicit_calls(r)
 
-		for c in self.call_casts:
-			yield from extract_implicit_calls(c.arg)
+		for c in self.iterate_call_casts():
+			yield from extract_implicit_calls(c.sexpr)
 
-		for t in self.type_casts:
-			yield from extract_implicit_calls(t.arg)
+		for t in self.iterate_type_casts():
+			yield from extract_implicit_calls(t.sexpr)
 
 	def iterate_assigns(self):
-		for sexpr in self.sexprs:
+		for sexpr in self.iterate_sexprs():
 			if sexpr.is_assign():
 				yield sexpr
 
 	def iterate_var_reads(self):
-		for s in self.sexprs:
+		for s in self.iterate_sexprs():
 			yield from extract_var_reads(s)
 
-		for r in self.returns:
+		for r in self.iterate_returns():
 			yield from extract_var_reads(r)
 
-		for c in self.call_casts:
+		for c in self.iterate_call_casts():
 			# direct var use chain casts are casts, not reads
-			if not c.arg.is_var_use_chain():
-				yield from extract_var_reads(c.arg)
+			if not c.sexpr.is_var_use_chain():
+				yield from extract_var_reads(c.sexpr)
 
-		for t in self.type_casts:
+		for t in self.iterate_type_casts():
 			# direct var use chain casts are casts, not reads
-			if not t.arg.is_var_use_chain():
-				yield from extract_var_reads(t.arg)
+			if not t.sexpr.is_var_use_chain():
+				yield from extract_var_reads(t.sexpr)

@@ -361,14 +361,55 @@ class SExpr:
 UNKNOWN_SEXPR = SExpr(-1, -1)
 
 
-class CallCast:
+class Node:
+	RETURN = 0
+	EXPR = 1
+	CALL_CAST = 2
+	TYPE_CAST = 3
+	def __init__(self, node_type, sexpr:SExpr, y=None, z=None) -> None:
+		self.node_type = node_type
+		self.sexpr = sexpr
+		self.y = y
+		self.z = z
+
+	def is_return(self):
+		return self.node_type == self.RETURN
+
+	def is_expr(self):
+		return self.node_type == self.EXPR
+
+	def is_call_cast(self):
+		return self.node_type == self.CALL_CAST
+
+	def is_type_cast(self):
+		return self.node_type == self.TYPE_CAST
+
+	@property
+	def arg_id(self) -> int:
+		return self.y
+
+	@property
+	def func_call(self) -> SExpr:
+		return self.z
+
+	@property
+	def tif(self) -> idaapi.tinfo_t:
+		return self.y
+
+
+class ExprNode:
+	def __init__(self) -> None:
+		pass
+
+
+class CallCastNode:
 	def __init__(self, arg:SExpr, arg_id:int, func_call:SExpr) -> None:
-		self.arg = arg
+		self.sexpr = arg
 		self.func_call = func_call
 		self.arg_id = arg_id
 
 
-class TypeCast:
+class TypeCastNode:
 	def __init__(self, arg:SExpr, tif:idaapi.tinfo_t) -> None:
-		self.arg = arg
+		self.sexpr = arg
 		self.tif = tif

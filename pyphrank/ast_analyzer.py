@@ -3,7 +3,7 @@ from __future__ import annotations
 import idaapi
 
 import pyphrank.utils as utils
-from pyphrank.ast_parts import SExpr, ASTCtx, CallCast, TypeCast
+from pyphrank.ast_parts import SExpr, ASTCtx, CallCastNode, TypeCastNode, Node
 from pyphrank.ast_parts import Var, VarUse, VarUseChain, UNKNOWN_SEXPR
 from pyphrank.ast_analysis import ASTAnalysis
 
@@ -187,7 +187,8 @@ class CTreeAnalyzer:
 			pass
 		elif cinstr.op == idaapi.cit_return:
 			sexpr = self.lift_cexpr(cinstr.creturn.expr)
-			self.current_ast_analysis.returns.append(sexpr)
+			return_node = Node(Node.RETURN, sexpr)
+			self.current_ast_analysis.nodes.append(return_node)
 		elif cinstr.op == idaapi.cit_switch:
 			# cinstr.cswitch.cases + cinstr.cswitch.expr
 			pass
@@ -197,7 +198,8 @@ class CTreeAnalyzer:
 		for s in sexprs:
 			if s is UNKNOWN_SEXPR:
 				continue
-			self.current_ast_analysis.sexprs.append(s)
+			node = Node(Node.EXPR, s)
+			self.current_ast_analysis.nodes.append(node)
 
 	@property
 	def actx(self) -> ASTCtx:
@@ -225,8 +227,8 @@ class CTreeAnalyzer:
 			for arg_id, arg in enumerate(expr.a):
 				arg = utils.strip_casts(arg)
 				arg_sexpr = self.lift_cexpr(arg)
-				call_cast = CallCast(arg_sexpr, arg_id, call_func)
-				self.current_ast_analysis.call_casts.append(call_cast)
+				call_cast = Node(Node.CALL_CAST, arg_sexpr, arg_id, call_func)
+				self.current_ast_analysis.nodes.append(call_cast)
 			return fc
 
 		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper and expr.x.helper == "memset":
@@ -234,8 +236,8 @@ class CTreeAnalyzer:
 			n = utils.get_int(expr.a[2])
 			if n is None:
 				n = 1
-			type_cast = TypeCast(arg_sexpr, utils.str2tif(f"char [{n}]"))
-			self.current_ast_analysis.type_casts.append(type_cast)
+			type_cast = Node(Node.TYPE_CAST, arg_sexpr, utils.str2tif(f"char [{n}]"))
+			self.current_ast_analysis.nodes.append(type_cast)
 			# TODO potential type casts of arg1 and arg2
 			return UNKNOWN_SEXPR
 
