@@ -1,6 +1,11 @@
 from pyphrank.ast_parts import SExpr, ASTCtx, CallCast, TypeCast, Var, VarUseChain
 
 
+def extract_implicit_calls(sexpr:SExpr):
+	if sexpr.is_implicit_call():
+		yield sexpr
+
+
 def extract_var_reads(sexpr:SExpr):
 	if sexpr.is_var_use_chain():
 		yield sexpr.var_use_chain
@@ -23,7 +28,7 @@ def extract_var_reads(sexpr:SExpr):
 		yield from extract_var_reads(sexpr.y)
 
 
-def extract_calls(sexpr:SExpr):
+def extract_implicit_calls(sexpr:SExpr):
 	# TODO in binary ops
 	# in assigns
 	return
@@ -51,13 +56,17 @@ class ASTAnalysis():
 			yield c
 
 	def iterate_implicit_calls(self):
-		# in sexprs
-		# in returns
-		# in call casts
-		# in type casts
 		for c in self.sexprs:
-			if c.is_implicit_call():
-				yield c
+			yield from extract_implicit_calls(c)
+
+		for r in self.returns:
+			yield from extract_implicit_calls(r)
+
+		for c in self.call_casts:
+			yield from extract_implicit_calls(c.arg)
+
+		for t in self.type_casts:
+			yield from extract_implicit_calls(t.arg)
 
 	def iterate_assigns(self):
 		for sexpr in self.sexprs:
