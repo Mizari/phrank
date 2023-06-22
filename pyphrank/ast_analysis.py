@@ -52,6 +52,7 @@ class ASTAnalysis():
 			yield c
 
 	def iterate_type_casts(self):
+		# test 2
 		for c in self.type_casts:
 			yield c
 
