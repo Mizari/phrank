@@ -11,9 +11,11 @@ from pyphrank.ast_analysis import ASTAnalysis
 bool_operations = {
 	idaapi.cot_bor, idaapi.cot_uge, idaapi.cot_band, idaapi.cot_sge,
 	idaapi.cot_sgt, idaapi.cot_eq, idaapi.cot_ne, idaapi.cot_slt,
-	idaapi.cot_land, idaapi.cot_lnot, idaapi.cot_sle, idaapi.cot_ult,
+	idaapi.cot_land, idaapi.cot_sle, idaapi.cot_ult,
 	idaapi.cot_ule, idaapi.cot_lor, idaapi.cot_ugt,
 }
+
+# idaapi.cot_lnot, idaapi.cot_neg
 
 binary_operations = {
 	idaapi.cot_mul, idaapi.cot_sub,
@@ -235,7 +237,9 @@ class CTreeAnalyzer:
 			return SExpr.create_function(expr.ea, expr.obj_ea)
 
 		elif expr.op in bool_operations:
-			return SExpr.create_bool_op(expr.ea)
+			x = self.lift_cexpr(expr.x)
+			y = self.lift_cexpr(expr.y)
+			return SExpr.create_bool_op(expr.ea, x, y)
 
 		elif (vuc := get_var_use_chain(expr, self.actx)) is not None:
 			return SExpr.create_var_use_chain(expr.ea, vuc)

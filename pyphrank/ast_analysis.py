@@ -18,6 +18,10 @@ def extract_var_reads(sexpr:SExpr):
 		yield from extract_var_reads(sexpr.x)
 		yield from extract_var_reads(sexpr.y)
 
+	if sexpr.is_bool_op():
+		yield from extract_var_reads(sexpr.x)
+		yield from extract_var_reads(sexpr.y)
+
 
 def extract_calls(sexpr:SExpr):
 	# TODO in binary ops

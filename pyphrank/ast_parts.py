@@ -295,8 +295,10 @@ class SExpr:
 		return obj
 
 	@classmethod
-	def create_bool_op(cls, expr_ea:int):
+	def create_bool_op(cls, expr_ea:int, x:SExpr, y:SExpr):
 		obj = cls(cls.TYPE_BOOL_OP, expr_ea)
+		obj.x = x
+		obj.y = y
 		return obj
 
 	@classmethod
