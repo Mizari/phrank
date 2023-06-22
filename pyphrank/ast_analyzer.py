@@ -159,10 +159,13 @@ class CTreeAnalyzer:
 			self.lift_instr(instr)
 
 	def lift_instr(self, cinstr):
+		sexprs = []
 		if cinstr.op == idaapi.cit_expr:
 			sexpr = self.lift_cexpr(cinstr.cexpr)
+			sexprs.append(sexpr)
 		elif cinstr.op == idaapi.cit_if:
 			sexpr = self.lift_cexpr(cinstr.cif.expr)
+			sexprs.append(sexpr)
 			self.lift_block(cinstr.cif.ithen.cblock)
 			if cinstr.cif.ielse is not None:
 				self.lift_block(cinstr.cif.ielse.cblock)
@@ -170,12 +173,15 @@ class CTreeAnalyzer:
 			init = self.lift_cexpr(cinstr.cfor.init)
 			expr = self.lift_cexpr(cinstr.cfor.expr)
 			step = self.lift_cexpr(cinstr.cfor.step)
+			sexprs += [init, expr, step]
 			self.lift_block(cinstr.cfor.body.cblock)
 		elif cinstr.op == idaapi.cit_while:
-			self.lift_cexpr(cinstr.cwhile.expr)
+			sexpr = self.lift_cexpr(cinstr.cwhile.expr)
+			sexprs.append(sexpr)
 			self.lift_block(cinstr.cwhile.body.cblock)
 		elif cinstr.op == idaapi.cit_do:
-			self.lift_cexpr(cinstr.cdo.expr)
+			sexpr = self.lift_cexpr(cinstr.cdo.expr)
+			sexprs.append(sexpr)
 			self.lift_block(cinstr.cdo.body.cblock)
 		elif cinstr.op in (idaapi.cit_asm, idaapi.cit_empty, idaapi.cit_goto, idaapi.cit_end, idaapi.cit_break, idaapi.cit_continue):
 			pass
@@ -187,6 +193,11 @@ class CTreeAnalyzer:
 			pass
 		else:
 			utils.log_err(f"unknown instr operand {cinstr.opname}")
+
+		for s in sexprs:
+			if s is UNKNOWN_SEXPR:
+				continue
+			self.current_ast_analysis.sexprs.append(s)
 
 	@property
 	def actx(self) -> ASTCtx:
@@ -200,8 +211,7 @@ class CTreeAnalyzer:
 			target = self.lift_cexpr(expr.x)
 			value = self.lift_cexpr(expr.y)
 			asg = SExpr.create_assign(expr.ea, target, value)
-			self.current_ast_analysis.sexprs.append(asg)
-			return UNKNOWN_SEXPR
+			return asg
 
 		elif expr.op == idaapi.cot_call and expr.x.op != idaapi.cot_helper:
 			call_func = self.lift_cexpr(expr.x)
@@ -212,7 +222,6 @@ class CTreeAnalyzer:
 				fc = UNKNOWN_SEXPR
 			else:
 				fc = SExpr.create_implicit_function(expr.ea, call_func)
-				self.current_ast_analysis.sexprs.append(fc)
 			for arg_id, arg in enumerate(expr.a):
 				arg = utils.strip_casts(arg)
 				arg_sexpr = self.lift_cexpr(arg)
