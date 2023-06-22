@@ -239,11 +239,13 @@ class SExpr:
 	TYPE_EXPLICIT_CALL = 4
 	TYPE_IMPLICIT_CALL = 5
 	TYPE_ASSIGN = 6
+	TYPE_BINARY_OP = 7
 
 	def is_int(self): return self.op == self.TYPE_INT
 	def is_var_use_chain(self): return self.op == self.TYPE_VAR_USE_CHAIN
 	def is_function(self): return self.op == self.TYPE_FUNCTION
 	def is_bool_op(self): return self.op == self.TYPE_BOOL_OP
+	def is_binary_op(self): return self.op == self.TYPE_BINARY_OP
 	def is_explicit_call(self): return self.op == self.TYPE_EXPLICIT_CALL
 	def is_implicit_call(self): return self.op == self.TYPE_IMPLICIT_CALL
 	def is_assign(self): return self.op == self.TYPE_ASSIGN
@@ -295,6 +297,13 @@ class SExpr:
 	@classmethod
 	def create_bool_op(cls, expr_ea:int):
 		obj = cls(cls.TYPE_BOOL_OP, expr_ea)
+		return obj
+
+	@classmethod
+	def create_binary_op(cls, expr_ea:int, x:SExpr, y:SExpr):
+		obj = cls(cls.TYPE_BINARY_OP, expr_ea)
+		obj.x = x
+		obj.y = y
 		return obj
 
 	@classmethod

@@ -14,7 +14,9 @@ def extract_var_reads(sexpr:SExpr):
 		# var_use_chain value IS a read though
 		yield from extract_var_reads(sexpr.value)
 
-	# TODO in binary ops
+	if sexpr.is_binary_op():
+		yield from extract_var_reads(sexpr.x)
+		yield from extract_var_reads(sexpr.y)
 
 
 def extract_calls(sexpr:SExpr):

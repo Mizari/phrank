@@ -245,15 +245,9 @@ class CTreeAnalyzer:
 			return UNKNOWN_SEXPR
 
 		elif expr.op in binary_operations and len(extract_vars(expr, self.actx)) > 1:
-			"""
 			x = self.lift_cexpr(expr.x)
-			if x.is_var_use_chain() and x.var is None:
-				self.current_ast_analysis.var_reads.append(x.var_use_chain)
 			y = self.lift_cexpr(expr.y)
-			if y.is_var_use_chain() and y.var is None:
-				self.current_ast_analysis.var_reads.append(y.var_use_chain)
-			"""
-			return UNKNOWN_SEXPR
+			return SExpr.create_binary_op(expr.ea, x, y)
 
 		utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
 		return UNKNOWN_SEXPR
