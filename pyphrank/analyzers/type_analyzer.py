@@ -216,7 +216,7 @@ class TypeAnalyzer(FunctionManager):
 				return stype.get_rettype()
 
 		elif sexpr.is_int():
-			return sexpr.y
+			return sexpr.tif
 
 		utils.log_warn(f"unknown sexpr value in {idaapi.get_name(sexpr.func_ea)}")
 		return utils.UNKNOWN_TYPE

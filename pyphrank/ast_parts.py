@@ -275,53 +275,53 @@ class SExpr:
 	def __init__(self, t:int, expr_ea:int) -> None:
 		self.op = t
 		self.expr_ea = expr_ea
-		self.x:Any = None
-		self.y:Any = None
+		self._x:Any = None
+		self._y:Any = None
 
 	@classmethod
 	def create_var_use_chain(cls, expr_ea:int, vuc:VarUseChain):
 		obj = cls(cls.TYPE_VAR_USE_CHAIN, expr_ea)
-		obj.x = vuc
+		obj._x = vuc
 		return obj
 
 	@classmethod
 	def create_function(cls, expr_ea:int, call_ea:int):
 		obj = cls(cls.TYPE_FUNCTION, expr_ea)
-		obj.x = call_ea
+		obj._x = call_ea
 		return obj
 
 	@classmethod
 	def create_call(cls, expr_ea:int, function:SExpr):
 		obj = cls(cls.TYPE_CALL, expr_ea)
-		obj.x = function
+		obj._x = function
 		return obj
 
 	@classmethod
 	def create_bool_op(cls, expr_ea:int, x:SExpr, y:SExpr):
 		obj = cls(cls.TYPE_BOOL_OP, expr_ea)
-		obj.x = x
-		obj.y = y
+		obj._x = x
+		obj._y = y
 		return obj
 
 	@classmethod
 	def create_binary_op(cls, expr_ea:int, x:SExpr, y:SExpr):
 		obj = cls(cls.TYPE_BINARY_OP, expr_ea)
-		obj.x = x
-		obj.y = y
+		obj._x = x
+		obj._y = y
 		return obj
 
 	@classmethod
 	def create_int(cls, expr_ea:int, value:int, int_type:idaapi.tinfo_t):
 		obj = cls(cls.TYPE_INT, expr_ea)
-		obj.x = value
-		obj.y = int_type
+		obj._x = value
+		obj._y = int_type
 		return obj
 
 	@classmethod
 	def create_assign(cls, expr_ea:int, target:SExpr, value:SExpr):
 		obj = cls(cls.TYPE_ASSIGN, expr_ea)
-		obj.x = target
-		obj.y = value
+		obj._x = target
+		obj._y = value
 		return obj
 
 	@property
@@ -333,9 +333,9 @@ class SExpr:
 
 	@property
 	def var_use_chain(self) -> VarUseChain|None:
-		if not isinstance(self.x, VarUseChain):
+		if not isinstance(self._x, VarUseChain):
 			return None
-		return self.x # type:ignore
+		return self._x # type:ignore
 
 	@property
 	def var(self) -> Var|None:
@@ -347,19 +347,35 @@ class SExpr:
 
 	@property
 	def func_addr(self) -> int:
-		return self.x
+		return self._x
 
 	@property
 	def function(self) -> SExpr:
-		return self.x
+		return self._x
 
 	@property
 	def target(self) -> SExpr:
-		return self.x
+		return self._x
 
 	@property
 	def value(self) -> SExpr:
-		return self.y
+		return self._y
+
+	@property
+	def x(self) -> SExpr:
+		return self._x
+
+	@property
+	def y(self) -> SExpr:
+		return self._y
+
+	@property
+	def int_value(self) -> int:
+		return self._x
+
+	@property
+	def tif(self) -> idaapi.tinfo_t:
+		return self._y
 
 
 UNKNOWN_SEXPR = SExpr(-1, -1)
