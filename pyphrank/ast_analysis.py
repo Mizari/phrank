@@ -33,23 +33,27 @@ class ASTAnalysis():
 		self.actx = actx
 		self.nodes : list[Node] = []
 
-	def iterate_sexprs(self):
+	def iterate_nodes(self):
 		for node in self.nodes:
+			yield node
+
+	def iterate_sexprs(self):
+		for node in self.iterate_nodes():
 			if node.is_expr():
 				yield node.sexpr
 
 	def iterate_returns(self):
-		for node in self.nodes:
+		for node in self.iterate_nodes():
 			if node.is_return():
 				yield node.sexpr
 
 	def iterate_call_casts(self):
-		for node in self.nodes:
+		for node in self.iterate_nodes():
 			if node.is_call_cast():
 				yield node
 
 	def iterate_type_casts(self):
-		for node in self.nodes:
+		for node in self.iterate_nodes():
 			if node.is_type_cast():
 				yield node
 
