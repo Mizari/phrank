@@ -236,18 +236,16 @@ class SExpr:
 	TYPE_VAR_USE_CHAIN = 1
 	TYPE_FUNCTION = 2
 	TYPE_BOOL_OP = 3
-	TYPE_EXPLICIT_CALL = 4
-	TYPE_IMPLICIT_CALL = 5
-	TYPE_ASSIGN = 6
-	TYPE_BINARY_OP = 7
+	TYPE_CALL = 4
+	TYPE_ASSIGN = 5
+	TYPE_BINARY_OP = 6
 
 	def is_int(self): return self.op == self.TYPE_INT
 	def is_var_use_chain(self): return self.op == self.TYPE_VAR_USE_CHAIN
 	def is_function(self): return self.op == self.TYPE_FUNCTION
 	def is_bool_op(self): return self.op == self.TYPE_BOOL_OP
 	def is_binary_op(self): return self.op == self.TYPE_BINARY_OP
-	def is_explicit_call(self): return self.op == self.TYPE_EXPLICIT_CALL
-	def is_implicit_call(self): return self.op == self.TYPE_IMPLICIT_CALL
+	def is_call(self): return self.op == self.TYPE_CALL
 	def is_assign(self): return self.op == self.TYPE_ASSIGN
 
 	def is_var_use(self, var:Var|None=None) -> bool:
@@ -263,6 +261,16 @@ class SExpr:
 			return False
 		vuc = self.var_use_chain
 		return len(vuc) == 0
+
+	def is_explicit_call(self):
+		if self.op != self.TYPE_CALL:
+			return False
+		return self.function.is_function()
+
+	def is_implicit_call(self):
+		if self.op != self.TYPE_CALL:
+			return False
+		return not self.function.is_function()
 
 	def __init__(self, t:int, expr_ea:int) -> None:
 		self.op = t
@@ -283,15 +291,9 @@ class SExpr:
 		return obj
 
 	@classmethod
-	def create_explicit_function(cls, expr_ea:int, explicit:int):
-		obj = cls(cls.TYPE_EXPLICIT_CALL, expr_ea)
-		obj.x = explicit
-		return obj
-
-	@classmethod
-	def create_implicit_function(cls, expr_ea:int, implicit):
-		obj = cls(cls.TYPE_IMPLICIT_CALL, expr_ea)
-		obj.x = implicit
+	def create_call(cls, expr_ea:int, function:SExpr):
+		obj = cls(cls.TYPE_CALL, expr_ea)
+		obj.x = function
 		return obj
 
 	@classmethod
@@ -344,10 +346,12 @@ class SExpr:
 		return self.var_use_chain.var
 
 	@property
-	def function(self) -> int:
-		if not isinstance(self.x, int):
-			return -1
-		return self.x # type:ignore
+	def func_addr(self) -> int:
+		return self.x
+
+	@property
+	def function(self) -> SExpr:
+		return self.x
 
 	@property
 	def target(self) -> SExpr:

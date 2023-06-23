@@ -197,17 +197,17 @@ class TypeAnalyzer(FunctionManager):
 			return stype
 
 		elif sexpr.is_function():
-			return self.get_func_tinfo(sexpr.function)
+			return self.get_func_tinfo(sexpr.func_addr)
 
 		elif sexpr.is_explicit_call():
-			return self.analyze_retval(sexpr.function)
+			return self.analyze_retval(sexpr.function.func_addr)
 
 		elif sexpr.is_implicit_call():
-			addr = self.get_call_address(sexpr.x) # type:ignore
+			addr = self.get_call_address(sexpr.function) # type:ignore
 			if addr != -1:
 				return self.analyze_retval(addr)
 
-			stype = self.analyze_sexpr_type(sexpr.x) # type:ignore
+			stype = self.analyze_sexpr_type(sexpr.function) # type:ignore
 			if stype.is_funcptr():
 				pointed_stype = stype.get_pointed_object()
 				rettype = pointed_stype.get_rettype()
