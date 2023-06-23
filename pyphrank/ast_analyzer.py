@@ -179,103 +179,126 @@ class CTreeAnalyzer:
 			self.lift_instr(instr)
 
 	def lift_instr(self, cinstr):
-		sexprs = []
+		new_nodes = []
 		if cinstr.op == idaapi.cit_expr:
-			sexpr = self.lift_cexpr(cinstr.cexpr)
-			sexprs.append(sexpr)
+			new_nodes += self.lift_cexpr(cinstr.cexpr)
 		elif cinstr.op == idaapi.cit_if:
-			sexpr = self.lift_cexpr(cinstr.cif.expr)
-			sexprs.append(sexpr)
+			new_nodes += self.lift_cexpr(cinstr.cif.expr)
 			self.lift_block(cinstr.cif.ithen.cblock)
 			if cinstr.cif.ielse is not None:
 				self.lift_block(cinstr.cif.ielse.cblock)
 		elif cinstr.op == idaapi.cit_for:
-			init = self.lift_cexpr(cinstr.cfor.init)
-			expr = self.lift_cexpr(cinstr.cfor.expr)
-			step = self.lift_cexpr(cinstr.cfor.step)
-			sexprs += [init, expr, step]
+			new_nodes += self.lift_cexpr(cinstr.cfor.init)
+			new_nodes += self.lift_cexpr(cinstr.cfor.expr)
+			new_nodes += self.lift_cexpr(cinstr.cfor.step)
 			self.lift_block(cinstr.cfor.body.cblock)
 		elif cinstr.op == idaapi.cit_while:
-			sexpr = self.lift_cexpr(cinstr.cwhile.expr)
-			sexprs.append(sexpr)
+			new_nodes += self.lift_cexpr(cinstr.cwhile.expr)
 			self.lift_block(cinstr.cwhile.body.cblock)
 		elif cinstr.op == idaapi.cit_do:
-			sexpr = self.lift_cexpr(cinstr.cdo.expr)
-			sexprs.append(sexpr)
+			new_nodes += self.lift_cexpr(cinstr.cdo.expr)
 			self.lift_block(cinstr.cdo.body.cblock)
 		elif cinstr.op in (idaapi.cit_asm, idaapi.cit_empty, idaapi.cit_goto, idaapi.cit_end, idaapi.cit_break, idaapi.cit_continue):
 			pass
 		elif cinstr.op == idaapi.cit_return:
-			sexpr = self.lift_cexpr(cinstr.creturn.expr)
-			return_node = Node(Node.RETURN, sexpr)
-			self.current_ast_analysis.nodes.append(return_node)
+			return_sexprs = self.lift_cexpr(cinstr.creturn.expr)
+			last_sexpr = return_sexprs.pop()
+			new_nodes += return_sexprs
+			return_node = Node(Node.RETURN, last_sexpr.sexpr)
+			new_nodes.append(return_node)
 		elif cinstr.op == idaapi.cit_switch:
 			# cinstr.cswitch.cases + cinstr.cswitch.expr
 			pass
 		else:
 			utils.log_err(f"unknown instr operand {cinstr.opname}")
 
-		for s in sexprs:
-			if s is UNKNOWN_SEXPR:
-				continue
-			node = Node(Node.EXPR, s)
-			self.current_ast_analysis.nodes.append(node)
+		self.current_ast_analysis.nodes += new_nodes
 
 	@property
 	def actx(self) -> ASTCtx:
 		return self.current_ast_analysis.actx
 
-	def lift_cexpr(self, expr:idaapi.cexpr_t) -> SExpr:
+	def lift_cexpr(self, expr:idaapi.cexpr_t) -> list[Node]:
+		"""
+		last node holds type of final expr
+		return list is always non-empty
+		"""
 		if expr.op == idaapi.cot_cast:
 			expr = expr.x
 
 		if expr.op == idaapi.cot_asg:
-			target = self.lift_cexpr(expr.x)
-			value = self.lift_cexpr(expr.y)
+			target_nodes = self.lift_cexpr(expr.x)
+			target = target_nodes.pop().sexpr
+			value_nodes = self.lift_cexpr(expr.y)
+			value = value_nodes.pop().sexpr
 			asg = SExpr.create_assign(expr.ea, target, value)
-			return asg
+			node = Node(Node.EXPR, asg)
+			return target_nodes + value_nodes + [node]
 
 		elif expr.op == idaapi.cot_call and expr.x.op != idaapi.cot_helper:
-			call_func = self.lift_cexpr(expr.x)
+			call_func_nodes = self.lift_cexpr(expr.x)
+			call_func = call_func_nodes.pop().sexpr
+			arg_nodes = []
 			for arg_id, arg in enumerate(expr.a):
 				arg = utils.strip_casts(arg)
-				arg_sexpr = self.lift_cexpr(arg)
+				arg_sexpr_nodes = self.lift_cexpr(arg)
+				arg_sexpr = arg_sexpr_nodes.pop().sexpr
 				call_cast = Node(Node.CALL_CAST, arg_sexpr, arg_id, call_func)
-				self.current_ast_analysis.nodes.append(call_cast)
-			return SExpr.create_call(expr.ea, call_func)
+				arg_nodes += arg_sexpr_nodes
+				arg_nodes.append(call_cast)
+			call = SExpr.create_call(expr.ea, call_func)
+			node = Node(Node.EXPR, call)
+			return call_func_nodes + arg_nodes + [node]
 
 		elif is_known_call(expr, "memset"):
-			arg_sexpr = self.lift_cexpr(expr.a[0])
+			arg_sexpr_nodes = self.lift_cexpr(expr.a[0])
+			arg_sexpr = arg_sexpr_nodes.pop().sexpr
 			n = utils.get_int(expr.a[2])
 			if n is None:
 				n = 1
 			type_cast = Node(Node.TYPE_CAST, arg_sexpr, utils.str2tif(f"char [{n}]"))
-			self.current_ast_analysis.nodes.append(type_cast)
 			# TODO potential type casts of arg1 and arg2
-			return UNKNOWN_SEXPR
+			node = Node(Node.EXPR, UNKNOWN_SEXPR)
+			return arg_sexpr_nodes + [type_cast, node]
 
 		elif expr.op == idaapi.cot_num:
-			return SExpr.create_int(expr.ea, expr.n._value, expr.type)
+			sint = SExpr.create_int(expr.ea, expr.n._value, expr.type)
+			node = Node(Node.EXPR, sint)
+			return [node]
 
 		elif expr.op == idaapi.cot_obj and utils.is_func_start(expr.obj_ea):
-			return SExpr.create_function(expr.ea, expr.obj_ea)
+			func = SExpr.create_function(expr.ea, expr.obj_ea)
+			node = Node(Node.EXPR, func)
+			return [node]
 
 		elif expr.op in bool_operations:
-			x = self.lift_cexpr(expr.x)
-			y = self.lift_cexpr(expr.y)
-			return SExpr.create_bool_op(expr.ea, x, y)
+			x_nodes = self.lift_cexpr(expr.x)
+			x = x_nodes.pop().sexpr
+			y_nodes = self.lift_cexpr(expr.y)
+			y = y_nodes.pop().sexpr
+			boolop = SExpr.create_bool_op(expr.ea, x, y)
+			node = Node(Node.EXPR, boolop)
+			return x_nodes + y_nodes + [node]
 
 		elif (vuc := get_var_use_chain(expr, self.actx)) is not None:
-			return SExpr.create_var_use_chain(expr.ea, vuc)
+			vuc = SExpr.create_var_use_chain(expr.ea, vuc)
+			node = Node(Node.EXPR, vuc)
+			return [node]
 
 		elif expr.op in rw_operations:
 			# TODO not implemented
-			return UNKNOWN_SEXPR
+			node = Node(Node.EXPR, UNKNOWN_SEXPR)
+			return [node]
 
 		elif expr.op in binary_operations and len(extract_vars(expr, self.actx)) > 1:
-			x = self.lift_cexpr(expr.x)
-			y = self.lift_cexpr(expr.y)
-			return SExpr.create_binary_op(expr.ea, x, y)
+			x_nodes = self.lift_cexpr(expr.x)
+			x = x_nodes.pop().sexpr
+			y_nodes = self.lift_cexpr(expr.y)
+			y = y_nodes.pop().sexpr
+			binop = SExpr.create_binary_op(expr.ea, x, y)
+			node = Node(Node.EXPR, binop)
+			return x_nodes + y_nodes + [node]
 
 		utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
-		return UNKNOWN_SEXPR
+		node = Node(Node.EXPR, UNKNOWN_SEXPR)
+		return [node]
