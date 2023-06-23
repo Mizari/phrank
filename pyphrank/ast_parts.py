@@ -415,21 +415,3 @@ class Node:
 	@property
 	def tif(self) -> idaapi.tinfo_t:
 		return self.y
-
-
-class ExprNode:
-	def __init__(self) -> None:
-		pass
-
-
-class CallCastNode:
-	def __init__(self, arg:SExpr, arg_id:int, func_call:SExpr) -> None:
-		self.sexpr = arg
-		self.func_call = func_call
-		self.arg_id = arg_id
-
-
-class TypeCastNode:
-	def __init__(self, arg:SExpr, tif:idaapi.tinfo_t) -> None:
-		self.sexpr = arg
-		self.tif = tif

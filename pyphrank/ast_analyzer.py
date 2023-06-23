@@ -3,7 +3,7 @@ from __future__ import annotations
 import idaapi
 
 import pyphrank.utils as utils
-from pyphrank.ast_parts import SExpr, ASTCtx, CallCastNode, TypeCastNode, Node
+from pyphrank.ast_parts import SExpr, ASTCtx, Node
 from pyphrank.ast_parts import Var, VarUse, VarUseChain, UNKNOWN_SEXPR
 from pyphrank.ast_analysis import ASTAnalysis
 

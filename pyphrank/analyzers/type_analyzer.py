@@ -4,7 +4,7 @@ import idc
 import idaapi
 
 from pyphrank.function_manager import FunctionManager
-from pyphrank.ast_parts import Var, SExpr, CallCastNode, TypeCastNode, VarUseChain
+from pyphrank.ast_parts import Var, SExpr, VarUseChain, Node
 from pyphrank.containers.structure import Structure
 from pyphrank.containers.vtable import Vtable
 from pyphrank.container_manager import ContainerManager
@@ -51,8 +51,8 @@ class VarUses:
 		self.moves_from:list[SExpr] = []
 		self.writes:list[VarWrite] = []
 		self.reads:list[VarUseChain] = []
-		self.call_casts:list[CallCastNode] = []
-		self.type_casts:list[TypeCastNode] = []
+		self.call_casts:list[Node] = []
+		self.type_casts:list[Node] = []
 
 	def casts_len(self):
 		return len(self.call_casts) + len(self.type_casts)
@@ -68,8 +68,8 @@ class TypeUses:
 	def __init__(self) -> bool:
 		self.writes = []
 		self.reads = []
-		self.call_casts:list[CallCastNode]= []
-		self.type_casts:list[TypeCastNode] = []
+		self.call_casts:list[Node]= []
+		self.type_casts:list[Node] = []
 
 	def uses_len(self):
 		return self.__len__()
@@ -343,7 +343,7 @@ class TypeAnalyzer(FunctionManager):
 				call_casts.append(c)
 				continue
 
-			type_casts.append(TypeCastNode(c.sexpr, arg_type))
+			type_casts.append(Node(Node.TYPE_CAST, c.sexpr, arg_type))
 
 		type_uses = TypeUses()
 		type_uses.writes = writes
@@ -524,7 +524,7 @@ class TypeAnalyzer(FunctionManager):
 			return utils.ShiftedStruct(strucid, offset)
 		return None
 
-	def analyze_call_cast_type(self, call_cast:CallCastNode) -> idaapi.tinfo_t:
+	def analyze_call_cast_type(self, call_cast:Node) -> idaapi.tinfo_t:
 		address = self.get_call_address(call_cast.func_call)
 		if address == -1:
 			return utils.UNKNOWN_TYPE
