@@ -36,6 +36,26 @@ helper2offset = {
 }
 
 
+def is_known_call(func_expr:idaapi.cexpr_t, funcname:str) -> bool:
+	if func_expr.op != idaapi.cot_call:
+		return False
+
+	x = func_expr.x
+	if x.op == idaapi.cot_helper and x.helper == funcname:
+		return True
+
+	if x.op != idaapi.cot_obj or not utils.is_func_start(x.obj_ea):
+		return False
+
+	func_addr = x.obj_ea
+	if idaapi.get_name(func_addr) == funcname:
+		return True
+
+	if (target := utils.get_trampoline_func_target(func_addr)) == -1:
+		return False
+
+	return idaapi.get_name(target) == funcname
+
 def get_var(expr:idaapi.cexpr_t, actx:ASTCtx) -> Var|None:
 	expr = utils.strip_casts(expr)
 	if expr.op == idaapi.cot_var:
@@ -231,7 +251,7 @@ class CTreeAnalyzer:
 				self.current_ast_analysis.nodes.append(call_cast)
 			return fc
 
-		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper and expr.x.helper == "memset":
+		elif is_known_call(expr, "memset"):
 			arg_sexpr = self.lift_cexpr(expr.a[0])
 			n = utils.get_int(expr.a[2])
 			if n is None:
