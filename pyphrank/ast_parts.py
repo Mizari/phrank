@@ -413,7 +413,7 @@ class Node:
 		self.parents : list[Node] = []
 
 	def __str__(self) -> str:
-		if self.node_type == self.expr and self.sexpr is UNKNOWN_SEXPR:
+		if self.node_type == self.EXPR and self.sexpr is UNKNOWN_SEXPR:
 			return "NopNode"
 
 		node_type = {
