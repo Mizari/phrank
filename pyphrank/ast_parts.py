@@ -278,6 +278,24 @@ class SExpr:
 		self._x:Any = None
 		self._y:Any = None
 
+	def __str__(self) -> str:
+		if self.is_int():
+			return f"IntExpr({self.tif},{hex(self.int_value)})"
+		elif self.is_var_use_chain():
+			return f"VucExpr({self.var_use_chain})"
+		elif self.is_function():
+			return f"FuncExpr({idaapi.get_name(self.func_addr)})"
+		elif self.is_bool_op():
+			return f"BoolOpExpr({self.x}&&{self.y})"
+		elif self.is_call():
+			return f"CallExpr({self.function})"
+		elif self.is_assign():
+			return f"AsgExpr({self.x}={self.y})"
+		elif self.is_binary_op():
+			return f"BinOpExpr({self.x}*{self.y})"
+		else:
+			return ""
+
 	@classmethod
 	def create_var_use_chain(cls, expr_ea:int, vuc:VarUseChain):
 		obj = cls(cls.TYPE_VAR_USE_CHAIN, expr_ea)
@@ -395,13 +413,16 @@ class Node:
 		self.parents : list[Node] = []
 
 	def __str__(self) -> str:
+		if self.node_type == self.expr and self.sexpr is UNKNOWN_SEXPR:
+			return "NopNode"
+
 		node_type = {
 			self.RETURN: "Return",
 			self.EXPR: "Expr",
 			self.CALL_CAST: "CallCast",
 			self.TYPE_CAST: "TypeCast",
 		}.get(self.node_type)
-		return f"{node_type}Node"
+		return f"{node_type}Node|{str(self.sexpr)}|"
 
 	def max_depth(self):
 		m = 1
