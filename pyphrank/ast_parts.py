@@ -403,6 +403,17 @@ class Node:
 		}.get(self.node_type)
 		return f"{node_type}Node"
 
+	def max_depth(self):
+		m = 1
+		for n in self.children:
+			m = max(m, n.max_depth() + 1)
+		return m
+
+	def print_node(self, lvl):
+		print(f"{lvl * ' '}node {str(self)} children_len={len(self.children)}")
+		for c in self.children:
+			c.print_node(lvl + 1)
+
 	def is_return(self):
 		return self.node_type == self.RETURN
 

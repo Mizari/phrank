@@ -38,7 +38,7 @@ class ASTAnalysis():
 		self.print_node(self.entry, 0)
 
 	def print_node(self, node:Node, lvl):
-		print(f"{'  ' * lvl} {node} {node.node_type}")
+		print(f"{'  ' * lvl}{node}")
 		for c in node.children:
 			self.print_node(c, lvl + 1)
 
