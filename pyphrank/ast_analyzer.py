@@ -227,11 +227,14 @@ class CTreeAnalyzer:
 		elif cinstr.op == idaapi.cit_if:
 			sexpr_nodes = self.lift_cexpr(cinstr.cif.expr)
 			entry = sexpr_nodes[0]
+			exit = sexpr_nodes[-1]
 			ithen = self.lift_instr(cinstr.cif.ithen)
-			chain_trees(entry, ithen)
 			if cinstr.cif.ielse is not None:
 				ielse = self.lift_instr(cinstr.cif.ielse)
-				chain_trees(entry, ielse)
+			else:
+				ielse = nop_node()
+			chain_nodes(exit, ithen)
+			chain_nodes(exit, ielse)
 		elif cinstr.op == idaapi.cit_for:
 			init_nodes = self.lift_cexpr(cinstr.cfor.init)
 			expr_nodes = self.lift_cexpr(cinstr.cfor.expr)
