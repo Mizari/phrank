@@ -394,6 +394,15 @@ class Node:
 		self.children : list[Node] = []
 		self.parents : list[Node] = []
 
+	def __str__(self) -> str:
+		node_type = {
+			self.RETURN: "Return",
+			self.EXPR: "Expr",
+			self.CALL_CAST: "CallCast",
+			self.TYPE_CAST: "TypeCast",
+		}.get(self.node_type)
+		return f"{node_type}Node"
+
 	def is_return(self):
 		return self.node_type == self.RETURN
 

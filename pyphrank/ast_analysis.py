@@ -33,6 +33,15 @@ class ASTAnalysis():
 		self.actx = actx
 		self.entry = entry
 
+	def print_graph(self):
+		print("graph size =", len([n for n in self.iterate_nodes()]))
+		self.print_node(self.entry, 0)
+
+	def print_node(self, node:Node, lvl):
+		print(f"{'  ' * lvl} {node} {node.node_type}")
+		for c in node.children:
+			self.print_node(c, lvl + 1)
+
 	def iterate_nodes(self, start=None):
 		if start is None:
 			start = self.entry
