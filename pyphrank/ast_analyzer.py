@@ -326,7 +326,7 @@ class CTreeAnalyzer:
 			node = Node(Node.EXPR, sint)
 			new_nodes = [node]
 
-		elif expr.op == idaapi.cot_obj and utils.is_func_start(expr.obj_ea):
+		elif expr.op == idaapi.cot_obj and (utils.is_func_start(expr.obj_ea) or utils.is_func_import(expr.obj_ea)):
 			func = SExpr.create_function(expr.ea, expr.obj_ea)
 			node = Node(Node.EXPR, func)
 			new_nodes = [node]
