@@ -6,7 +6,7 @@ import pyphrank.utils as utils
 
 from pyphrank.ast_analyzer import CTreeAnalyzer, ASTAnalysis
 from pyphrank.cfunction_factory import CFunctionFactory
-from pyphrank.ast_parts import ASTCtx
+from pyphrank.ast_parts import ASTCtx, Node, UNKNOWN_SEXPR
 
 def get_funcname(func_ea: int) -> str:
 	return idaapi.get_name(func_ea)
@@ -33,7 +33,8 @@ class FunctionManager:
 		cfunc = self.get_cfunc(func_ea)
 		if cfunc is None:
 			actx = ASTCtx.empty()
-			analysis = ASTAnalysis(actx)
+			nop_node = Node(Node.EXPR, UNKNOWN_SEXPR)
+			analysis = ASTAnalysis(nop_node, actx)
 		else:
 			analysis = self.ast_analyzer.get_ast_analysis(cfunc)
 		return analysis
