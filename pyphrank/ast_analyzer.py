@@ -150,10 +150,52 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 	return VarUseChain(var, *use_chain)
 
 
+def nop_node():
+	return Node(Node.EXPR, UNKNOWN_SEXPR)
+
+def collect_exit_nodes(node:Node) -> list[Node]:
+	if len(node.children) == 0:
+		if node.is_return():
+			return []
+		else:
+			return [node]
+
+	exit_nodes = []
+	for child in node.children:
+		if len(child.children) != 0: # is not leaf
+			exit_nodes += collect_exit_nodes(child)
+			continue
+
+		if not child.is_return():
+			exit_nodes.append(child)
+	return exit_nodes
+
+def chain_trees(*nodes:Node):
+	if len(nodes) < 2:
+		return
+
+	for i in range(len(nodes) - 1):
+		parent = nodes[i]
+		child = nodes[i + 1]
+		for exit in collect_exit_nodes(parent):
+			exit.children.append(child)
+			child.parents.append(exit)
+
+def chain_nodes(*nodes:Node):
+	if len(nodes) < 2:
+		return
+
+	for i in range(len(nodes) - 1):
+		parent = nodes[i]
+		child = nodes[i + 1]
+		parent.children.append(child)
+		child.parents.append(parent)
+
+
 class CTreeAnalyzer:
 	def __init__(self):
-		self.current_ast_analysis: ASTAnalysis = None # type:ignore
 		self.ast_analysis_cache = {}
+		self.actx = None
 
 	def cache_analysis(self, analysis:ASTAnalysis):
 		self.ast_analysis_cache[analysis.actx.addr] = analysis
@@ -168,108 +210,123 @@ class CTreeAnalyzer:
 		return rv
 
 	def lift_cfunc(self, cfunc:idaapi.cfunc_t) -> ASTAnalysis:
-		actx = ASTCtx.from_cfunc(cfunc)
-		self.current_ast_analysis = ASTAnalysis(actx)
-		self.lift_block(cfunc.body.cblock)
-		rv, self.current_ast_analysis = self.current_ast_analysis, None # type:ignore
-		return rv
+		self.actx = ASTCtx.from_cfunc(cfunc)
+		entry = self.lift_instr(cfunc.body)
+		ast_analysis = ASTAnalysis(entry, self.actx)
+		return ast_analysis
 
-	def lift_block(self, cblock):
-		for instr in cblock:
-			self.lift_instr(instr)
-
-	def lift_instr(self, cinstr):
-		new_nodes = []
+	def lift_instr(self, cinstr) -> Node:
+		sexpr_nodes = []
 		if cinstr.op == idaapi.cit_expr:
-			new_nodes += self.lift_cexpr(cinstr.cexpr)
+			sexpr_nodes = self.lift_cexpr(cinstr.cexpr)
+			entry = sexpr_nodes[0]
+		elif cinstr.op == idaapi.cit_block:
+			instr_entries = [self.lift_instr(i) for i in cinstr.cblock]
+			entry = instr_entries[0]
+			chain_trees(*instr_entries)
 		elif cinstr.op == idaapi.cit_if:
-			new_nodes += self.lift_cexpr(cinstr.cif.expr)
-			self.lift_block(cinstr.cif.ithen.cblock)
+			sexpr_nodes = self.lift_cexpr(cinstr.cif.expr)
+			entry = sexpr_nodes[0]
+			ithen = self.lift_instr(cinstr.cif.ithen)
+			chain_trees(entry, ithen)
 			if cinstr.cif.ielse is not None:
-				self.lift_block(cinstr.cif.ielse.cblock)
+				ielse = self.lift_instr(cinstr.cif.ielse)
+				chain_trees(entry, ielse)
 		elif cinstr.op == idaapi.cit_for:
-			new_nodes += self.lift_cexpr(cinstr.cfor.init)
-			new_nodes += self.lift_cexpr(cinstr.cfor.expr)
-			new_nodes += self.lift_cexpr(cinstr.cfor.step)
-			self.lift_block(cinstr.cfor.body.cblock)
+			init_nodes = self.lift_cexpr(cinstr.cfor.init)
+			expr_nodes = self.lift_cexpr(cinstr.cfor.expr)
+			step_nodes = self.lift_cexpr(cinstr.cfor.step)
+			cfor_entry = self.lift_instr(cinstr.cfor.body)
+			entry = init_nodes[0]
+			chain_trees(entry, expr_nodes[0], cfor_entry, step_nodes[0])
 		elif cinstr.op == idaapi.cit_while:
-			new_nodes += self.lift_cexpr(cinstr.cwhile.expr)
-			self.lift_block(cinstr.cwhile.body.cblock)
+			sexpr_nodes = self.lift_cexpr(cinstr.cwhile.expr)
+			entry = sexpr_nodes[0]
+			cwhile_entry = self.lift_instr(cinstr.cwhile.body)
+			chain_trees(entry, cwhile_entry)
 		elif cinstr.op == idaapi.cit_do:
-			new_nodes += self.lift_cexpr(cinstr.cdo.expr)
-			self.lift_block(cinstr.cdo.body.cblock)
-		elif cinstr.op in (idaapi.cit_asm, idaapi.cit_empty, idaapi.cit_goto, idaapi.cit_end, idaapi.cit_break, idaapi.cit_continue):
-			pass
+			sexpr_nodes = self.lift_cexpr(cinstr.cdo.expr)
+			entry = sexpr_nodes[0]
+			cdo_entry = self.lift_instr(cinstr.cdo.body)
+			chain_trees(entry, cdo_entry)
 		elif cinstr.op == idaapi.cit_return:
-			return_sexprs = self.lift_cexpr(cinstr.creturn.expr)
-			last_sexpr = return_sexprs.pop()
-			new_nodes += return_sexprs
-			return_node = Node(Node.RETURN, last_sexpr.sexpr)
-			new_nodes.append(return_node)
+			sexpr_nodes = self.lift_cexpr(cinstr.creturn.expr)
+			if len(sexpr_nodes) == 1:
+				last_sexpr = sexpr_nodes.pop()
+				return_node = Node(Node.RETURN, last_sexpr.sexpr)
+				entry = return_node
+			else:
+				last_sexpr = sexpr_nodes.pop()
+				return_node = Node(Node.RETURN, last_sexpr.sexpr)
+				sexpr_nodes.append(return_node)
+				entry = sexpr_nodes[0]
+				chain_nodes(last_sexpr, return_node)
 		elif cinstr.op == idaapi.cit_switch:
 			# cinstr.cswitch.cases + cinstr.cswitch.expr
-			pass
+			entry = nop_node()
+		elif cinstr.op in (idaapi.cit_asm, idaapi.cit_empty, idaapi.cit_goto, idaapi.cit_end, idaapi.cit_break, idaapi.cit_continue):
+			entry = nop_node()
 		else:
+			entry = nop_node()
 			utils.log_err(f"unknown instr operand {cinstr.opname}")
 
-		self.current_ast_analysis.nodes += new_nodes
-
-	@property
-	def actx(self) -> ASTCtx:
-		return self.current_ast_analysis.actx
+		return entry
 
 	def lift_cexpr(self, expr:idaapi.cexpr_t) -> list[Node]:
 		"""
 		last node holds type of final expr
-		return list is always non-empty
+		returned nodes are chained
+		returned list is always non-empty
+		returned nodes do not contain return node
 		"""
 		if expr.op == idaapi.cot_cast:
 			expr = expr.x
 
 		if expr.op == idaapi.cot_asg:
-			target_nodes = self.lift_cexpr(expr.x)
-			target = target_nodes.pop().sexpr
-			value_nodes = self.lift_cexpr(expr.y)
-			value = value_nodes.pop().sexpr
+			new_nodes = self.lift_cexpr(expr.x)
+			target = new_nodes.pop().sexpr
+			new_nodes += self.lift_cexpr(expr.y)
+			value = new_nodes.pop().sexpr
 			asg = SExpr.create_assign(expr.ea, target, value)
 			node = Node(Node.EXPR, asg)
-			return target_nodes + value_nodes + [node]
+			new_nodes.append(node)
 
 		elif expr.op == idaapi.cot_call and expr.x.op != idaapi.cot_helper:
-			call_func_nodes = self.lift_cexpr(expr.x)
-			call_func = call_func_nodes.pop().sexpr
-			arg_nodes = []
+			call_nodes = self.lift_cexpr(expr.x)
+			call_func = call_nodes.pop().sexpr
+			new_nodes = []
 			for arg_id, arg in enumerate(expr.a):
 				arg = utils.strip_casts(arg)
-				arg_sexpr_nodes = self.lift_cexpr(arg)
-				arg_sexpr = arg_sexpr_nodes.pop().sexpr
+				new_nodes += self.lift_cexpr(arg)
+				arg_sexpr = new_nodes.pop().sexpr
 				call_cast = Node(Node.CALL_CAST, arg_sexpr, arg_id, call_func)
-				arg_nodes += arg_sexpr_nodes
-				arg_nodes.append(call_cast)
+				new_nodes.append(call_cast)
 			call = SExpr.create_call(expr.ea, call_func)
 			node = Node(Node.EXPR, call)
-			return call_func_nodes + arg_nodes + [node]
+			new_nodes.append(node)
+			new_nodes += call_nodes
 
 		elif is_known_call(expr, "memset"):
-			arg_sexpr_nodes = self.lift_cexpr(expr.a[0])
-			arg_sexpr = arg_sexpr_nodes.pop().sexpr
+			new_nodes = self.lift_cexpr(expr.a[0])
+			arg_sexpr = new_nodes.pop().sexpr
 			n = utils.get_int(expr.a[2])
 			if n is None:
 				n = 1
 			type_cast = Node(Node.TYPE_CAST, arg_sexpr, utils.str2tif(f"char [{n}]"))
+			new_nodes.append(type_cast)
 			# TODO potential type casts of arg1 and arg2
-			node = Node(Node.EXPR, UNKNOWN_SEXPR)
-			return arg_sexpr_nodes + [type_cast, node]
+			node = nop_node()
+			new_nodes.append(node)
 
 		elif expr.op == idaapi.cot_num:
 			sint = SExpr.create_int(expr.ea, expr.n._value, expr.type)
 			node = Node(Node.EXPR, sint)
-			return [node]
+			new_nodes = [node]
 
 		elif expr.op == idaapi.cot_obj and utils.is_func_start(expr.obj_ea):
 			func = SExpr.create_function(expr.ea, expr.obj_ea)
 			node = Node(Node.EXPR, func)
-			return [node]
+			new_nodes = [node]
 
 		elif expr.op in bool_operations:
 			x_nodes = self.lift_cexpr(expr.x)
@@ -278,17 +335,17 @@ class CTreeAnalyzer:
 			y = y_nodes.pop().sexpr
 			boolop = SExpr.create_bool_op(expr.ea, x, y)
 			node = Node(Node.EXPR, boolop)
-			return x_nodes + y_nodes + [node]
+			new_nodes = x_nodes + y_nodes + [node]
 
 		elif (vuc := get_var_use_chain(expr, self.actx)) is not None:
 			vuc = SExpr.create_var_use_chain(expr.ea, vuc)
 			node = Node(Node.EXPR, vuc)
-			return [node]
+			new_nodes = [node]
 
 		elif expr.op in rw_operations:
 			# TODO not implemented
-			node = Node(Node.EXPR, UNKNOWN_SEXPR)
-			return [node]
+			node = nop_node()
+			new_nodes = [node]
 
 		elif expr.op in binary_operations and len(extract_vars(expr, self.actx)) > 1:
 			x_nodes = self.lift_cexpr(expr.x)
@@ -297,8 +354,12 @@ class CTreeAnalyzer:
 			y = y_nodes.pop().sexpr
 			binop = SExpr.create_binary_op(expr.ea, x, y)
 			node = Node(Node.EXPR, binop)
-			return x_nodes + y_nodes + [node]
+			new_nodes = x_nodes + y_nodes + [node]
 
-		utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
-		node = Node(Node.EXPR, UNKNOWN_SEXPR)
-		return [node]
+		else:
+			utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
+			node = nop_node()
+			new_nodes = [node]
+
+		chain_nodes(*new_nodes)
+		return new_nodes

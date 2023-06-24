@@ -29,13 +29,16 @@ def extract_var_reads(sexpr:SExpr):
 
 
 class ASTAnalysis():
-	def __init__(self, actx:ASTCtx):
+	def __init__(self, entry:Node, actx:ASTCtx):
 		self.actx = actx
-		self.nodes : list[Node] = []
+		self.entry = entry
 
-	def iterate_nodes(self):
-		for node in self.nodes:
-			yield node
+	def iterate_nodes(self, start=None):
+		if start is None:
+			start = self.entry
+		yield start
+		for child in start.children:
+			yield from self.iterate_nodes(child)
 
 	def iterate_sexprs(self):
 		for node in self.iterate_nodes():

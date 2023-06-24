@@ -391,6 +391,8 @@ class Node:
 		self.sexpr = sexpr
 		self.y = y
 		self.z = z
+		self.children : list[Node] = []
+		self.parents : list[Node] = []
 
 	def is_return(self):
 		return self.node_type == self.RETURN
