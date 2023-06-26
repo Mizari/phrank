@@ -177,6 +177,7 @@ def chain_trees(*nodes:Node):
 	for i in range(len(nodes) - 1):
 		parent = nodes[i]
 		child = nodes[i + 1]
+		exits = collect_exit_nodes(parent)
 		for exit in collect_exit_nodes(parent):
 			exit.children.append(child)
 			child.parents.append(exit)
@@ -243,15 +244,15 @@ class CTreeAnalyzer:
 			entry = init_nodes[0]
 			chain_trees(entry, expr_nodes[0], cfor_entry, step_nodes[0])
 		elif cinstr.op == idaapi.cit_while:
-			sexpr_nodes = self.lift_cexpr(cinstr.cwhile.expr)
-			entry = sexpr_nodes[0]
+			sexprs = self.lift_cexpr(cinstr.cwhile.expr)
+			entry = sexprs[0]
+			exit = sexprs[-1]
 			cwhile_entry = self.lift_instr(cinstr.cwhile.body)
-			chain_trees(entry, cwhile_entry)
+			chain_nodes(exit, cwhile_entry)
 		elif cinstr.op == idaapi.cit_do:
-			sexpr_nodes = self.lift_cexpr(cinstr.cdo.expr)
-			entry = sexpr_nodes[0]
-			cdo_entry = self.lift_instr(cinstr.cdo.body)
-			chain_trees(entry, cdo_entry)
+			sexpr_entry = self.lift_cexpr(cinstr.cdo.expr)[0]
+			entry = self.lift_instr(cinstr.cdo.body)
+			chain_trees(entry, sexpr_entry)
 		elif cinstr.op == idaapi.cit_return:
 			sexpr_nodes = self.lift_cexpr(cinstr.creturn.expr)
 			if len(sexpr_nodes) == 1:
