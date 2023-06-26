@@ -42,19 +42,9 @@ class ASTAnalysis():
 		for c in node.children:
 			self.print_node(c, lvl + 1)
 
-	def iterate_nodes(self, start=None):
-		if start is None:
-			start = self.entry
-		visited_nodes = set()
-		queue = {start}
-		while len(queue) != 0:
-			node = queue.pop()
-			if node in visited_nodes:
-				continue
-			visited_nodes.add(node)
-			yield node
-			new_nodes = set(node.children) - visited_nodes
-			queue.update(new_nodes)
+	def iterate_nodes(self):
+		yield self.entry
+		yield from self.entry.iterate_children()
 
 	def iterate_sexprs(self):
 		for node in self.iterate_nodes():

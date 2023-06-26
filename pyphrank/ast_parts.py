@@ -412,6 +412,19 @@ class Node:
 		self.children : list[Node] = []
 		self.parents : list[Node] = []
 
+	def iterate_children(self):
+		visited_nodes = set()
+		queue = set(self.children)
+		while len(queue) != 0:
+			node = queue.pop()
+			if node in visited_nodes:
+				continue
+			visited_nodes.add(node)
+			yield node
+
+			new_nodes = set(node.children) - visited_nodes
+			queue.update(new_nodes)
+
 	def __str__(self) -> str:
 		if self.node_type == self.EXPR and self.sexpr is UNKNOWN_SEXPR:
 			return "NopNode"
