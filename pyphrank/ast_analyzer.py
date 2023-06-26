@@ -156,7 +156,7 @@ def nop_node():
 def is_exit_node(node:Node) -> bool:
 	return len(node.children) == 0 and not node.is_return()
 
-def collect_exit_nodes(node:Node):
+def iterate_exit_nodes(node:Node):
 	if is_exit_node(node):
 		yield node
 		return
@@ -172,7 +172,8 @@ def chain_trees(*nodes:Node):
 	for i in range(len(nodes) - 1):
 		parent = nodes[i]
 		child = nodes[i + 1]
-		for exit in collect_exit_nodes(parent):
+		# must collect first, and then add new links
+		for exit in [e for e in iterate_exit_nodes(parent)]:
 			exit.children.append(child)
 			child.parents.append(exit)
 
