@@ -153,22 +153,17 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 def nop_node():
 	return Node(Node.EXPR, UNKNOWN_SEXPR)
 
-def collect_exit_nodes(node:Node) -> list[Node]:
-	if len(node.children) == 0:
-		if node.is_return():
-			return []
-		else:
-			return [node]
+def is_exit_node(node:Node) -> bool:
+	return len(node.children) == 0 and not node.is_return()
 
-	exit_nodes = []
-	for child in node.children:
-		if len(child.children) != 0: # is not leaf
-			exit_nodes += collect_exit_nodes(child)
-			continue
+def collect_exit_nodes(node:Node):
+	if is_exit_node(node):
+		yield node
+		return
 
-		if not child.is_return():
-			exit_nodes.append(child)
-	return exit_nodes
+	for child in node.iterate_children():
+		if is_exit_node(child):
+			yield child
 
 def chain_trees(*nodes:Node):
 	if len(nodes) < 2:
@@ -177,7 +172,6 @@ def chain_trees(*nodes:Node):
 	for i in range(len(nodes) - 1):
 		parent = nodes[i]
 		child = nodes[i + 1]
-		exits = collect_exit_nodes(parent)
 		for exit in collect_exit_nodes(parent):
 			exit.children.append(child)
 			child.parents.append(exit)
