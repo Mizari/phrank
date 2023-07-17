@@ -414,16 +414,15 @@ class Node:
 
 	def iterate_children(self):
 		visited_nodes = set()
-		queue = set(self.children)
+		queue = list(self.children)
 		while len(queue) != 0:
-			node = queue.pop()
+			node = queue.pop(0)
 			if node in visited_nodes:
 				continue
 			visited_nodes.add(node)
 			yield node
 
-			new_nodes = set(node.children) - visited_nodes
-			queue.update(new_nodes)
+			queue += node.children
 
 	def __str__(self) -> str:
 		if self.node_type == self.EXPR and self.sexpr is UNKNOWN_SEXPR:
