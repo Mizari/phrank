@@ -435,7 +435,7 @@ class Node:
 			self.CALL_CAST: "CallCast",
 			self.TYPE_CAST: "TypeCast",
 		}.get(self.node_type)
-		return f"{node_type}Node|{str(self.sexpr)}|"
+		return f"{node_type}Node\n{str(self.sexpr)}"
 
 	def max_depth(self):
 		m = 1
