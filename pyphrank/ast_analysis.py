@@ -1,3 +1,5 @@
+import idaapi
+
 from pyphrank.ast_parts import SExpr, ASTCtx, Var, VarUseChain, Node
 
 
@@ -28,14 +30,36 @@ def extract_var_reads(sexpr:SExpr):
 		yield from extract_var_reads(sexpr.y)
 
 
+class ASTAnalysisGraphView(idaapi.GraphViewer):
+	def __init__(self, name:str):
+		super().__init__(name)
+
+	def OnRefresh(self):
+		return True
+
+	def OnGetText(self, node_id):
+		return self[node_id]
+
+
 class ASTAnalysis():
 	def __init__(self, entry:Node, actx:ASTCtx):
 		self.actx = actx
 		self.entry = entry
 
 	def print_graph(self):
-		print("graph size =", len([n for n in self.iterate_nodes()]))
-		self.print_node(self.entry, 0)
+		gv = ASTAnalysisGraphView(f"{idaapi.get_name(self.actx.addr)} ASTAnalysis")
+		entry_id = gv.AddNode(str(self.entry))
+		node2id = {self.entry: entry_id}
+		for child in self.entry.iterate_children():
+			node2id[child] = gv.AddNode(str(child))
+
+		for child in self.entry.iterate_children():
+			child_id = node2id[child]
+			for parent in child.parents:
+				parent_id = node2id[parent]
+				gv.AddEdge(parent_id, child_id)
+
+		gv.Show()
 
 	def print_node(self, node:Node, lvl):
 		print(f"{'  ' * lvl}{node}")
