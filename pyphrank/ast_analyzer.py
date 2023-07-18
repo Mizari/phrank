@@ -198,14 +198,14 @@ class CTreeAnalyzer:
 	def lift_instr(self, cinstr) -> Node:
 		sexpr_nodes = []
 		if cinstr.op == idaapi.cit_expr:
-			sexpr_nodes = self.lift_cexpr(cinstr.cexpr)
+			sexpr_nodes = self.lift_cexpr(cinstr.cexpr, True)
 			entry = sexpr_nodes[0]
 		elif cinstr.op == idaapi.cit_block:
 			instr_entries = [self.lift_instr(i) for i in cinstr.cblock]
 			entry = instr_entries[0]
 			chain_trees(*instr_entries)
 		elif cinstr.op == idaapi.cit_if:
-			sexpr_nodes = self.lift_cexpr(cinstr.cif.expr)
+			sexpr_nodes = self.lift_cexpr(cinstr.cif.expr, True)
 			entry = sexpr_nodes[0]
 			exit = sexpr_nodes[-1]
 			ithen = self.lift_instr(cinstr.cif.ithen)
@@ -216,34 +216,31 @@ class CTreeAnalyzer:
 			chain_nodes(exit, ithen)
 			chain_nodes(exit, ielse)
 		elif cinstr.op == idaapi.cit_for:
-			init_nodes = self.lift_cexpr(cinstr.cfor.init)
-			expr_nodes = self.lift_cexpr(cinstr.cfor.expr)
-			step_nodes = self.lift_cexpr(cinstr.cfor.step)
+			init_nodes = self.lift_cexpr(cinstr.cfor.init, True)
+			expr_nodes = self.lift_cexpr(cinstr.cfor.expr, True)
+			step_nodes = self.lift_cexpr(cinstr.cfor.step, True)
 			cfor_entry = self.lift_instr(cinstr.cfor.body)
 			entry = init_nodes[0]
 			chain_trees(entry, expr_nodes[0], cfor_entry, step_nodes[0])
 		elif cinstr.op == idaapi.cit_while:
-			sexprs = self.lift_cexpr(cinstr.cwhile.expr)
+			sexprs = self.lift_cexpr(cinstr.cwhile.expr, True)
 			entry = sexprs[0]
 			exit = sexprs[-1]
 			cwhile_entry = self.lift_instr(cinstr.cwhile.body)
 			chain_nodes(exit, cwhile_entry)
 		elif cinstr.op == idaapi.cit_do:
-			sexpr_entry = self.lift_cexpr(cinstr.cdo.expr)[0]
+			sexpr_entry = self.lift_cexpr(cinstr.cdo.expr, True)[0]
 			entry = self.lift_instr(cinstr.cdo.body)
 			chain_trees(entry, sexpr_entry)
 		elif cinstr.op == idaapi.cit_return:
-			sexpr_nodes = self.lift_cexpr(cinstr.creturn.expr)
-			if len(sexpr_nodes) == 1:
-				last_sexpr = sexpr_nodes.pop()
-				return_node = Node(Node.RETURN, last_sexpr.sexpr)
-				entry = return_node
+			sexpr_nodes = self.lift_cexpr(cinstr.creturn.expr, False)
+			last_sexpr = sexpr_nodes.pop().sexpr
+			if len(sexpr_nodes) == 0:
+				entry = Node(Node.RETURN, last_sexpr)
 			else:
-				last_sexpr = sexpr_nodes.pop()
-				return_node = Node(Node.RETURN, last_sexpr.sexpr)
-				sexpr_nodes.append(return_node)
+				return_node = Node(Node.RETURN, last_sexpr)
 				entry = sexpr_nodes[0]
-				chain_nodes(last_sexpr, return_node)
+				chain_nodes(*sexpr_nodes, return_node)
 		elif cinstr.op == idaapi.cit_switch:
 			# cinstr.cswitch.cases + cinstr.cswitch.expr
 			entry = NOP_NODE.copy()
@@ -255,10 +252,10 @@ class CTreeAnalyzer:
 
 		return entry
 
-	def lift_cexpr(self, expr:idaapi.cexpr_t) -> list[Node]:
+	def lift_cexpr(self, expr:idaapi.cexpr_t, should_chain:bool) -> list[Node]:
 		"""
 		last node holds type of final expr
-		returned nodes are chained
+		returned nodes are chained, if should_chain is True
 		returned list is always non-empty
 		returned nodes do not contain return node
 		"""
@@ -266,21 +263,21 @@ class CTreeAnalyzer:
 			expr = expr.x
 
 		if expr.op == idaapi.cot_asg:
-			new_nodes = self.lift_cexpr(expr.x)
+			new_nodes = self.lift_cexpr(expr.x, False)
 			target = new_nodes.pop().sexpr
-			new_nodes += self.lift_cexpr(expr.y)
+			new_nodes += self.lift_cexpr(expr.y, False)
 			value = new_nodes.pop().sexpr
 			asg = SExpr.create_assign(expr.ea, target, value)
 			node = Node(Node.EXPR, asg)
 			new_nodes.append(node)
 
 		elif expr.op == idaapi.cot_call and expr.x.op != idaapi.cot_helper:
-			call_nodes = self.lift_cexpr(expr.x)
+			call_nodes = self.lift_cexpr(expr.x, False)
 			call_func = call_nodes.pop().sexpr
 			new_nodes = []
 			for arg_id, arg in enumerate(expr.a):
 				arg = utils.strip_casts(arg)
-				new_nodes += self.lift_cexpr(arg)
+				new_nodes += self.lift_cexpr(arg, False)
 				arg_sexpr = new_nodes.pop().sexpr
 				call_cast = Node(Node.CALL_CAST, arg_sexpr, arg_id, call_func)
 				new_nodes.append(call_cast)
@@ -290,7 +287,7 @@ class CTreeAnalyzer:
 			new_nodes += call_nodes
 
 		elif is_known_call(expr, "memset"):
-			new_nodes = self.lift_cexpr(expr.a[0])
+			new_nodes = self.lift_cexpr(expr.a[0], False)
 			arg_sexpr = new_nodes.pop().sexpr
 			n = utils.get_int(expr.a[2])
 			if n is None:
@@ -312,9 +309,9 @@ class CTreeAnalyzer:
 			new_nodes = [node]
 
 		elif expr.op in bool_operations:
-			x_nodes = self.lift_cexpr(expr.x)
+			x_nodes = self.lift_cexpr(expr.x, False)
 			x = x_nodes.pop().sexpr
-			y_nodes = self.lift_cexpr(expr.y)
+			y_nodes = self.lift_cexpr(expr.y, False)
 			y = y_nodes.pop().sexpr
 			boolop = SExpr.create_bool_op(expr.ea, x, y)
 			node = Node(Node.EXPR, boolop)
@@ -331,9 +328,9 @@ class CTreeAnalyzer:
 			new_nodes = [node]
 
 		elif expr.op in binary_operations and len(extract_vars(expr, self.actx)) > 1:
-			x_nodes = self.lift_cexpr(expr.x)
+			x_nodes = self.lift_cexpr(expr.x, False)
 			x = x_nodes.pop().sexpr
-			y_nodes = self.lift_cexpr(expr.y)
+			y_nodes = self.lift_cexpr(expr.y, False)
 			y = y_nodes.pop().sexpr
 			binop = SExpr.create_binary_op(expr.ea, x, y)
 			node = Node(Node.EXPR, binop)
@@ -344,5 +341,6 @@ class CTreeAnalyzer:
 			node = NOP_NODE.copy()
 			new_nodes = [node]
 
-		chain_nodes(*new_nodes)
+		if should_chain:
+			chain_nodes(*new_nodes)
 		return new_nodes
