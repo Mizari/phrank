@@ -412,6 +412,10 @@ class Node:
 		self.children : list[Node] = []
 		self.parents : list[Node] = []
 
+	def copy(self) -> Node:
+		""" Copy node without edges """
+		return Node(self.node_type, self.sexpr, self.y, self.z)
+
 	def iterate_children(self):
 		visited_nodes = set()
 		queue = list(self.children)
@@ -470,3 +474,6 @@ class Node:
 	@property
 	def tif(self) -> idaapi.tinfo_t:
 		return self.y
+
+
+NOP_NODE = Node(Node.EXPR, UNKNOWN_SEXPR)

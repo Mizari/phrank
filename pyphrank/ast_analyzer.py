@@ -3,7 +3,7 @@ from __future__ import annotations
 import idaapi
 
 import pyphrank.utils as utils
-from pyphrank.ast_parts import SExpr, ASTCtx, Node
+from pyphrank.ast_parts import SExpr, ASTCtx, Node, NOP_NODE
 from pyphrank.ast_parts import Var, VarUse, VarUseChain, UNKNOWN_SEXPR
 from pyphrank.ast_analysis import ASTAnalysis
 
@@ -150,9 +150,6 @@ def get_var_use_chain(expr:idaapi.cexpr_t, actx:ASTCtx) -> VarUseChain|None:
 	return VarUseChain(var, *use_chain)
 
 
-def nop_node():
-	return Node(Node.EXPR, UNKNOWN_SEXPR)
-
 def is_exit_node(node:Node) -> bool:
 	return len(node.children) == 0 and not node.is_return()
 
@@ -215,7 +212,7 @@ class CTreeAnalyzer:
 			if cinstr.cif.ielse is not None:
 				ielse = self.lift_instr(cinstr.cif.ielse)
 			else:
-				ielse = nop_node()
+				ielse = NOP_NODE.copy()
 			chain_nodes(exit, ithen)
 			chain_nodes(exit, ielse)
 		elif cinstr.op == idaapi.cit_for:
@@ -249,11 +246,11 @@ class CTreeAnalyzer:
 				chain_nodes(last_sexpr, return_node)
 		elif cinstr.op == idaapi.cit_switch:
 			# cinstr.cswitch.cases + cinstr.cswitch.expr
-			entry = nop_node()
+			entry = NOP_NODE.copy()
 		elif cinstr.op in (idaapi.cit_asm, idaapi.cit_empty, idaapi.cit_goto, idaapi.cit_end, idaapi.cit_break, idaapi.cit_continue):
-			entry = nop_node()
+			entry = NOP_NODE.copy()
 		else:
-			entry = nop_node()
+			entry = NOP_NODE.copy()
 			utils.log_err(f"unknown instr operand {cinstr.opname}")
 
 		return entry
@@ -301,7 +298,7 @@ class CTreeAnalyzer:
 			type_cast = Node(Node.TYPE_CAST, arg_sexpr, utils.str2tif(f"char [{n}]"))
 			new_nodes.append(type_cast)
 			# TODO potential type casts of arg1 and arg2
-			node = nop_node()
+			node = NOP_NODE.copy()
 			new_nodes.append(node)
 
 		elif expr.op == idaapi.cot_num:
@@ -330,7 +327,7 @@ class CTreeAnalyzer:
 
 		elif expr.op in rw_operations:
 			# TODO not implemented
-			node = nop_node()
+			node = NOP_NODE.copy()
 			new_nodes = [node]
 
 		elif expr.op in binary_operations and len(extract_vars(expr, self.actx)) > 1:
@@ -344,7 +341,7 @@ class CTreeAnalyzer:
 
 		else:
 			utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
-			node = nop_node()
+			node = NOP_NODE.copy()
 			new_nodes = [node]
 
 		chain_nodes(*new_nodes)
