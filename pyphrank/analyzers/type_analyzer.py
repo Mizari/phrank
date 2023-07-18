@@ -6,6 +6,7 @@ import idaapi
 from pyphrank.function_manager import FunctionManager
 from pyphrank.ast_parts import Var, SExpr, VarUseChain, Node
 from pyphrank.containers.structure import Structure
+from pyphrank.ast_analyzer import ASTAnalysis
 from pyphrank.containers.vtable import Vtable
 from pyphrank.container_manager import ContainerManager
 import pyphrank.utils as utils
@@ -85,9 +86,22 @@ class TypeAnalyzer(FunctionManager):
 	def __init__(self, cfunc_factory=None, ast_analyzer=None) -> None:
 		super().__init__(cfunc_factory=cfunc_factory, ast_analyzer=ast_analyzer)
 		self.container_manager = ContainerManager()
+		self.ast_analysis_cache = {}
 
 		self.var2tinfo : dict[Var, idaapi.tinfo_t] = {}
 		self.retval2tinfo : dict[int, idaapi.tinfo_t] = {}
+
+	def cache_analysis(self, analysis:ASTAnalysis):
+		self.ast_analysis_cache[analysis.actx.addr] = analysis
+
+	def get_ast_analysis(self, func_ea:int) -> ASTAnalysis:
+		cached = self.ast_analysis_cache.get(func_ea)
+		if cached is not None:
+			return cached
+
+		aa = super().get_ast_analysis(func_ea)
+		self.ast_analysis_cache[func_ea] = aa
+		return aa
 
 	def get_db_var_type(self, var:Var) -> idaapi.tinfo_t:
 		if var.is_local():

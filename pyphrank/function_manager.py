@@ -23,10 +23,6 @@ class FunctionManager:
 		self.ast_analyzer = ast_analyzer
 
 	def get_ast_analysis(self, func_ea:int) -> ASTAnalysis:
-		cached = self.ast_analyzer.ast_analysis_cache.get(func_ea)
-		if cached is not None:
-			return cached
-
 		if not utils.is_func_start(func_ea):
 			utils.log_warn(f"{hex(func_ea)} is not a function")
 
@@ -36,7 +32,7 @@ class FunctionManager:
 			nop_node = Node(Node.EXPR, UNKNOWN_SEXPR)
 			analysis = ASTAnalysis(nop_node, actx)
 		else:
-			analysis = self.ast_analyzer.get_ast_analysis(cfunc)
+			analysis = self.ast_analyzer.lift_cfunc(cfunc)
 		return analysis
 
 	def get_cfunc(self, func_ea:int) -> idaapi.cfunc_t|None:

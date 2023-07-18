@@ -190,20 +190,7 @@ def chain_nodes(*nodes:Node):
 
 class CTreeAnalyzer:
 	def __init__(self):
-		self.ast_analysis_cache = {}
 		self.actx = None
-
-	def cache_analysis(self, analysis:ASTAnalysis):
-		self.ast_analysis_cache[analysis.actx.addr] = analysis
-
-	def get_ast_analysis(self, cfunc:idaapi.cfunc_t) -> ASTAnalysis:
-		cached = self.ast_analysis_cache.get(cfunc.entry_ea)
-		if cached is not None:
-			return cached
-
-		rv = self.lift_cfunc(cfunc)
-		self.cache_analysis(rv)
-		return rv
 
 	def lift_cfunc(self, cfunc:idaapi.cfunc_t) -> ASTAnalysis:
 		self.actx = ASTCtx.from_cfunc(cfunc)
