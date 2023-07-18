@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import idaapi
 
 from pyphrank.ast_parts import SExpr, ASTCtx, Var, VarUseChain, Node
@@ -41,10 +43,26 @@ class ASTAnalysisGraphView(idaapi.GraphViewer):
 		return self[node_id]
 
 
-class ASTAnalysis():
+class ASTAnalysis:
 	def __init__(self, entry:Node, actx:ASTCtx):
 		self.actx = actx
 		self.entry = entry
+
+	def copy(self) -> ASTAnalysis:
+		node2new : dict[Node,Node] = {}
+		for node in self.iterate_nodes():
+			new_node = node.copy()
+			node2new[node] = new_node
+
+		for node in self.iterate_nodes():
+			new_node = node2new[node]
+			for child in node.children:
+				new_child = node2new[child]
+				new_child.parents.append(new_node)
+				new_node.children.append(new_child)
+
+		new_entry = node2new[self.entry]
+		return ASTAnalysis(new_entry, self.actx)
 
 	def print_graph(self):
 		gv = ASTAnalysisGraphView(f"{idaapi.get_name(self.actx.addr)} ASTAnalysis")

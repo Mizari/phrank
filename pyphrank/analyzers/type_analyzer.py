@@ -4,7 +4,7 @@ import idc
 import idaapi
 
 from pyphrank.function_manager import FunctionManager
-from pyphrank.ast_parts import Var, SExpr, VarUseChain, Node
+from pyphrank.ast_parts import Var, SExpr, VarUseChain, Node, UNKNOWN_SEXPR, NOP_NODE
 from pyphrank.containers.structure import Structure
 from pyphrank.ast_analyzer import ASTAnalysis
 from pyphrank.containers.vtable import Vtable
@@ -38,6 +38,33 @@ def select_type(*tifs):
 	# multiple different assignments is unknown
 	else:
 		return utils.UNKNOWN_TYPE
+
+def is_typeful_node(node:Node) -> bool:
+	""" Typeful node is a node, that can affect types """
+	if node.is_call_cast() and node.sexpr.is_int():
+		return False
+	if node.is_expr() and node.sexpr.is_explicit_call():
+		return False
+	if node.is_expr() and node.sexpr is UNKNOWN_SEXPR:
+		return False
+	return True
+
+def shrink_ast_analysis(aa:ASTAnalysis) -> ASTAnalysis:
+	def remove_node(node:Node):
+		for parent in node.parents:
+			parent.children.remove(node)
+		for child in node.children:
+			child.parents.remove(node)
+		for parent in node.parents:
+			for child in node.children:
+				parent.children.append(child)
+				child.parents.append(parent)
+
+	new_aa = aa.copy()
+	bad_nodes = {n for n in new_aa.iterate_nodes() if not is_typeful_node(n)}
+	for node in bad_nodes:
+		remove_node(node)
+	return new_aa
 
 
 class VarWrite:
@@ -100,8 +127,9 @@ class TypeAnalyzer(FunctionManager):
 			return cached
 
 		aa = super().get_ast_analysis(func_ea)
-		self.ast_analysis_cache[func_ea] = aa
-		return aa
+		shrinked_aa = shrink_ast_analysis(aa)
+		self.ast_analysis_cache[func_ea] = shrinked_aa
+		return shrinked_aa
 
 	def get_db_var_type(self, var:Var) -> idaapi.tinfo_t:
 		if var.is_local():
