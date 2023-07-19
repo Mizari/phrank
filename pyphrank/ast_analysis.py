@@ -66,14 +66,13 @@ class ASTAnalysis:
 
 	def print_graph(self):
 		gv = ASTAnalysisGraphView(f"{idaapi.get_name(self.actx.addr)} ASTAnalysis")
-		entry_id = gv.AddNode(str(self.entry))
-		node2id = {self.entry: entry_id}
-		for child in self.entry.iterate_children():
-			node2id[child] = gv.AddNode(str(child))
+		node2id = {}
+		for node in self.iterate_nodes():
+			node2id[node] = gv.AddNode(str(node))
 
-		for child in self.entry.iterate_children():
-			child_id = node2id[child]
-			for parent in child.parents:
+		for node in self.iterate_nodes():
+			child_id = node2id[node]
+			for parent in node.parents:
 				parent_id = node2id[parent]
 				gv.AddEdge(parent_id, child_id)
 
