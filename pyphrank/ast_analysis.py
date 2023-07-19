@@ -78,11 +78,6 @@ class ASTAnalysis:
 
 		gv.Show()
 
-	def print_node(self, node:Node, lvl):
-		print(f"{'  ' * lvl}{node}")
-		for c in node.children:
-			self.print_node(c, lvl + 1)
-
 	def iterate_nodes(self):
 		yield self.entry
 		yield from self.entry.iterate_children()
