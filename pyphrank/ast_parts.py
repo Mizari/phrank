@@ -29,6 +29,8 @@ class Var:
 			raise ValueError("Invalid length of variable identifier")
 
 	def __eq__(self, __value:object) -> bool:
+		if __value is None:
+			return False
 		if not isinstance(__value, Var):
 			raise NotImplementedError
 		return self.varid == __value.varid
