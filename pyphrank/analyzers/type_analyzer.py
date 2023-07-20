@@ -338,32 +338,6 @@ class TypeAnalyzer(FunctionManager):
 		if not self.is_ptr(var_uses):
 			return utils.UNKNOWN_TYPE
 
-		"""
-		write_assigns = [a for a in var_uses.iterate_assign_sexprs() if is_assign_write(a)]
-		writes = [w for w in var_uses.iterate_writes()]
-		reads = [r for r in var_uses.iterate_var_reads()]
-		type_casts = [c for c in var_uses.iterate_type_cast_sexprs()]
-		call_casts = []
-		for c in var_uses.iterate_call_cast_nodes():
-			if (addr := self.get_call_address(c.func_call)) == -1:
-				call_casts.append(c)
-				continue
-
-			arg_var = Var(addr, c.arg_id)
-			if (arg_type := self.var2tinfo.get(arg_var)) is None:
-				call_casts.append(c)
-				continue
-
-			type_casts.append(Node(Node.TYPE_CAST, c, arg_type))
-
-		type_uses = VarUses()
-		type_uses.assigns = write_assigns
-		type_uses.reads = reads
-		type_uses.type_casts = type_casts
-		type_uses.call_casts = call_casts
-		"""
-		type_uses = var_uses
-
 		rw_ptr_uses = set()
 		max_ptr_offset = 0
 		for w in var_uses.iterate_writes():
@@ -386,9 +360,9 @@ class TypeAnalyzer(FunctionManager):
 			max_ptr_offset = max(max_ptr_offset, read_offset)
 		rw_ptr_uses.discard(None) # get_ptr_offset can return None
 
-		if type_uses.casts_len() == 0:
+		if var_uses.casts_len() == 0:
 			# cant determine ptr use without writes to it
-			if len([w for w in type_uses.iterate_writes()]) == 0:
+			if len([w for w in var_uses.iterate_writes()]) == 0:
 				return utils.UNKNOWN_TYPE
 
 			# ptr uses other than offset0 create new type
@@ -396,7 +370,7 @@ class TypeAnalyzer(FunctionManager):
 				lvar_struct = Structure.new()
 				self.container_manager.add_struct(lvar_struct)
 				type_tif = lvar_struct.ptr_tinfo
-				self.add_type_uses(type_uses, type_tif)
+				self.add_type_uses(var_uses, type_tif)
 				return type_tif
 
 			write_types = [self.analyze_sexpr_type(w.value) for w in var_uses.iterate_writes()]
@@ -406,9 +380,9 @@ class TypeAnalyzer(FunctionManager):
 			write_type.create_ptr(write_type)
 			return write_type
 
-		if type_uses.casts_len() == 1:
-			call_casts = [c for c in type_uses.iterate_call_cast_nodes()]
-			type_casts = [c for c in type_uses.iterate_type_cast_nodes()]
+		if var_uses.casts_len() == 1:
+			call_casts = [c for c in var_uses.iterate_call_cast_nodes()]
+			type_casts = [c for c in var_uses.iterate_type_cast_nodes()]
 			if len(call_casts) == 1:
 				cast = call_casts[0]
 				cast_arg = cast.sexpr
@@ -427,11 +401,11 @@ class TypeAnalyzer(FunctionManager):
 				lvar_struct = Structure.new()
 				self.container_manager.add_struct(lvar_struct)
 				type_tif = lvar_struct.ptr_tinfo
-				self.add_type_uses(type_uses, type_tif)
+				self.add_type_uses(var_uses, type_tif)
 				return type_tif
 
 			# if no other uses but single cast
-			if type_uses.uses_len() == 1:
+			if var_uses.uses_len() == 1:
 				return arg_type
 
 			# single cast and writes into casted type
@@ -449,19 +423,19 @@ class TypeAnalyzer(FunctionManager):
 				lvar_struct = Structure.new()
 				self.container_manager.add_struct(lvar_struct)
 				type_tif = lvar_struct.ptr_tinfo
-				self.add_type_uses(type_uses, type_tif)
+				self.add_type_uses(var_uses, type_tif)
 				return type_tif
 
 			# otherwise not new type
 			# TODO check incompatible uses, should create new type if found
 			else:
-				self.add_type_uses(type_uses, arg_type)
+				self.add_type_uses(var_uses, arg_type)
 				return arg_type
 
 		lvar_struct = Structure.new()
 		self.container_manager.add_struct(lvar_struct)
 		type_tif = lvar_struct.ptr_tinfo
-		self.add_type_uses(type_uses, type_tif)
+		self.add_type_uses(var_uses, type_tif)
 		return type_tif
 
 	def add_type_uses(self, var_uses:ASTAnalysis, var_type:idaapi.tinfo_t):
