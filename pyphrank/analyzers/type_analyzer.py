@@ -91,22 +91,29 @@ class VarUses:
 	def total_len(self):
 		return self.uses_len() + len(self.moves_to) + len(self.moves_from)
 
+	def iterate_moves_to(self):
+		for m in self.moves_to:
+			yield m
 
-class TypeUses:
-	def __init__(self) -> bool:
-		self.writes = []
-		self.reads = []
-		self.call_casts:list[Node]= []
-		self.type_casts:list[Node] = []
+	def iterate_moves_from(self):
+		for m in self.moves_from:
+			yield m
 
-	def uses_len(self):
-		return self.__len__()
+	def iterate_writes(self):
+		for w in self.writes:
+			yield w
 
-	def casts_len(self):
-		return len(self.call_casts) + len(self.type_casts)
+	def iterate_reads(self):
+		for r in self.reads:
+			yield r
 
-	def __len__(self):
-		return len(self.writes) + len(self.reads) + len(self.call_casts) + len(self.type_casts)
+	def iterate_call_casts(self):
+		for c in self.call_casts:
+			yield c
+
+	def iterate_type_casts(self):
+		for c in self.type_casts:
+			yield c
 
 
 class TypeAnalyzer(FunctionManager):
@@ -269,7 +276,7 @@ class TypeAnalyzer(FunctionManager):
 			return
 
 		var_uses = self.get_all_var_uses(var)
-		for target in var_uses.moves_from:
+		for target in var_uses.iterate_moves_from():
 			if (target_var := target.var) is None:
 				continue
 			self.propagate_type_to_var(target_var, var_type)
@@ -361,7 +368,7 @@ class TypeAnalyzer(FunctionManager):
 			return utils.UNKNOWN_TYPE
 
 		moves_types = []
-		for m in var_uses.moves_to:
+		for m in var_uses.iterate_moves_to():
 			mtype = self.analyze_sexpr_type(m)
 			if mtype not in moves_types:
 				moves_types.append(mtype)
@@ -371,11 +378,11 @@ class TypeAnalyzer(FunctionManager):
 		if not self.is_ptr(var_uses):
 			return utils.UNKNOWN_TYPE
 
-		writes = var_uses.writes
-		reads = var_uses.reads
-		type_casts = var_uses.type_casts
+		writes = [w for w in var_uses.iterate_writes()]
+		reads = [r for r in var_uses.iterate_reads()]
+		type_casts = [c for c in var_uses.iterate_type_casts()]
 		call_casts = []
-		for c in var_uses.call_casts:
+		for c in var_uses.iterate_call_casts():
 			if (addr := self.get_call_address(c.func_call)) == -1:
 				call_casts.append(c)
 				continue
@@ -387,7 +394,7 @@ class TypeAnalyzer(FunctionManager):
 
 			type_casts.append(Node(Node.TYPE_CAST, c.sexpr, arg_type))
 
-		type_uses = TypeUses()
+		type_uses = VarUses()
 		type_uses.writes = writes
 		type_uses.reads = reads
 		type_uses.type_casts = type_casts
@@ -492,7 +499,7 @@ class TypeAnalyzer(FunctionManager):
 		return type_tif
 
 	def add_type_uses(self, var_uses:VarUses, var_type:idaapi.tinfo_t):
-		for var_write in var_uses.writes:
+		for var_write in var_uses.iterate_writes():
 			write_type = self.analyze_sexpr_type(var_write.value)
 			target = self.analyze_target(var_type, var_write.target)
 			if target is None:
@@ -504,14 +511,14 @@ class TypeAnalyzer(FunctionManager):
 				addr = var_write.value.function
 				self.container_manager.add_member_name(target.strucid, target.offset, idaapi.get_name(addr))
 
-		for var_read in var_uses.reads:
+		for var_read in var_uses.iterate_reads():
 			target = self.analyze_target(var_type, var_read)
 			if target is None:
 				utils.log_warn(f"cant read type={var_type} from expr {var_read}")
 				continue
 			self.container_manager.add_member_type(target.strucid, target.offset, utils.UNKNOWN_TYPE)
 
-		for type_cast in var_uses.type_casts:
+		for type_cast in var_uses.iterate_type_casts():
 			if type_cast.sexpr.var_use_chain is None:
 				continue
 			cast_arg = type_cast.sexpr.var_use_chain
@@ -521,7 +528,7 @@ class TypeAnalyzer(FunctionManager):
 				continue
 			self.add_type_cast(cast_arg, type_cast.tif, var_type)
 
-		for call_cast in var_uses.call_casts:
+		for call_cast in var_uses.iterate_call_casts():
 			cast_arg = call_cast.sexpr.var_use_chain
 			if cast_arg is None:
 				continue
@@ -600,23 +607,21 @@ class TypeAnalyzer(FunctionManager):
 			return False
 
 		# weeding out non-pointers
-		for w in var_uses.writes:
+		for w in var_uses.iterate_writes():
 			if not w.target.is_possible_ptr():
 				utils.log_warn("non-pointer writes are not supported for now {w}")
 				return False
 
-		casts = var_uses.call_casts
 		# weeding out non-pointers2
-		for c in casts:
+		for c in var_uses.iterate_call_casts():
 			if c.sexpr.var_use_chain is None:
 				continue
 			if c.sexpr.var_use_chain.is_possible_ptr() is None:
 				utils.log_warn(f"non-pointer casts are not supported for now {c}")
 				return False
 
-		reads = var_uses.reads
 		# weeding out non-pointers3
-		for r in reads:
+		for r in var_uses.iterate_reads():
 			if not r.is_possible_ptr():
 				utils.log_warn(f"non-pointer reads are not supported for now {r}")
 				return False
