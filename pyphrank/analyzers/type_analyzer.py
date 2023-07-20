@@ -75,9 +75,7 @@ class VarWrite:
 
 class VarUses:
 	def __init__(self) -> None:
-		self.moves_to:list[SExpr] = []
-		self.moves_from:list[SExpr] = []
-		self.writes:list[VarWrite] = []
+		self.assigns:list[SExpr] = []
 		self.reads:list[VarUseChain] = []
 		self.call_casts:list[Node] = []
 		self.type_casts:list[Node] = []
@@ -86,22 +84,29 @@ class VarUses:
 		return len(self.call_casts) + len(self.type_casts)
 
 	def uses_len(self):
-		return len(self.writes) + len(self.reads) + len(self.call_casts) + len(self.type_casts)
+		writes = [w for w in self.iterate_writes()]
+		return len(writes) + len(self.reads) + len(self.call_casts) + len(self.type_casts)
 
 	def total_len(self):
-		return self.uses_len() + len(self.moves_to) + len(self.moves_from)
+		moves_to = [m for m in self.iterate_moves_to()]
+		moves_from = [m for m in self.iterate_moves_from()]
+		return self.uses_len() + len(moves_to) + len(moves_from)
 
 	def iterate_moves_to(self):
-		for m in self.moves_to:
-			yield m
+		for asg in self.assigns:
+			if asg.target.is_var():
+				yield asg.value
 
 	def iterate_moves_from(self):
-		for m in self.moves_from:
-			yield m
+		for asg in self.assigns:
+			if asg.value.is_var():
+				yield asg.target
 
 	def iterate_writes(self):
-		for w in self.writes:
-			yield w
+		for asg in self.assigns:
+			if not asg.target.is_var() and asg.target.is_var_use():
+				write = VarWrite(asg.target.var_use_chain, asg.value)
+				yield write
 
 	def iterate_reads(self):
 		for r in self.reads:
@@ -316,12 +321,11 @@ class TypeAnalyzer(FunctionManager):
 		aa = self.get_ast_analysis(func_ea)
 		for asg in aa.iterate_assigns():
 			if asg.target.is_var(var):
-				var_uses.moves_to.append(asg.value)
+				var_uses.assigns.append(asg)
 			elif asg.target.is_var_use(var):
-				write = VarWrite(asg.target.var_use_chain, asg.value)
-				var_uses.writes.append(write)
+				var_uses.assigns.append(asg)
 			if asg.value.is_var(var):
-				var_uses.moves_from.append(asg.target)
+				var_uses.assigns.append(asg)
 
 		var_uses.reads = [r for r in aa.iterate_var_reads() if r.var == var]
 		var_uses.call_casts = [c for c in aa.iterate_call_casts() if c.sexpr.is_var_use(var)]
@@ -332,9 +336,7 @@ class TypeAnalyzer(FunctionManager):
 		var_uses = VarUses()
 		for func_ea in var.get_functions():
 			va = self.get_func_var_uses(func_ea, var)
-			var_uses.moves_from += va.moves_from
-			var_uses.moves_to += va.moves_to
-			var_uses.writes += va.writes
+			var_uses.assigns += va.assigns
 			var_uses.reads += va.reads
 			var_uses.call_casts += va.call_casts
 			var_uses.type_casts += va.type_casts
