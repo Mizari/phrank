@@ -73,6 +73,12 @@ class VarWrite:
 		self.value = value
 
 
+def is_assign_write(asg:SExpr) -> bool:
+	if asg.target.is_var():
+		return False
+	return asg.target.is_var_use()
+
+
 class VarUses:
 	def __init__(self) -> None:
 		self.assigns:list[SExpr] = []
@@ -102,11 +108,14 @@ class VarUses:
 			if asg.value.is_var():
 				yield asg.target
 
+	def iterate_assigns(self):
+		for asg in self.assigns:
+			yield asg
+
 	def iterate_writes(self):
 		for asg in self.assigns:
-			if not asg.target.is_var() and asg.target.is_var_use():
-				write = VarWrite(asg.target.var_use_chain, asg.value)
-				yield write
+			if is_assign_write(asg):
+				yield VarWrite(asg.target.var_use_chain, asg.value)
 
 	def iterate_reads(self):
 		for r in self.reads:
@@ -380,6 +389,7 @@ class TypeAnalyzer(FunctionManager):
 		if not self.is_ptr(var_uses):
 			return utils.UNKNOWN_TYPE
 
+		write_assigns = [a for a in var_uses.iterate_assigns() if is_assign_write(a)]
 		writes = [w for w in var_uses.iterate_writes()]
 		reads = [r for r in var_uses.iterate_reads()]
 		type_casts = [c for c in var_uses.iterate_type_casts()]
@@ -397,7 +407,7 @@ class TypeAnalyzer(FunctionManager):
 			type_casts.append(Node(Node.TYPE_CAST, c.sexpr, arg_type))
 
 		type_uses = VarUses()
-		type_uses.writes = writes
+		type_uses.assigns = write_assigns
 		type_uses.reads = reads
 		type_uses.type_casts = type_casts
 		type_uses.call_casts = call_casts
