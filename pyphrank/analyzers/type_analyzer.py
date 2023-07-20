@@ -6,7 +6,7 @@ import idaapi
 from pyphrank.function_manager import FunctionManager
 from pyphrank.ast_parts import Var, SExpr, VarUseChain, Node, UNKNOWN_SEXPR, NOP_NODE
 from pyphrank.containers.structure import Structure
-from pyphrank.ast_analyzer import ASTAnalysis
+from pyphrank.ast_analyzer import ASTAnalysis, chain_nodes
 from pyphrank.containers.vtable import Vtable
 from pyphrank.container_manager import ContainerManager
 import pyphrank.utils as utils
@@ -65,69 +65,6 @@ def shrink_ast_analysis(aa:ASTAnalysis) -> ASTAnalysis:
 	for node in bad_nodes:
 		remove_node(node)
 	return new_aa
-
-
-class VarWrite:
-	def __init__(self, target:VarUseChain, value:SExpr) -> None:
-		self.target = target
-		self.value = value
-
-
-def is_assign_write(asg:SExpr) -> bool:
-	if asg.target.is_var():
-		return False
-	return asg.target.is_var_use()
-
-
-class VarUses:
-	def __init__(self) -> None:
-		self.assigns:list[SExpr] = []
-		self.reads:list[VarUseChain] = []
-		self.call_casts:list[Node] = []
-		self.type_casts:list[Node] = []
-
-	def casts_len(self):
-		return len(self.call_casts) + len(self.type_casts)
-
-	def uses_len(self):
-		writes = [w for w in self.iterate_writes()]
-		return len(writes) + len(self.reads) + len(self.call_casts) + len(self.type_casts)
-
-	def total_len(self):
-		moves_to = [m for m in self.iterate_moves_to()]
-		moves_from = [m for m in self.iterate_moves_from()]
-		return self.uses_len() + len(moves_to) + len(moves_from)
-
-	def iterate_moves_to(self):
-		for asg in self.assigns:
-			if asg.target.is_var():
-				yield asg.value
-
-	def iterate_moves_from(self):
-		for asg in self.assigns:
-			if asg.value.is_var():
-				yield asg.target
-
-	def iterate_assigns(self):
-		for asg in self.assigns:
-			yield asg
-
-	def iterate_writes(self):
-		for asg in self.assigns:
-			if is_assign_write(asg):
-				yield VarWrite(asg.target.var_use_chain, asg.value)
-
-	def iterate_reads(self):
-		for r in self.reads:
-			yield r
-
-	def iterate_call_casts(self):
-		for c in self.call_casts:
-			yield c
-
-	def iterate_type_casts(self):
-		for c in self.type_casts:
-			yield c
 
 
 class TypeAnalyzer(FunctionManager):
@@ -243,7 +180,7 @@ class TypeAnalyzer(FunctionManager):
 		self.retval2tinfo[func_ea] = utils.UNKNOWN_TYPE # to break recursion
 
 		aa = self.get_ast_analysis(func_ea)
-		r_types = [self.analyze_sexpr_type(r) for r in aa.iterate_returns()]
+		r_types = [self.analyze_sexpr_type(r) for r in aa.iterate_return_sexprs()]
 		retval_type = select_type(*r_types)
 		self.retval2tinfo[func_ea] = retval_type
 		return retval_type
@@ -295,7 +232,7 @@ class TypeAnalyzer(FunctionManager):
 				continue
 			self.propagate_type_to_var(target_var, var_type)
 
-		for call_cast in var_uses.call_casts:
+		for call_cast in var_uses.iterate_call_cast_nodes():
 			call_ea = self.get_call_address(call_cast.func_call)
 			if call_ea == -1:
 				continue
@@ -325,31 +262,43 @@ class TypeAnalyzer(FunctionManager):
 				f"because variable has different type {current_type}"
 			)
 
-	def get_func_var_uses(self, func_ea:int, var:Var) -> VarUses:
-		var_uses = VarUses()
+	def get_func_var_uses(self, func_ea:int, var:Var) -> ASTAnalysis:
 		aa = self.get_ast_analysis(func_ea)
-		for asg in aa.iterate_assigns():
+		nodes = []
+		for node in aa.iterate_assign_nodes():
+			node = node.copy()
+			asg = node.sexpr
 			if asg.target.is_var(var):
-				var_uses.assigns.append(asg)
+				nodes.append(node)
 			elif asg.target.is_var_use(var):
-				var_uses.assigns.append(asg)
+				nodes.append(node)
 			if asg.value.is_var(var):
-				var_uses.assigns.append(asg)
+				nodes.append(node)
 
-		var_uses.reads = [r for r in aa.iterate_var_reads() if r.var == var]
-		var_uses.call_casts = [c for c in aa.iterate_call_casts() if c.sexpr.is_var_use(var)]
-		var_uses.type_casts = [c for c in aa.iterate_type_casts() if c.sexpr.is_var_use(var)]
-		return var_uses
+		for node in aa.iterate_call_cast_nodes():
+			node = node.copy()
+			if node.sexpr.is_var_use(var):
+				nodes.append(node)
+		for node in aa.iterate_type_cast_nodes():
+			node = node.copy()
+			if node.sexpr.is_var_use(var):
+				nodes.append(node)
+		for r in aa.iterate_var_reads():
+			if r.is_var_use(var) and r.var is None:
+				node = Node(Node.EXPR, r)
+				nodes.append(node)
+		chain_nodes(*nodes)
+		if len(nodes) == 0:
+			return ASTAnalysis(NOP_NODE.copy(), aa.actx)
+		return ASTAnalysis(nodes[0], aa.actx)
 
-	def get_all_var_uses(self, var:Var) -> VarUses:
-		var_uses = VarUses()
+	def get_all_var_uses(self, var:Var) -> ASTAnalysis:
+		new_entry = NOP_NODE.copy()
 		for func_ea in var.get_functions():
 			va = self.get_func_var_uses(func_ea, var)
-			var_uses.assigns += va.assigns
-			var_uses.reads += va.reads
-			var_uses.call_casts += va.call_casts
-			var_uses.type_casts += va.type_casts
-		return var_uses
+			new_entry.children.append(va.entry)
+			va.entry.parents.append(new_entry)
+		return ASTAnalysis(new_entry, None)
 
 	def analyze_by_heuristics(self, var:Var) -> idaapi.tinfo_t:
 		original_var_tinfo = self.get_db_var_type(var)
@@ -389,12 +338,13 @@ class TypeAnalyzer(FunctionManager):
 		if not self.is_ptr(var_uses):
 			return utils.UNKNOWN_TYPE
 
-		write_assigns = [a for a in var_uses.iterate_assigns() if is_assign_write(a)]
+		"""
+		write_assigns = [a for a in var_uses.iterate_assign_sexprs() if is_assign_write(a)]
 		writes = [w for w in var_uses.iterate_writes()]
-		reads = [r for r in var_uses.iterate_reads()]
-		type_casts = [c for c in var_uses.iterate_type_casts()]
+		reads = [r for r in var_uses.iterate_var_reads()]
+		type_casts = [c for c in var_uses.iterate_type_cast_sexprs()]
 		call_casts = []
-		for c in var_uses.iterate_call_casts():
+		for c in var_uses.iterate_call_cast_nodes():
 			if (addr := self.get_call_address(c.func_call)) == -1:
 				call_casts.append(c)
 				continue
@@ -404,17 +354,19 @@ class TypeAnalyzer(FunctionManager):
 				call_casts.append(c)
 				continue
 
-			type_casts.append(Node(Node.TYPE_CAST, c.sexpr, arg_type))
+			type_casts.append(Node(Node.TYPE_CAST, c, arg_type))
 
 		type_uses = VarUses()
 		type_uses.assigns = write_assigns
 		type_uses.reads = reads
 		type_uses.type_casts = type_casts
 		type_uses.call_casts = call_casts
+		"""
+		type_uses = var_uses
 
 		rw_ptr_uses = set()
 		max_ptr_offset = 0
-		for w in writes:
+		for w in var_uses.iterate_writes():
 			vuc = w.target
 			write_offset = vuc.get_ptr_offset()
 			rw_ptr_uses.add(write_offset)
@@ -428,15 +380,15 @@ class TypeAnalyzer(FunctionManager):
 					write_sz = 1
 					utils.log_warn(f"failed to calculate write size of {str(write_type)}, using size=1")
 			max_ptr_offset = max(max_ptr_offset, write_offset + write_sz)
-		for r in reads:
-			read_offset = r.get_ptr_offset()
+		for r in var_uses.iterate_var_reads():
+			read_offset = r.var_use_chain.get_ptr_offset()
 			rw_ptr_uses.add(read_offset)
 			max_ptr_offset = max(max_ptr_offset, read_offset)
 		rw_ptr_uses.discard(None) # get_ptr_offset can return None
 
 		if type_uses.casts_len() == 0:
 			# cant determine ptr use without writes to it
-			if len(writes) == 0:
+			if len([w for w in type_uses.iterate_writes()]) == 0:
 				return utils.UNKNOWN_TYPE
 
 			# ptr uses other than offset0 create new type
@@ -447,7 +399,7 @@ class TypeAnalyzer(FunctionManager):
 				self.add_type_uses(type_uses, type_tif)
 				return type_tif
 
-			write_types = [self.analyze_sexpr_type(w.value) for w in writes]
+			write_types = [self.analyze_sexpr_type(w.value) for w in var_uses.iterate_writes()]
 			write_type = select_type(*write_types)
 			if write_type is utils.UNKNOWN_TYPE:
 				return utils.UNKNOWN_TYPE
@@ -455,8 +407,10 @@ class TypeAnalyzer(FunctionManager):
 			return write_type
 
 		if type_uses.casts_len() == 1:
-			if len(type_uses.call_casts) == 1:
-				cast = type_uses.call_casts[0]
+			call_casts = [c for c in type_uses.iterate_call_cast_nodes()]
+			type_casts = [c for c in type_uses.iterate_type_cast_nodes()]
+			if len(call_casts) == 1:
+				cast = call_casts[0]
 				cast_arg = cast.sexpr
 				addr = self.get_call_address(cast.func_call)
 				if addr == -1:
@@ -465,8 +419,8 @@ class TypeAnalyzer(FunctionManager):
 					arg_var = Var(addr, cast.arg_id)
 					arg_type = self.analyze_var(arg_var)
 			else:
-				cast_arg = type_uses.type_casts[0].sexpr
-				arg_type = type_uses.type_casts[0].tif
+				cast_arg = type_casts[0].sexpr
+				arg_type = type_casts[0].tif
 
 			# offseted cast yields new type
 			if not cast_arg.is_var():
@@ -510,7 +464,7 @@ class TypeAnalyzer(FunctionManager):
 		self.add_type_uses(type_uses, type_tif)
 		return type_tif
 
-	def add_type_uses(self, var_uses:VarUses, var_type:idaapi.tinfo_t):
+	def add_type_uses(self, var_uses:ASTAnalysis, var_type:idaapi.tinfo_t):
 		for var_write in var_uses.iterate_writes():
 			write_type = self.analyze_sexpr_type(var_write.value)
 			target = self.analyze_target(var_type, var_write.target)
@@ -523,25 +477,26 @@ class TypeAnalyzer(FunctionManager):
 				addr = var_write.value.function
 				self.container_manager.add_member_name(target.strucid, target.offset, idaapi.get_name(addr))
 
-		for var_read in var_uses.iterate_reads():
-			target = self.analyze_target(var_type, var_read)
+		for var_read in var_uses.iterate_var_reads():
+			target = self.analyze_target(var_type, var_read.var_use_chain)
 			if target is None:
 				utils.log_warn(f"cant read type={var_type} from expr {var_read}")
 				continue
 			self.container_manager.add_member_type(target.strucid, target.offset, utils.UNKNOWN_TYPE)
 
-		for type_cast in var_uses.iterate_type_casts():
-			if type_cast.sexpr.var_use_chain is None:
+		for node in var_uses.iterate_type_cast_nodes():
+			type_cast = node.sexpr
+			if type_cast.var_use_chain is None:
 				continue
-			cast_arg = type_cast.sexpr.var_use_chain
+			cast_arg = type_cast.var_use_chain
 
 			# FIXME kostyl
 			if cast_arg.is_var_chain():
 				continue
-			self.add_type_cast(cast_arg, type_cast.tif, var_type)
+			self.add_type_cast(cast_arg, node.tif, var_type)
 
-		for call_cast in var_uses.iterate_call_casts():
-			cast_arg = call_cast.sexpr.var_use_chain
+		for call_cast in var_uses.iterate_call_cast_sexprs():
+			cast_arg = call_cast.var_use_chain
 			if cast_arg is None:
 				continue
 			# TODO
@@ -551,7 +506,6 @@ class TypeAnalyzer(FunctionManager):
 			self.add_type_cast(cast_arg, cast_type, var_type)
 
 	def add_type_cast(self, cast_arg:VarUseChain, cast_type:idaapi.tinfo_t, var_type:idaapi.tinfo_t):
-
 		tif = cast_arg.transform_type(var_type)
 		if isinstance(tif, utils.ShiftedStruct):
 			self.container_manager.add_member_type(tif.strucid, tif.offset, cast_type)
@@ -585,8 +539,8 @@ class TypeAnalyzer(FunctionManager):
 			return utils.ShiftedStruct(strucid, offset)
 		return None
 
-	def analyze_call_cast_type(self, call_cast:Node) -> idaapi.tinfo_t:
-		address = self.get_call_address(call_cast.func_call)
+	def analyze_call_cast_type(self, call_cast:SExpr) -> idaapi.tinfo_t:
+		address = self.get_call_address(call_cast)
 		if address == -1:
 			return utils.UNKNOWN_TYPE
 
@@ -614,7 +568,7 @@ class TypeAnalyzer(FunctionManager):
 
 		return addr
 
-	def is_ptr(self, var_uses: VarUses) -> bool:
+	def is_ptr(self, var_uses:ASTAnalysis) -> bool:
 		if var_uses.uses_len() == 0:
 			return False
 
@@ -625,16 +579,16 @@ class TypeAnalyzer(FunctionManager):
 				return False
 
 		# weeding out non-pointers2
-		for c in var_uses.iterate_call_casts():
-			if c.sexpr.var_use_chain is None:
+		for c in var_uses.iterate_call_cast_sexprs():
+			if c.var_use_chain is None:
 				continue
-			if c.sexpr.var_use_chain.is_possible_ptr() is None:
+			if c.var_use_chain.is_possible_ptr() is None:
 				utils.log_warn(f"non-pointer casts are not supported for now {c}")
 				return False
 
 		# weeding out non-pointers3
-		for r in var_uses.iterate_reads():
-			if not r.is_possible_ptr():
+		for r in var_uses.iterate_var_reads():
+			if not r.var_use_chain.is_possible_ptr():
 				utils.log_warn(f"non-pointer reads are not supported for now {r}")
 				return False
 

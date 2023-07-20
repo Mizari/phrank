@@ -12,7 +12,7 @@ def extract_implicit_calls(sexpr:SExpr):
 
 def extract_var_reads(sexpr:SExpr):
 	if sexpr.is_var_use_chain():
-		yield sexpr.var_use_chain
+		yield sexpr
 
 	if sexpr.is_assign():
 		# dont add target var_use_chain to reads, because it is write
@@ -41,6 +41,18 @@ class ASTAnalysisGraphView(idaapi.GraphViewer):
 
 	def OnGetText(self, node_id):
 		return self[node_id]
+
+
+class VarWrite:
+	def __init__(self, target:VarUseChain, value:SExpr) -> None:
+		self.target = target
+		self.value = value
+
+
+def is_assign_write(asg:SExpr) -> bool:
+	if asg.target.is_var():
+		return False
+	return asg.target.is_var_use()
 
 
 class ASTAnalysis:
@@ -82,57 +94,109 @@ class ASTAnalysis:
 		yield self.entry
 		yield from self.entry.iterate_children()
 
-	def iterate_sexprs(self):
+	def iterate_sexpr_nodes(self):
 		for node in self.iterate_nodes():
 			if node.is_expr():
-				yield node.sexpr
+				yield node
 
-	def iterate_returns(self):
+	def iterate_sexprs(self):
+		for node in self.iterate_sexpr_nodes():
+			yield node.sexpr
+
+	def iterate_return_nodes(self):
 		for node in self.iterate_nodes():
 			if node.is_return():
-				yield node.sexpr
+				yield node
 
-	def iterate_call_casts(self):
+	def iterate_return_sexprs(self):
+		for node in self.iterate_return_nodes():
+			yield node.sexpr
+
+	def iterate_call_cast_nodes(self):
 		for node in self.iterate_nodes():
 			if node.is_call_cast():
 				yield node
 
-	def iterate_type_casts(self):
+	def iterate_call_cast_sexprs(self):
+		for node in self.iterate_call_cast_nodes():
+			yield node.sexpr
+
+	def iterate_type_cast_nodes(self):
 		for node in self.iterate_nodes():
 			if node.is_type_cast():
 				yield node
+
+	def iterate_type_cast_sexprs(self):
+		for node in self.iterate_type_cast_nodes():
+			yield node.sexpr
 
 	def iterate_implicit_calls(self):
 		for c in self.iterate_sexprs():
 			yield from extract_implicit_calls(c)
 
-		for r in self.iterate_returns():
+		for r in self.iterate_return_sexprs():
 			yield from extract_implicit_calls(r)
 
-		for c in self.iterate_call_casts():
-			yield from extract_implicit_calls(c.sexpr)
+		for c in self.iterate_call_cast_sexprs():
+			yield from extract_implicit_calls(c)
 
-		for t in self.iterate_type_casts():
-			yield from extract_implicit_calls(t.sexpr)
+		for t in self.iterate_type_cast_sexprs():
+			yield from extract_implicit_calls(t)
 
-	def iterate_assigns(self):
-		for sexpr in self.iterate_sexprs():
-			if sexpr.is_assign():
-				yield sexpr
+	def iterate_assign_nodes(self):
+		for node in self.iterate_sexpr_nodes():
+			if node.sexpr.is_assign():
+				yield node
+
+	def iterate_assign_sexprs(self):
+		for node in self.iterate_assign_nodes():
+			yield node.sexpr
 
 	def iterate_var_reads(self):
 		for s in self.iterate_sexprs():
 			yield from extract_var_reads(s)
 
-		for r in self.iterate_returns():
+		for r in self.iterate_return_sexprs():
 			yield from extract_var_reads(r)
 
-		for c in self.iterate_call_casts():
+		for c in self.iterate_call_cast_sexprs():
 			# direct var use chain casts are casts, not reads
-			if not c.sexpr.is_var_use_chain():
-				yield from extract_var_reads(c.sexpr)
+			if not c.is_var_use_chain():
+				yield from extract_var_reads(c)
 
-		for t in self.iterate_type_casts():
+		for t in self.iterate_type_cast_sexprs():
 			# direct var use chain casts are casts, not reads
-			if not t.sexpr.is_var_use_chain():
-				yield from extract_var_reads(t.sexpr)
+			if not t.is_var_use_chain():
+				yield from extract_var_reads(t)
+
+
+
+	def casts_len(self):
+		casts1 = [c for c in self.iterate_call_cast_sexprs()]
+		casts2 = [c for c in self.iterate_type_cast_sexprs()]
+		return len(casts1) + len(casts2)
+
+	def uses_len(self):
+		writes = [w for w in self.iterate_writes()]
+		reads = [r for r in self.iterate_var_reads()]
+		return len(writes) + len(reads) + self.casts_len()
+
+	def total_len(self):
+		moves_to = [m for m in self.iterate_moves_to()]
+		moves_from = [m for m in self.iterate_moves_from()]
+		return self.uses_len() + len(moves_to) + len(moves_from)
+
+	def iterate_moves_to(self):
+		for asg in self.iterate_assign_sexprs():
+			if asg.target.is_var():
+				yield asg.value
+
+	def iterate_moves_from(self):
+		for asg in self.iterate_assign_sexprs():
+			if asg.value.is_var():
+				yield asg.target
+
+	def iterate_writes(self):
+		for asg in self.iterate_assign_sexprs():
+			if is_assign_write(asg):
+				yield VarWrite(asg.target.var_use_chain, asg.value)
