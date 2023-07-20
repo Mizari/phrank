@@ -495,14 +495,14 @@ class TypeAnalyzer(FunctionManager):
 				continue
 			self.add_type_cast(cast_arg, node.tif, var_type)
 
-		for call_cast in var_uses.iterate_call_cast_sexprs():
-			cast_arg = call_cast.var_use_chain
+		for node in var_uses.iterate_call_cast_nodes():
+			cast_arg = node.sexpr.var_use_chain
 			if cast_arg is None:
 				continue
 			# TODO
 			if cast_arg.is_var_chain():
 				continue
-			cast_type = self.analyze_call_cast_type(call_cast)
+			cast_type = self.analyze_call_cast_type(node)
 			self.add_type_cast(cast_arg, cast_type, var_type)
 
 	def add_type_cast(self, cast_arg:VarUseChain, cast_type:idaapi.tinfo_t, var_type:idaapi.tinfo_t):
@@ -539,8 +539,8 @@ class TypeAnalyzer(FunctionManager):
 			return utils.ShiftedStruct(strucid, offset)
 		return None
 
-	def analyze_call_cast_type(self, call_cast:SExpr) -> idaapi.tinfo_t:
-		address = self.get_call_address(call_cast)
+	def analyze_call_cast_type(self, call_cast:Node) -> idaapi.tinfo_t:
+		address = self.get_call_address(call_cast.sexpr)
 		if address == -1:
 			return utils.UNKNOWN_TYPE
 
@@ -548,7 +548,7 @@ class TypeAnalyzer(FunctionManager):
 
 	def get_call_address(self, func_call:SExpr) -> int:
 		if func_call.is_function():
-			return func_call.function
+			return func_call.func_addr
 
 		if func_call.var_use_chain is None:
 			return -1
