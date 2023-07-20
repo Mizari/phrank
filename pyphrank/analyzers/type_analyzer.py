@@ -71,7 +71,7 @@ class TypeAnalyzer(FunctionManager):
 	def __init__(self, cfunc_factory=None, ast_analyzer=None) -> None:
 		super().__init__(cfunc_factory=cfunc_factory, ast_analyzer=ast_analyzer)
 		self.container_manager = ContainerManager()
-		self.ast_analysis_cache = {}
+		self.ast_analysis_cache : dict[int,ASTAnalysis ]= {}
 
 		self.var2tinfo : dict[Var, idaapi.tinfo_t] = {}
 		self.retval2tinfo : dict[int, idaapi.tinfo_t] = {}
