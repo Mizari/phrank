@@ -263,34 +263,45 @@ class TypeAnalyzer(FunctionManager):
 			)
 
 	def get_func_var_uses(self, func_ea:int, var:Var) -> ASTAnalysis:
-		aa = self.get_ast_analysis(func_ea)
-		nodes = []
-		for node in aa.iterate_assign_nodes():
-			node = node.copy()
-			asg = node.sexpr
-			if asg.target.is_var(var):
-				nodes.append(node)
-			elif asg.target.is_var_use(var):
-				nodes.append(node)
-			if asg.value.is_var(var):
-				nodes.append(node)
+		aa = self.get_ast_analysis(func_ea).copy()
+		node_replacements : dict[Node, list[Node]] = {}
+		for node in aa.iterate_nodes():
+			sexpr = node.sexpr
+			if var not in sexpr.extract_vars():
+				node_replacements[node] = [NOP_NODE.copy()]
+				continue
 
-		for node in aa.iterate_call_cast_nodes():
-			node = node.copy()
-			if node.sexpr.is_var_use(var):
-				nodes.append(node)
-		for node in aa.iterate_type_cast_nodes():
-			node = node.copy()
-			if node.sexpr.is_var_use(var):
-				nodes.append(node)
-		for r in aa.iterate_var_reads():
-			if r.is_var_use(var) and r.var is None:
-				node = Node(Node.EXPR, r)
-				nodes.append(node)
-		chain_nodes(*nodes)
-		if len(nodes) == 0:
-			return ASTAnalysis(NOP_NODE.copy(), aa.actx)
-		return ASTAnalysis(nodes[0], aa.actx)
+			if sexpr.is_var_use(var):
+				continue
+
+			if node.is_expr() and sexpr.is_assign():
+				if sexpr.target.is_var_use(var) or sexpr.value.is_var_use(var):
+					continue
+
+			new_nodes = []
+			for vuc in sexpr.extract_var_use_chains():
+				new_node = Node(Node.EXPR, SExpr.create_var_use_chain(-1, vuc))
+				new_nodes.append(new_node)
+			chain_nodes(*new_nodes)
+			node_replacements[node] = new_nodes
+
+		for node, new_nodes in node_replacements.items():
+			first = new_nodes[0]
+			for parent in node.parents:
+				parent.children.remove(node)
+				parent.children.append(first)
+				first.parents.append(parent)
+
+			last = new_nodes[-1]
+			for child in node.children:
+				child.parents.remove(node)
+				child.parents.append(last)
+				last.children.append(child)
+
+		if aa.entry in node_replacements:
+			aa.entry = node_replacements[aa.entry][0]
+		aa = shrink_ast_analysis(aa)
+		return aa
 
 	def get_all_var_uses(self, var:Var) -> ASTAnalysis:
 		new_entry = NOP_NODE.copy()
