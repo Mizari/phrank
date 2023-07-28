@@ -32,7 +32,7 @@ class Var:
 		if __value is None:
 			return False
 		if not isinstance(__value, Var):
-			raise NotImplementedError
+			raise NotImplementedError(f"bad type {type(__value)}")
 		return self.varid == __value.varid
 
 	def __hash__(self) -> int:
