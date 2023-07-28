@@ -424,8 +424,8 @@ class Node:
 		self.sexpr = sexpr
 		self.y = y
 		self.z = z
-		self.children : list[Node] = []
-		self.parents : list[Node] = []
+		self.children : set[Node] = set()
+		self.parents : set[Node] = set()
 
 	def copy(self) -> Node:
 		""" Copy node without edges """
@@ -441,7 +441,7 @@ class Node:
 			visited_nodes.add(node)
 			yield node
 
-			queue += node.children
+			queue += list(node.children)
 
 	def __str__(self) -> str:
 		if self.node_type == self.EXPR and self.sexpr is UNKNOWN_SEXPR:

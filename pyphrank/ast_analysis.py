@@ -70,8 +70,8 @@ class ASTAnalysis:
 			new_node = node2new[node]
 			for child in node.children:
 				new_child = node2new[child]
-				new_child.parents.append(new_node)
-				new_node.children.append(new_child)
+				new_child.parents.add(new_node)
+				new_node.children.add(new_child)
 
 		new_entry = node2new[self.entry]
 		return ASTAnalysis(new_entry, self.actx)

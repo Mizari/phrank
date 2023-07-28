@@ -171,8 +171,8 @@ def chain_trees(*nodes:Node):
 		child = nodes[i + 1]
 		# must collect first, and then add new links
 		for exit in [e for e in iterate_exit_nodes(parent)]:
-			exit.children.append(child)
-			child.parents.append(exit)
+			exit.children.add(child)
+			child.parents.add(exit)
 
 def chain_nodes(*nodes:Node):
 	if len(nodes) < 2:
@@ -181,8 +181,8 @@ def chain_nodes(*nodes:Node):
 	for i in range(len(nodes) - 1):
 		parent = nodes[i]
 		child = nodes[i + 1]
-		parent.children.append(child)
-		child.parents.append(parent)
+		parent.children.add(child)
+		child.parents.add(parent)
 
 
 class CTreeAnalyzer:

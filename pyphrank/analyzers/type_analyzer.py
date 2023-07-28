@@ -57,8 +57,8 @@ def shrink_ast_analysis(aa:ASTAnalysis) -> ASTAnalysis:
 			child.parents.remove(node)
 		for parent in node.parents:
 			for child in node.children:
-				parent.children.append(child)
-				child.parents.append(parent)
+				parent.children.add(child)
+				child.parents.add(parent)
 
 	bad_nodes = {n for n in aa.entry.iterate_children() if not is_typeful_node(n)}
 	for node in bad_nodes:
@@ -68,16 +68,15 @@ def shrink_ast_analysis(aa:ASTAnalysis) -> ASTAnalysis:
 	if not is_typeful_node(entry):
 		if len(entry.children) == 1:
 			# shift entry by one node down
-			new_entry = entry.children[0]
+			new_entry = entry.children.pop()
 			new_entry.parents.clear()
-			entry.children.clear()
 		else:
 			# replace entry
 			new_entry = NOP_NODE.copy()
 			for child in entry.children:
-				new_entry.children.append(child)
+				new_entry.children.add(child)
 				child.parents.remove(entry)
-				child.parents.append(new_entry)
+				child.parents.add(new_entry)
 			entry.children.clear()
 
 		aa.entry = new_entry
@@ -305,14 +304,14 @@ class TypeAnalyzer(FunctionManager):
 			first = new_nodes[0]
 			for parent in node.parents:
 				parent.children.remove(node)
-				parent.children.append(first)
-				first.parents.append(parent)
+				parent.children.add(first)
+				first.parents.add(parent)
 
 			last = new_nodes[-1]
 			for child in node.children:
 				child.parents.remove(node)
-				child.parents.append(last)
-				last.children.append(child)
+				child.parents.add(last)
+				last.children.add(child)
 
 		if aa.entry in node_replacements:
 			aa.entry = node_replacements[aa.entry][0]
@@ -323,8 +322,8 @@ class TypeAnalyzer(FunctionManager):
 		new_entry = NOP_NODE.copy()
 		for func_ea in var.get_functions():
 			va = self.get_func_var_uses(func_ea, var)
-			new_entry.children.append(va.entry)
-			va.entry.parents.append(new_entry)
+			new_entry.children.add(va.entry)
+			va.entry.parents.add(new_entry)
 		return ASTAnalysis(new_entry, None)
 
 	def analyze_by_heuristics(self, var:Var) -> idaapi.tinfo_t:
