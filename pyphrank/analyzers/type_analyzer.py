@@ -60,11 +60,9 @@ def shrink_ast_analysis(aa:ASTAnalysis) -> ASTAnalysis:
 				parent.children.append(child)
 				child.parents.append(parent)
 
-	new_aa = aa.copy()
-	bad_nodes = {n for n in new_aa.iterate_nodes() if not is_typeful_node(n)}
+	bad_nodes = {n for n in aa.iterate_nodes() if not is_typeful_node(n)}
 	for node in bad_nodes:
 		remove_node(node)
-	return new_aa
 
 
 class TypeAnalyzer(FunctionManager):
@@ -84,10 +82,10 @@ class TypeAnalyzer(FunctionManager):
 		if cached is not None:
 			return cached
 
-		aa = super().get_ast_analysis(func_ea)
-		shrinked_aa = shrink_ast_analysis(aa)
-		self.ast_analysis_cache[func_ea] = shrinked_aa
-		return shrinked_aa
+		aa = super().get_ast_analysis(func_ea).copy()
+		shrink_ast_analysis(aa)
+		self.ast_analysis_cache[func_ea] = aa
+		return aa
 
 	def get_db_var_type(self, var:Var) -> idaapi.tinfo_t:
 		if var.is_local():
@@ -300,7 +298,7 @@ class TypeAnalyzer(FunctionManager):
 
 		if aa.entry in node_replacements:
 			aa.entry = node_replacements[aa.entry][0]
-		aa = shrink_ast_analysis(aa)
+		shrink_ast_analysis(aa)
 		return aa
 
 	def get_all_var_uses(self, var:Var) -> ASTAnalysis:
