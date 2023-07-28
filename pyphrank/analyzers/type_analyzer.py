@@ -64,18 +64,22 @@ def shrink_ast_analysis(aa:ASTAnalysis) -> ASTAnalysis:
 	for node in bad_nodes:
 		remove_node(node)
 
-	if not is_typeful_node(aa.entry):
-		if len(aa.entry.children) == 1:
+	entry = aa.entry
+	if not is_typeful_node(entry):
+		if len(entry.children) == 1:
 			# shift entry by one node down
-			new_entry = aa.entry.children[0]
+			new_entry = entry.children[0]
 			new_entry.parents.clear()
+			entry.children.clear()
 		else:
 			# replace entry
 			new_entry = NOP_NODE.copy()
-			for child in aa.entry.children:
-				child.parents.remove(aa.entry)
+			for child in entry.children:
+				new_entry.children.append(child)
+				child.parents.remove(entry)
+				child.parents.append(new_entry)
+			entry.children.clear()
 
-		aa.entry.children.clear()
 		aa.entry = new_entry
 
 
@@ -96,7 +100,7 @@ class TypeAnalyzer(FunctionManager):
 		if cached is not None:
 			return cached
 
-		aa = super().get_ast_analysis(func_ea).copy()
+		aa = super().get_ast_analysis(func_ea)
 		shrink_ast_analysis(aa)
 		self.ast_analysis_cache[func_ea] = aa
 		return aa
