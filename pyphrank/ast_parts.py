@@ -298,6 +298,19 @@ class SExpr:
 		else:
 			return ""
 
+	def extract_var_use_chains(self) -> set[VarUseChain]:
+		rv = set()
+		if isinstance(self._x, VarUseChain):
+			rv.add(self._x)
+		elif isinstance(self._x, SExpr):
+			rv.update(self._x.extract_var_use_chains())
+		if isinstance(self._y, SExpr):
+			rv.update(self._y.extract_var_use_chains())
+		return rv
+
+	def extract_vars(self) -> set[Var]:
+		return {vuc.var for vuc in self.extract_var_use_chains()}
+
 	@classmethod
 	def create_var_use_chain(cls, expr_ea:int, vuc:VarUseChain):
 		obj = cls(cls.TYPE_VAR_USE_CHAIN, expr_ea)
