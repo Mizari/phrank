@@ -60,9 +60,23 @@ def shrink_ast_analysis(aa:ASTAnalysis) -> ASTAnalysis:
 				parent.children.append(child)
 				child.parents.append(parent)
 
-	bad_nodes = {n for n in aa.iterate_nodes() if not is_typeful_node(n)}
+	bad_nodes = {n for n in aa.entry.iterate_children() if not is_typeful_node(n)}
 	for node in bad_nodes:
 		remove_node(node)
+
+	if not is_typeful_node(aa.entry):
+		if len(aa.entry.children) == 1:
+			# shift entry by one node down
+			new_entry = aa.entry.children[0]
+			new_entry.parents.clear()
+		else:
+			# replace entry
+			new_entry = NOP_NODE.copy()
+			for child in aa.entry.children:
+				child.parents.remove(aa.entry)
+
+		aa.entry.children.clear()
+		aa.entry = new_entry
 
 
 class TypeAnalyzer(FunctionManager):
