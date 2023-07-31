@@ -76,8 +76,8 @@ class ASTAnalysis:
 		new_entry = node2new[self.entry]
 		return ASTAnalysis(new_entry, self.actx)
 
-	def print_graph(self):
-		gv = ASTAnalysisGraphView(f"{idaapi.get_name(self.actx.addr)} ASTAnalysis")
+	def print_graph(self, graph_title:str):
+		gv = ASTAnalysisGraphView(graph_title)
 		node2id = {}
 		for node in self.iterate_nodes():
 			node2id[node] = gv.AddNode(str(node))
