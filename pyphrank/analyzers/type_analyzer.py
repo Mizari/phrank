@@ -199,7 +199,7 @@ class TypeAnalyzer(FunctionManager):
 			self.var2tinfo[var] = var_tinfo
 			return var_tinfo
 
-		if not self.is_ptr(var_uses):
+		if not self.is_var_possible_ptr(var, var_uses):
 			return utils.UNKNOWN_TYPE
 
 		var_tinfo = self.analyze_by_var_uses(var_uses)
@@ -564,29 +564,11 @@ class TypeAnalyzer(FunctionManager):
 
 		return addr
 
-	def is_ptr(self, var_uses:ASTAnalysis) -> bool:
-		if var_uses.uses_len() == 0:
-			return False
-
-		# weeding out non-pointers
-		for w in var_uses.iterate_writes():
-			if not w.target.is_possible_ptr():
-				utils.log_warn("non-pointer writes are not supported for now {w}")
-				return False
-
-		# weeding out non-pointers2
-		for c in var_uses.iterate_call_cast_sexprs():
-			if c.var_use_chain is None:
-				continue
-			if c.var_use_chain.is_possible_ptr() is None:
-				utils.log_warn(f"non-pointer casts are not supported for now {c}")
-				return False
-
-		# weeding out non-pointers3
-		for r in var_uses.iterate_var_reads():
-			if not r.var_use_chain.is_possible_ptr():
-				utils.log_warn(f"non-pointer reads are not supported for now {r}")
-				return False
-
-		# all cases ended, assuming new structure pointer
+	def is_var_possible_ptr(self, var:Var, var_uses:ASTAnalysis) -> bool:
+		for node in var_uses.iterate_nodes():
+			for vuc in node.sexpr.extract_var_use_chains():
+				if vuc.var != var:
+					continue
+				if not vuc.is_possible_ptr():
+					return False
 		return True
