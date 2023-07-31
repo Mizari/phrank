@@ -371,6 +371,8 @@ class TypeAnalyzer(FunctionManager):
 		for w in var_uses.iterate_writes():
 			vuc = w.target
 			write_offset = vuc.get_ptr_offset()
+			if write_offset is None:
+				continue
 			rw_ptr_uses.add(write_offset)
 			write_type = self.analyze_sexpr_type(w.value)
 			if write_type is utils.UNKNOWN_TYPE:
@@ -384,6 +386,8 @@ class TypeAnalyzer(FunctionManager):
 			max_ptr_offset = max(max_ptr_offset, write_offset + write_sz)
 		for r in var_uses.iterate_var_reads():
 			read_offset = r.var_use_chain.get_ptr_offset()
+			if read_offset is None:
+				continue
 			rw_ptr_uses.add(read_offset)
 			max_ptr_offset = max(max_ptr_offset, read_offset)
 		rw_ptr_uses.discard(None) # get_ptr_offset can return None
