@@ -393,11 +393,7 @@ class TypeAnalyzer(FunctionManager):
 
 			# ptr uses other than offset0 create new type
 			if rw_ptr_uses != {0}:
-				lvar_struct = Structure.new()
-				self.container_manager.add_struct(lvar_struct)
-				type_tif = lvar_struct.ptr_tinfo
-				self.add_type_uses(var_uses, type_tif)
-				return type_tif
+				return self.create_new_structp_ptr_from_var_uses(var_uses)
 
 			write_types = [self.analyze_sexpr_type(w.value) for w in var_uses.iterate_writes()]
 			write_type = select_type(*write_types)
@@ -424,11 +420,7 @@ class TypeAnalyzer(FunctionManager):
 
 			# offseted cast yields new type
 			if not cast_arg.is_var():
-				lvar_struct = Structure.new()
-				self.container_manager.add_struct(lvar_struct)
-				type_tif = lvar_struct.ptr_tinfo
-				self.add_type_uses(var_uses, type_tif)
-				return type_tif
+				return self.create_new_structp_ptr_from_var_uses(var_uses)
 
 			# if no other uses but single cast
 			if var_uses.uses_len() == 1:
@@ -446,11 +438,7 @@ class TypeAnalyzer(FunctionManager):
 
 			# have use outside of type => new type
 			if max_ptr_offset > arg_size:
-				lvar_struct = Structure.new()
-				self.container_manager.add_struct(lvar_struct)
-				type_tif = lvar_struct.ptr_tinfo
-				self.add_type_uses(var_uses, type_tif)
-				return type_tif
+				return self.create_new_structp_ptr_from_var_uses(var_uses)
 
 			# otherwise not new type
 			# TODO check incompatible uses, should create new type if found
@@ -458,6 +446,9 @@ class TypeAnalyzer(FunctionManager):
 				self.add_type_uses(var_uses, arg_type)
 				return arg_type
 
+		return self.create_new_structp_ptr_from_var_uses(var_uses)
+
+	def create_new_structp_ptr_from_var_uses(self, var_uses:ASTAnalysis) -> idaapi.tinfo_t:
 		lvar_struct = Structure.new()
 		self.container_manager.add_struct(lvar_struct)
 		type_tif = lvar_struct.ptr_tinfo
