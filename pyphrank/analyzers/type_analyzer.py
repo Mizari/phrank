@@ -390,7 +390,6 @@ class TypeAnalyzer(FunctionManager):
 				continue
 			rw_ptr_uses.add(read_offset)
 			max_ptr_offset = max(max_ptr_offset, read_offset)
-		rw_ptr_uses.discard(None) # get_ptr_offset can return None
 
 		if var_uses.casts_len() == 0:
 			# cant determine ptr use without writes to it
