@@ -402,51 +402,51 @@ class TypeAnalyzer(FunctionManager):
 			write_type.create_ptr(write_type)
 			return write_type
 
-		if var_uses.casts_len() == 1:
-			call_casts = [c for c in var_uses.iterate_call_cast_nodes()]
-			type_casts = [c for c in var_uses.iterate_type_cast_nodes()]
-			if len(call_casts) == 1:
-				cast = call_casts[0]
-				cast_arg = cast.sexpr
-				addr = self.get_call_address(cast.func_call)
-				if addr == -1:
-					arg_type = utils.UNKNOWN_TYPE
-				else:
-					arg_var = Var(addr, cast.arg_id)
-					arg_type = self.analyze_var(arg_var)
+		if var_uses.casts_len() != 1:
+			return self.create_new_structp_ptr_from_var_uses(var_uses)
+
+		call_casts = [c for c in var_uses.iterate_call_cast_nodes()]
+		type_casts = [c for c in var_uses.iterate_type_cast_nodes()]
+		if len(call_casts) == 1:
+			cast = call_casts[0]
+			cast_arg = cast.sexpr
+			addr = self.get_call_address(cast.func_call)
+			if addr == -1:
+				arg_type = utils.UNKNOWN_TYPE
 			else:
-				cast_arg = type_casts[0].sexpr
-				arg_type = type_casts[0].tif
+				arg_var = Var(addr, cast.arg_id)
+				arg_type = self.analyze_var(arg_var)
+		else:
+			cast_arg = type_casts[0].sexpr
+			arg_type = type_casts[0].tif
 
-			# offseted cast yields new type
-			if not cast_arg.is_var():
-				return self.create_new_structp_ptr_from_var_uses(var_uses)
+		# offseted cast yields new type
+		if not cast_arg.is_var():
+			return self.create_new_structp_ptr_from_var_uses(var_uses)
 
-			# if no other uses but single cast
-			if var_uses.uses_len() == 1:
-				return arg_type
+		# if no other uses but single cast
+		if var_uses.uses_len() == 1:
+			return arg_type
 
-			# single cast and writes into casted type
-			if arg_type.is_ptr():
-				arg_size = arg_type.get_pointed_object().get_size()
-			else:
-				arg_size = arg_type.get_size()
+		# single cast and writes into casted type
+		if arg_type.is_ptr():
+			arg_size = arg_type.get_pointed_object().get_size()
+		else:
+			arg_size = arg_type.get_size()
 
-			if arg_size == idaapi.BADSIZE:
-				utils.log_warn(f"failed to calculate size of argument {str(arg_type)} for {str(var)}")
-				return utils.UNKNOWN_TYPE
+		if arg_size == idaapi.BADSIZE:
+			utils.log_warn(f"failed to calculate size of argument {str(arg_type)} for {str(var)}")
+			return utils.UNKNOWN_TYPE
 
-			# have use outside of type => new type
-			if max_ptr_offset > arg_size:
-				return self.create_new_structp_ptr_from_var_uses(var_uses)
+		# have use outside of type => new type
+		if max_ptr_offset > arg_size:
+			return self.create_new_structp_ptr_from_var_uses(var_uses)
 
-			# otherwise not new type
-			# TODO check incompatible uses, should create new type if found
-			else:
-				self.add_type_uses(var_uses, arg_type)
-				return arg_type
-
-		return self.create_new_structp_ptr_from_var_uses(var_uses)
+		# otherwise not new type
+		# TODO check incompatible uses, should create new type if found
+		else:
+			self.add_type_uses(var_uses, arg_type)
+			return arg_type
 
 	def create_new_structp_ptr_from_var_uses(self, var_uses:ASTAnalysis) -> idaapi.tinfo_t:
 		lvar_struct = Structure.new()
