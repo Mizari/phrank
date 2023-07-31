@@ -184,7 +184,25 @@ class TypeAnalyzer(FunctionManager):
 			return var_tinfo
 
 		self.var2tinfo[var] = utils.UNKNOWN_TYPE # to break recursion
-		var_tinfo = self.analyze_by_var_uses(var)
+
+		var_uses = self.get_all_var_uses(var)
+		if var_uses.total_len() == 0:
+			utils.log_warn(f"found no var uses for {var}")
+			return utils.UNKNOWN_TYPE
+
+		moves_types = []
+		for m in var_uses.iterate_moves_to():
+			mtype = self.analyze_sexpr_type(m)
+			if mtype not in moves_types:
+				moves_types.append(mtype)
+		if len(moves_types) != 0 and (var_tinfo := select_type(*moves_types)) is not utils.UNKNOWN_TYPE:
+			self.var2tinfo[var] = var_tinfo
+			return var_tinfo
+
+		if not self.is_ptr(var_uses):
+			return utils.UNKNOWN_TYPE
+
+		var_tinfo = self.analyze_by_var_uses(var_uses)
 		self.var2tinfo[var] = var_tinfo
 		return var_tinfo
 
@@ -347,23 +365,7 @@ class TypeAnalyzer(FunctionManager):
 			return vtbl.tinfo
 		return utils.UNKNOWN_TYPE
 
-	def analyze_by_var_uses(self, var:Var) -> idaapi.tinfo_t:
-		var_uses = self.get_all_var_uses(var)
-		if var_uses.total_len() == 0:
-			utils.log_warn(f"found no var uses for {var}")
-			return utils.UNKNOWN_TYPE
-
-		moves_types = []
-		for m in var_uses.iterate_moves_to():
-			mtype = self.analyze_sexpr_type(m)
-			if mtype not in moves_types:
-				moves_types.append(mtype)
-		if len(moves_types) != 0 and (var_tinfo := select_type(*moves_types)) is not utils.UNKNOWN_TYPE:
-			return var_tinfo
-
-		if not self.is_ptr(var_uses):
-			return utils.UNKNOWN_TYPE
-
+	def analyze_by_var_uses(self, var_uses:ASTAnalysis) -> idaapi.tinfo_t:
 		rw_ptr_uses = set()
 		max_ptr_offset = 0
 		for w in var_uses.iterate_writes():
@@ -435,7 +437,7 @@ class TypeAnalyzer(FunctionManager):
 			arg_size = arg_type.get_size()
 
 		if arg_size == idaapi.BADSIZE:
-			utils.log_warn(f"failed to calculate size of argument {str(arg_type)} for {str(var)}")
+			utils.log_warn(f"failed to calculate size of argument {str(arg_type)}")
 			return utils.UNKNOWN_TYPE
 
 		# have use outside of type => new type
