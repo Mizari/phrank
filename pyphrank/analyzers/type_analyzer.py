@@ -202,7 +202,13 @@ class TypeAnalyzer(FunctionManager):
 		if not self.is_var_possible_ptr(var, var_uses):
 			return utils.UNKNOWN_TYPE
 
-		var_tinfo = self.analyze_by_var_uses(var_uses)
+		var_tinfo = self.analyze_existing_type_by_var_uses(var_uses)
+		if var_tinfo is utils.UNKNOWN_TYPE:
+			lvar_struct = Structure.new()
+			self.container_manager.add_struct(lvar_struct)
+			var_tinfo = lvar_struct.ptr_tinfo
+			self.add_type_uses(var_uses, var_tinfo)
+
 		self.var2tinfo[var] = var_tinfo
 		return var_tinfo
 
@@ -365,7 +371,7 @@ class TypeAnalyzer(FunctionManager):
 			return vtbl.tinfo
 		return utils.UNKNOWN_TYPE
 
-	def analyze_by_var_uses(self, var_uses:ASTAnalysis) -> idaapi.tinfo_t:
+	def analyze_existing_type_by_var_uses(self, var_uses:ASTAnalysis) -> idaapi.tinfo_t:
 		rw_ptr_uses = set()
 		max_ptr_offset = 0
 		for w in var_uses.iterate_writes():
@@ -398,7 +404,7 @@ class TypeAnalyzer(FunctionManager):
 
 			# ptr uses other than offset0 create new type
 			if rw_ptr_uses != {0}:
-				return self.create_new_structp_ptr_from_var_uses(var_uses)
+				return utils.UNKNOWN_TYPE
 
 			write_types = [self.analyze_sexpr_type(w.value) for w in var_uses.iterate_writes()]
 			write_type = select_type(*write_types)
@@ -408,7 +414,7 @@ class TypeAnalyzer(FunctionManager):
 			return write_type
 
 		if var_uses.casts_len() != 1:
-			return self.create_new_structp_ptr_from_var_uses(var_uses)
+			return utils.UNKNOWN_TYPE
 
 		call_casts = [c for c in var_uses.iterate_call_cast_nodes()]
 		type_casts = [c for c in var_uses.iterate_type_cast_nodes()]
@@ -427,7 +433,7 @@ class TypeAnalyzer(FunctionManager):
 
 		# offseted cast yields new type
 		if not cast_arg.is_var():
-			return self.create_new_structp_ptr_from_var_uses(var_uses)
+			return utils.UNKNOWN_TYPE
 
 		# if no other uses but single cast
 		if var_uses.uses_len() == 1:
@@ -445,20 +451,13 @@ class TypeAnalyzer(FunctionManager):
 
 		# have use outside of type => new type
 		if max_ptr_offset > arg_size:
-			return self.create_new_structp_ptr_from_var_uses(var_uses)
+			return utils.UNKNOWN_TYPE
 
 		# otherwise not new type
 		# TODO check incompatible uses, should create new type if found
 		else:
 			self.add_type_uses(var_uses, arg_type)
 			return arg_type
-
-	def create_new_structp_ptr_from_var_uses(self, var_uses:ASTAnalysis) -> idaapi.tinfo_t:
-		lvar_struct = Structure.new()
-		self.container_manager.add_struct(lvar_struct)
-		type_tif = lvar_struct.ptr_tinfo
-		self.add_type_uses(var_uses, type_tif)
-		return type_tif
 
 	def add_type_uses(self, var_uses:ASTAnalysis, var_type:idaapi.tinfo_t):
 		for var_write in var_uses.iterate_writes():
