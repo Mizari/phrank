@@ -486,10 +486,8 @@ class TypeAnalyzer(FunctionManager):
 					self.container_manager.add_member_name(target.strucid, target.offset, idaapi.get_name(addr))
 				continue
 
-			if not sexpr.is_var_use(var):
-				continue
 			vuc = sexpr.var_use_chain
-			if vuc.var != var:
+			if vuc is None or vuc.var != var:
 				continue
 
 			# assigns are handled, only read exprs are left
