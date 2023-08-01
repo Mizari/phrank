@@ -202,12 +202,12 @@ class TypeAnalyzer(FunctionManager):
 		if not self.is_var_possible_ptr(var, var_uses):
 			return utils.UNKNOWN_TYPE
 
-		var_tinfo = self.analyze_existing_type_by_var_uses(var_uses)
+		var_tinfo = self.analyze_existing_type_by_var_uses(var, var_uses)
 		if var_tinfo is utils.UNKNOWN_TYPE:
 			lvar_struct = Structure.new()
 			self.container_manager.add_struct(lvar_struct)
 			var_tinfo = lvar_struct.ptr_tinfo
-			self.add_type_uses(var_uses, var_tinfo)
+			self.add_type_uses_to_var(var, var_uses, var_tinfo)
 
 		self.var2tinfo[var] = var_tinfo
 		return var_tinfo
@@ -291,7 +291,7 @@ class TypeAnalyzer(FunctionManager):
 			lvar_uses = self.get_all_var_uses(var)
 			self.var2tinfo[var] = new_type
 			self.propagate_var(var)
-			self.add_type_uses(lvar_uses, new_type)
+			self.add_type_uses_to_var(var, lvar_uses, new_type)
 			return
 
 		if current_type != new_type:
@@ -371,7 +371,7 @@ class TypeAnalyzer(FunctionManager):
 			return vtbl.tinfo
 		return utils.UNKNOWN_TYPE
 
-	def analyze_existing_type_by_var_uses(self, var_uses:ASTAnalysis) -> idaapi.tinfo_t:
+	def analyze_existing_type_by_var_uses(self, var:Var, var_uses:ASTAnalysis) -> idaapi.tinfo_t:
 		rw_ptr_uses = set()
 		max_ptr_offset = 0
 		for w in var_uses.iterate_writes():
@@ -456,49 +456,68 @@ class TypeAnalyzer(FunctionManager):
 		# otherwise not new type
 		# TODO check incompatible uses, should create new type if found
 		else:
-			self.add_type_uses(var_uses, arg_type)
+			self.add_type_uses_to_var(var, var_uses, arg_type)
 			return arg_type
 
-	def add_type_uses(self, var_uses:ASTAnalysis, var_type:idaapi.tinfo_t):
-		for var_write in var_uses.iterate_writes():
-			write_type = self.analyze_sexpr_type(var_write.value)
-			target = self.analyze_target(var_type, var_write.target)
-			if target is None:
-				utils.log_warn(f"cant add member={write_type} to type={var_type} from write {var_write}")
+	def add_type_uses_to_var(self, var:Var, var_uses:ASTAnalysis, var_type:idaapi.tinfo_t):
+		for node in var_uses.iterate_nodes():
+			sexpr = node.sexpr
+			# nop node
+			if node.is_expr() and sexpr is UNKNOWN_SEXPR:
 				continue
-			self.container_manager.add_member_type(target.strucid, target.offset, write_type)
 
-			if var_write.value.is_function():
-				addr = var_write.value.function
-				self.container_manager.add_member_name(target.strucid, target.offset, idaapi.get_name(addr))
+			if node.is_expr() and sexpr.is_assign() and sexpr.target.is_var_use(var):
+				target1 = sexpr.target
+				# skip type moves to var
+				if target1.is_var():
+					continue
 
-		for var_read in var_uses.iterate_var_reads():
-			target = self.analyze_target(var_type, var_read.var_use_chain)
-			if target is None:
-				utils.log_warn(f"cant read type={var_type} from expr {var_read}")
-				continue
-			self.container_manager.add_member_type(target.strucid, target.offset, utils.UNKNOWN_TYPE)
+				# write nodes
+				value = sexpr.value
+				write_type = self.analyze_sexpr_type(value)
+				target = self.analyze_target(var_type, target1.var_use_chain)
+				if target is None:
+					utils.log_warn(f"cant add member={write_type} to type={var_type} from write {target}")
+					continue
+				self.container_manager.add_member_type(target.strucid, target.offset, write_type)
 
-		for node in var_uses.iterate_type_cast_nodes():
-			type_cast = node.sexpr
-			if type_cast.var_use_chain is None:
+				if value.is_function():
+					addr = value.function
+					self.container_manager.add_member_name(target.strucid, target.offset, idaapi.get_name(addr))
 				continue
-			cast_arg = type_cast.var_use_chain
 
-			# FIXME kostyl
-			if cast_arg.is_var_chain():
+			if not sexpr.is_var_use(var):
 				continue
-			self.add_type_cast(cast_arg, node.tif, var_type)
+			vuc = sexpr.var_use_chain
+			if vuc.var != var:
+				continue
 
-		for node in var_uses.iterate_call_cast_nodes():
-			cast_arg = node.sexpr.var_use_chain
-			if cast_arg is None:
-				continue
-			# TODO
-			if cast_arg.is_var_chain():
-				continue
-			cast_type = self.analyze_call_cast_type(node)
-			self.add_type_cast(cast_arg, cast_type, var_type)
+			# assigns are handled, only read exprs are left
+			if node.is_expr() or node.is_return():
+				target = self.analyze_target(var_type, vuc)
+				if target is None:
+					utils.log_warn(f"cant read type={var_type} from expr {vuc}")
+					continue
+				self.container_manager.add_member_type(target.strucid, target.offset, utils.UNKNOWN_TYPE)
+
+			elif node.is_call_cast():
+				# FIXME kostyl
+				if vuc.is_var_chain():
+					continue
+
+				cast_type = self.analyze_call_cast_type(node)
+				self.add_type_cast(vuc, cast_type, var_type)
+
+			elif node.is_type_cast():
+				# FIXME kostyl
+				if vuc.is_var_chain():
+					continue
+
+				self.add_type_cast(vuc, node.tif, var_type)
+
+			else:
+				# unexpected
+				pass
 
 	def add_type_cast(self, cast_arg:VarUseChain, cast_type:idaapi.tinfo_t, var_type:idaapi.tinfo_t):
 		tif = cast_arg.transform_type(var_type)

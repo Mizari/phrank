@@ -36,7 +36,7 @@ def test_basic_struct_content() -> bool:
 	struc = phrank.Structure.new()
 	sa = phrank.TypeAnalyzer()
 	sa.container_manager.add_struct(struc)
-	sa.add_type_uses(var_uses, struc.ptr_tinfo)
+	sa.add_type_uses_to_var(var_uses, struc.ptr_tinfo)
 	if struc.size != 8:
 		sa.container_manager.delete_containers()
 		return False
