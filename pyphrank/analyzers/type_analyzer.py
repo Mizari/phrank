@@ -466,16 +466,16 @@ class TypeAnalyzer(FunctionManager):
 			if node.is_expr() and sexpr is UNKNOWN_SEXPR:
 				continue
 
-			if node.is_expr() and sexpr.is_assign() and sexpr.target.is_var_use(var):
-				target1 = sexpr.target
-				# skip type moves to var
-				if target1.is_var():
+			if node.is_expr() and sexpr.is_assign():
+				target1 = sexpr.target.var_use_chain
+				# skip complex targets and simple
+				if target1 is None or len(target1) == 0:
 					continue
 
 				# write nodes
 				value = sexpr.value
 				write_type = self.analyze_sexpr_type(value)
-				target = self.analyze_target(var_type, target1.var_use_chain)
+				target = self.analyze_target(var_type, target1)
 				if target is None:
 					utils.log_warn(f"cant add member={write_type} to type={var_type} from write {target}")
 					continue
