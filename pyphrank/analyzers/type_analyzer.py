@@ -391,8 +391,7 @@ class TypeAnalyzer(FunctionManager):
 					utils.log_warn(f"failed to calculate write size of {str(write_type)}, using size=1")
 			max_ptr_offset = max(max_ptr_offset, write_offset + write_sz)
 		for r in var_uses.iterate_var_reads():
-			read_offset = r.var_use_chain.get_ptr_offset()
-			if read_offset is None:
+			if r.var_use_chain is None or (read_offset := r.var_use_chain.get_ptr_offset()) is None:
 				continue
 			rw_ptr_uses.add(read_offset)
 			max_ptr_offset = max(max_ptr_offset, read_offset)
