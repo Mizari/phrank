@@ -259,10 +259,14 @@ class SExpr:
 		return True
 
 	def is_var(self, var:Var|None=None) -> bool:
-		if not self.is_var_use(var):
+		if self.var_use_chain is None:
 			return False
 		vuc = self.var_use_chain
-		return len(vuc) == 0
+		if len(vuc) != 0:
+			return False
+		if var is not None:
+			return vuc.var == var
+		return True
 
 	def is_explicit_call(self):
 		if self.op != self.TYPE_CALL:
