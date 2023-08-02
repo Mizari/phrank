@@ -374,7 +374,7 @@ class TypeAnalyzer(FunctionManager):
 	def analyze_existing_type_by_var_uses(self, var:Var, var_uses:ASTAnalysis) -> idaapi.tinfo_t:
 		rw_ptr_uses = set()
 		max_ptr_offset = 0
-		for w in var_uses.iterate_writes():
+		for w in var_uses.iterate_var_writes():
 			vuc = w.target
 			write_offset = vuc.get_ptr_offset()
 			if write_offset is None:
@@ -399,14 +399,14 @@ class TypeAnalyzer(FunctionManager):
 
 		if var_uses.casts_len() == 0:
 			# cant determine ptr use without writes to it
-			if len([w for w in var_uses.iterate_writes()]) == 0:
+			if len([w for w in var_uses.iterate_var_writes()]) == 0:
 				return utils.UNKNOWN_TYPE
 
 			# ptr uses other than offset0 create new type
 			if rw_ptr_uses != {0}:
 				return utils.UNKNOWN_TYPE
 
-			write_types = [self.analyze_sexpr_type(w.value) for w in var_uses.iterate_writes()]
+			write_types = [self.analyze_sexpr_type(w.value) for w in var_uses.iterate_var_writes()]
 			write_type = select_type(*write_types)
 			if write_type is utils.UNKNOWN_TYPE:
 				return utils.UNKNOWN_TYPE

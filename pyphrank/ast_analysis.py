@@ -49,12 +49,6 @@ class VarWrite:
 		self.value = value
 
 
-def is_assign_write(asg:SExpr) -> bool:
-	if asg.target.is_var():
-		return False
-	return asg.target.is_var_use()
-
-
 class ASTAnalysis:
 	def __init__(self, entry:Node):
 		self.entry = entry
@@ -176,7 +170,7 @@ class ASTAnalysis:
 		return len(casts1) + len(casts2)
 
 	def uses_len(self):
-		writes = [w for w in self.iterate_writes()]
+		writes = [w for w in self.iterate_var_writes()]
 		reads = [r for r in self.iterate_var_reads()]
 		return len(writes) + len(reads) + self.casts_len()
 
@@ -195,7 +189,10 @@ class ASTAnalysis:
 			if asg.value.is_var():
 				yield asg.target
 
-	def iterate_writes(self):
+	def iterate_var_writes(self):
 		for asg in self.iterate_assign_sexprs():
-			if is_assign_write(asg):
-				yield VarWrite(asg.target.var_use_chain, asg.value)
+			vuc = asg.target.var_use_chain
+			if vuc is None or len(vuc) == 0:
+				continue
+
+			yield VarWrite(vuc, asg.value)
