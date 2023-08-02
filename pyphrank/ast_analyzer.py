@@ -186,14 +186,13 @@ def chain_nodes(*nodes:Node):
 
 
 class CTreeAnalyzer:
-	def __init__(self):
-		self.actx = None
-
-	def lift_cfunc(self, cfunc:idaapi.cfunc_t) -> ASTAnalysis:
+	def __init__(self, cfunc:idaapi.cfunc_t):
+		self.cfunc = cfunc
 		self.actx = ASTCtx.from_cfunc(cfunc)
-		entry = self.lift_instr(cfunc.body)
-		ast_analysis = ASTAnalysis(entry)
-		return ast_analysis
+
+	def lift_cfunc(self) -> ASTAnalysis:
+		entry = self.lift_instr(self.cfunc.body)
+		return ASTAnalysis(entry)
 
 	def lift_instr(self, cinstr) -> Node:
 		sexpr_nodes = []

@@ -83,16 +83,16 @@ def shrink_ast_analysis(aa:ASTAnalysis) -> ASTAnalysis:
 
 
 class TypeAnalyzer(FunctionManager):
-	def __init__(self, cfunc_factory=None, ast_analyzer=None) -> None:
-		super().__init__(cfunc_factory=cfunc_factory, ast_analyzer=ast_analyzer)
+	def __init__(self, cfunc_factory=None) -> None:
+		super().__init__(cfunc_factory=cfunc_factory)
 		self.container_manager = ContainerManager()
 		self.ast_analysis_cache : dict[int,ASTAnalysis ]= {}
 
 		self.var2tinfo : dict[Var, idaapi.tinfo_t] = {}
 		self.retval2tinfo : dict[int, idaapi.tinfo_t] = {}
 
-	def cache_analysis(self, analysis:ASTAnalysis):
-		self.ast_analysis_cache[analysis.actx.addr] = analysis
+	def cache_analysis(self, addr:int, analysis:ASTAnalysis):
+		self.ast_analysis_cache[addr] = analysis
 
 	def get_ast_analysis(self, func_ea:int) -> ASTAnalysis:
 		cached = self.ast_analysis_cache.get(func_ea)

@@ -48,9 +48,8 @@ def test_var_uses_collection() -> bool:
 	mock_analysis = phrank.ASTAnalysis(phrank.ASTCtx(0x123456))
 	mock_analysis.assigns.append(make_ptr_write(0))
 
-	ctree_analyzer = phrank.CTreeAnalyzer()
-	ta = phrank.TypeAnalyzer(ast_analyzer=ctree_analyzer)
-	ta.cache_analysis(mock_analysis)
+	ta = phrank.TypeAnalyzer()
+	ta.cache_analysis(0x123456, mock_analysis)
 	vu = ta.get_all_var_uses(var)
 	if len(vu) != 1:
 		return False
