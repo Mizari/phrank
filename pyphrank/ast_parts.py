@@ -484,11 +484,11 @@ class Node:
 
 	@property
 	def arg_id(self) -> int:
-		return self.y
+		return self.y # type: ignore
 
 	@property
 	def func_call(self) -> SExpr:
-		return self.z
+		return self.z # type: ignore
 
 	@property
 	def tif(self) -> idaapi.tinfo_t:
