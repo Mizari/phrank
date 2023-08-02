@@ -49,7 +49,7 @@ def is_typeful_node(node:Node) -> bool:
 		return False
 	return True
 
-def shrink_ast_analysis(aa:ASTAnalysis) -> ASTAnalysis:
+def shrink_ast_analysis(aa:ASTAnalysis):
 	def remove_node(node:Node):
 		for parent in node.parents:
 			parent.children.remove(node)
