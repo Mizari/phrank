@@ -192,7 +192,7 @@ class CTreeAnalyzer:
 	def lift_cfunc(self, cfunc:idaapi.cfunc_t) -> ASTAnalysis:
 		self.actx = ASTCtx.from_cfunc(cfunc)
 		entry = self.lift_instr(cfunc.body)
-		ast_analysis = ASTAnalysis(entry, self.actx)
+		ast_analysis = ASTAnalysis(entry)
 		return ast_analysis
 
 	def lift_instr(self, cinstr) -> Node:

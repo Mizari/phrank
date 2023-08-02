@@ -348,7 +348,7 @@ class TypeAnalyzer(FunctionManager):
 			va = self.get_func_var_uses(func_ea, var)
 			new_entry.children.add(va.entry)
 			va.entry.parents.add(new_entry)
-		return ASTAnalysis(new_entry, None)
+		return ASTAnalysis(new_entry)
 
 	def analyze_by_heuristics(self, var:Var) -> idaapi.tinfo_t:
 		original_var_tinfo = self.get_db_var_type(var)

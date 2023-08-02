@@ -30,7 +30,7 @@ class FunctionManager:
 		if cfunc is None:
 			actx = ASTCtx.empty()
 			nop_node = Node(Node.EXPR, UNKNOWN_SEXPR)
-			analysis = ASTAnalysis(nop_node, actx)
+			analysis = ASTAnalysis(nop_node)
 		else:
 			analysis = self.ast_analyzer.lift_cfunc(cfunc)
 		return analysis

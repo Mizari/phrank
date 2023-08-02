@@ -56,8 +56,7 @@ def is_assign_write(asg:SExpr) -> bool:
 
 
 class ASTAnalysis:
-	def __init__(self, entry:Node, actx:ASTCtx):
-		self.actx = actx
+	def __init__(self, entry:Node):
 		self.entry = entry
 
 	def copy(self) -> ASTAnalysis:
@@ -74,7 +73,7 @@ class ASTAnalysis:
 				new_node.children.add(new_child)
 
 		new_entry = node2new[self.entry]
-		return ASTAnalysis(new_entry, self.actx)
+		return ASTAnalysis(new_entry)
 
 	def print_graph(self, graph_title:str):
 		gv = ASTAnalysisGraphView(graph_title)
