@@ -340,8 +340,13 @@ class TypeAnalyzer(FunctionManager):
 		return aa
 
 	def get_all_var_uses(self, var:Var) -> ASTAnalysis:
+		funcs = var.get_functions()
+		if len(funcs) == 1:
+			func_ea = funcs.pop()
+			return self.get_func_var_uses(func_ea, var)
+
 		new_entry = NOP_NODE.copy()
-		for func_ea in var.get_functions():
+		for func_ea in funcs:
 			va = self.get_func_var_uses(func_ea, var)
 			new_entry.children.add(va.entry)
 			va.entry.parents.add(new_entry)
