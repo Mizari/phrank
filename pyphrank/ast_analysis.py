@@ -162,31 +162,24 @@ class ASTAnalysis:
 			if not t.is_var_use_chain():
 				yield from extract_var_reads(t)
 
-
-
 	def casts_len(self):
 		casts1 = [c for c in self.iterate_call_cast_sexprs()]
 		casts2 = [c for c in self.iterate_type_cast_sexprs()]
 		return len(casts1) + len(casts2)
 
-	def uses_len(self):
+	def uses_len(self, var:Var):
 		writes = [w for w in self.iterate_var_writes()]
 		reads = [r for r in self.iterate_var_reads()]
 		return len(writes) + len(reads) + self.casts_len()
 
-	def total_len(self):
-		moves_to = [m for m in self.iterate_moves_to()]
-		moves_from = [m for m in self.iterate_moves_from()]
-		return self.uses_len() + len(moves_to) + len(moves_from)
-
-	def iterate_moves_to(self):
+	def iterate_moves_to(self, var:Var):
 		for asg in self.iterate_assign_sexprs():
-			if asg.target.is_var():
+			if asg.target.is_var(var):
 				yield asg.value
 
-	def iterate_moves_from(self):
+	def iterate_moves_from(self, var:Var):
 		for asg in self.iterate_assign_sexprs():
-			if asg.value.is_var():
+			if asg.value.is_var(var):
 				yield asg.target
 
 	def iterate_var_writes(self):

@@ -182,12 +182,12 @@ class TypeAnalyzer(FunctionManager):
 		self.var2tinfo[var] = utils.UNKNOWN_TYPE # to break recursion
 
 		var_uses = self.get_all_var_uses(var)
-		if var_uses.total_len() == 0:
+		if var_uses.uses_len(var) == 0:
 			utils.log_warn(f"found no var uses for {var}")
 			return utils.UNKNOWN_TYPE
 
 		moves_types = []
-		for m in var_uses.iterate_moves_to():
+		for m in var_uses.iterate_moves_to(var):
 			mtype = self.analyze_sexpr_type(m)
 			if mtype not in moves_types:
 				moves_types.append(mtype)
@@ -263,7 +263,7 @@ class TypeAnalyzer(FunctionManager):
 			return
 
 		var_uses = self.get_all_var_uses(var)
-		for target in var_uses.iterate_moves_from():
+		for target in var_uses.iterate_moves_from(var):
 			if (target_var := target.var) is None:
 				continue
 			self.propagate_type_to_var(target_var, var_type)
@@ -432,7 +432,7 @@ class TypeAnalyzer(FunctionManager):
 			return utils.UNKNOWN_TYPE
 
 		# if no other uses but single cast
-		if var_uses.uses_len() == 1:
+		if var_uses.uses_len(var) == 1:
 			return arg_type
 
 		# single cast and writes into casted type
