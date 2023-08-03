@@ -371,7 +371,7 @@ class TypeAnalyzer(FunctionManager):
 	def analyze_existing_type_by_var_uses(self, var:Var, var_uses:ASTAnalysis) -> idaapi.tinfo_t:
 		rw_ptr_uses = set()
 		max_ptr_offset = 0
-		for w in var_uses.iterate_var_writes():
+		for w in var_uses.iterate_var_writes(var):
 			vuc = w.target
 			write_offset = vuc.get_ptr_offset()
 			if write_offset is None:
@@ -387,29 +387,29 @@ class TypeAnalyzer(FunctionManager):
 					write_sz = 1
 					utils.log_warn(f"failed to calculate write size of {str(write_type)}, using size=1")
 			max_ptr_offset = max(max_ptr_offset, write_offset + write_sz)
-		for r in var_uses.iterate_var_reads():
+		for r in var_uses.iterate_var_reads(var):
 			if r.var_use_chain is None or (read_offset := r.var_use_chain.get_ptr_offset()) is None:
 				continue
 			rw_ptr_uses.add(read_offset)
 			max_ptr_offset = max(max_ptr_offset, read_offset)
 
-		if var_uses.casts_len() == 0:
+		if var_uses.casts_len(var) == 0:
 			# cant determine ptr use without writes to it
-			if len([w for w in var_uses.iterate_var_writes()]) == 0:
+			if len([w for w in var_uses.iterate_var_writes(var)]) == 0:
 				return utils.UNKNOWN_TYPE
 
 			# ptr uses other than offset0 create new type
 			if rw_ptr_uses != {0}:
 				return utils.UNKNOWN_TYPE
 
-			write_types = [self.analyze_sexpr_type(w.value) for w in var_uses.iterate_var_writes()]
+			write_types = [self.analyze_sexpr_type(w.value) for w in var_uses.iterate_var_writes(var)]
 			write_type = select_type(*write_types)
 			if write_type is utils.UNKNOWN_TYPE:
 				return utils.UNKNOWN_TYPE
 			write_type.create_ptr(write_type)
 			return write_type
 
-		if var_uses.casts_len() != 1:
+		if var_uses.casts_len(var) != 1:
 			return utils.UNKNOWN_TYPE
 
 		call_casts = [c for c in var_uses.iterate_call_cast_nodes()]

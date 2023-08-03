@@ -10,26 +10,26 @@ def extract_implicit_calls(sexpr:SExpr):
 		yield sexpr
 
 
-def extract_var_reads(sexpr:SExpr):
-	if sexpr.is_var_use_chain():
+def extract_var_reads(sexpr:SExpr, var:Var):
+	if sexpr.is_var_use(var):
 		yield sexpr
 
 	if sexpr.is_assign():
 		# dont add target var_use_chain to reads, because it is write
 		# if its not var_use_chain, then it gets added to reads there
 		if not sexpr.target.is_var_use_chain():
-			yield from extract_var_reads(sexpr.target)
+			yield from extract_var_reads(sexpr.target, var)
 
 		# var_use_chain value IS a read though
-		yield from extract_var_reads(sexpr.value)
+		yield from extract_var_reads(sexpr.value, var)
 
 	if sexpr.is_binary_op():
-		yield from extract_var_reads(sexpr.x)
-		yield from extract_var_reads(sexpr.y)
+		yield from extract_var_reads(sexpr.x, var)
+		yield from extract_var_reads(sexpr.y, var)
 
 	if sexpr.is_bool_op():
-		yield from extract_var_reads(sexpr.x)
-		yield from extract_var_reads(sexpr.y)
+		yield from extract_var_reads(sexpr.x, var)
+		yield from extract_var_reads(sexpr.y, var)
 
 
 class ASTAnalysisGraphView(idaapi.GraphViewer):
@@ -145,32 +145,32 @@ class ASTAnalysis:
 		for node in self.iterate_assign_nodes():
 			yield node.sexpr
 
-	def iterate_var_reads(self):
+	def iterate_var_reads(self, var:Var):
 		for s in self.iterate_sexprs():
-			yield from extract_var_reads(s)
+			yield from extract_var_reads(s, var)
 
 		for r in self.iterate_return_sexprs():
-			yield from extract_var_reads(r)
+			yield from extract_var_reads(r, var)
 
 		for c in self.iterate_call_cast_sexprs():
 			# direct var use chain casts are casts, not reads
 			if not c.is_var_use_chain():
-				yield from extract_var_reads(c)
+				yield from extract_var_reads(c, var)
 
 		for t in self.iterate_type_cast_sexprs():
 			# direct var use chain casts are casts, not reads
 			if not t.is_var_use_chain():
-				yield from extract_var_reads(t)
+				yield from extract_var_reads(t, var)
 
-	def casts_len(self):
-		casts1 = [c for c in self.iterate_call_cast_sexprs()]
-		casts2 = [c for c in self.iterate_type_cast_sexprs()]
+	def casts_len(self, var:Var):
+		casts1 = [c for c in self.iterate_call_cast_sexprs() if c.is_var_use(var)]
+		casts2 = [c for c in self.iterate_type_cast_sexprs() if c.is_var_use(var)]
 		return len(casts1) + len(casts2)
 
 	def uses_len(self, var:Var):
-		writes = [w for w in self.iterate_var_writes()]
-		reads = [r for r in self.iterate_var_reads()]
-		return len(writes) + len(reads) + self.casts_len()
+		writes = [w for w in self.iterate_var_writes(var)]
+		reads = [r for r in self.iterate_var_reads(var)]
+		return len(writes) + len(reads) + self.casts_len(var)
 
 	def iterate_moves_to(self, var:Var):
 		for asg in self.iterate_assign_sexprs():
@@ -182,10 +182,10 @@ class ASTAnalysis:
 			if asg.value.is_var(var):
 				yield asg.target
 
-	def iterate_var_writes(self):
+	def iterate_var_writes(self, var:Var):
 		for asg in self.iterate_assign_sexprs():
 			vuc = asg.target.var_use_chain
-			if vuc is None or len(vuc) == 0:
+			if vuc is None or len(vuc) == 0 or vuc.var != var:
 				continue
 
 			yield VarWrite(vuc, asg.value)
