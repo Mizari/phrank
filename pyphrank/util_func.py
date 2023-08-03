@@ -25,7 +25,7 @@ def get_func_start(addr:int) -> int:
 
 def is_method(fea:int) -> bool:
 	for x in idautils.XrefsTo(fea):
-		if x.is_code == 0:
+		if x.iscode == 0:
 			return True
 	return False
 
