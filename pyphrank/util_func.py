@@ -23,6 +23,12 @@ def get_func_start(addr:int) -> int:
 		return idaapi.BADADDR
 	return func.start_ea
 
+def is_method(fea:int) -> bool:
+	for x in idautils.XrefsTo(fea):
+		if x.is_code == 0:
+			return True
+	return False
+
 def get_func_calls_to(fea:int) -> set[int]:
 	rv = filter(None, [get_func_start(x.frm) for x in idautils.XrefsTo(fea)])
 	rv = filter(lambda x: x != idaapi.BADADDR, rv)
