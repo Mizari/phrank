@@ -495,7 +495,7 @@ class TypeAnalyzer(FunctionManager):
 				self.container_manager.add_member_type(target.strucid, target.offset, utils.UNKNOWN_TYPE)
 
 			elif node.is_call_cast():
-				address = self.analyze_call_address(node.sexpr)
+				address = self.analyze_call_address(node.func_call)
 				if address == -1:
 					continue
 
