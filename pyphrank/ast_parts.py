@@ -201,10 +201,6 @@ class VarUseChain:
 	def __len__(self) -> int:
 		return len(self.uses)
 
-	def is_var_chain(self):
-		# TODO helpers are assigns too
-		return len(self.uses) == 0
-
 	def transform_type(self, tif:idaapi.tinfo_t) -> idaapi.tinfo_t|utils.ShiftedStruct:
 		for i, use in enumerate(self.uses):
 			tif = use.do_transform(tif)

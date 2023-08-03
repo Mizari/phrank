@@ -132,10 +132,6 @@ class TypeAnalyzer(FunctionManager):
 		self.retval2tinfo.clear()
 
 	def apply_analysis(self):
-		var_to_propagate = [v for v in self.var2tinfo.keys()]
-		for var in var_to_propagate:
-			self.propagate_var(var) # modifies var2tinfo
-
 		touched_functions = set()
 		for var in self.var2tinfo.keys():
 			touched_functions.update(var.get_functions())
@@ -197,6 +193,7 @@ class TypeAnalyzer(FunctionManager):
 				moves_types.append(mtype)
 		if len(moves_types) != 0 and (var_tinfo := select_type(*moves_types)) is not utils.UNKNOWN_TYPE:
 			self.var2tinfo[var] = var_tinfo
+			self.propagate_var(var)
 			return var_tinfo
 
 		if not self.is_var_possible_ptr(var, var_uses):
@@ -498,18 +495,40 @@ class TypeAnalyzer(FunctionManager):
 				self.container_manager.add_member_type(target.strucid, target.offset, utils.UNKNOWN_TYPE)
 
 			elif node.is_call_cast():
-				# FIXME kostyl
-				if vuc.is_var_chain():
+				address = self.analyze_call_address(node.sexpr)
+				if address == -1:
 					continue
 
-				cast_type = self.analyze_call_cast_type(node)
-				self.add_type_cast(vuc, cast_type, var_type)
+				cast_var = Var(address, node.arg_id)
+				if len(vuc) != 0:
+					cast_type = self.analyze_var(cast_var)
+					self.add_type_cast(vuc, cast_type, var_type)
+					continue
+
+				cast_type = self.get_var_type(cast_var)
+				if cast_type == var_type:
+					continue
+
+				if cast_type is not utils.UNKNOWN_TYPE:
+					self.add_type_cast(vuc, cast_type, var_type)
+					continue
+
+				cast_var_uses = self.get_all_var_uses(cast_var)
+				# if single call xref to addr
+				if not utils.is_method(address) and len(utils.get_func_calls_to(address)) == 1:
+					self.propagate_type_to_var(cast_var, var_type)
+					self.add_type_uses_to_var(cast_var, cast_var_uses, var_type)
+					continue
+
+				# if existing type
+				if (cast_type := self.analyze_existing_type_by_var_uses(cast_var, cast_var_uses)) is not utils.UNKNOWN_TYPE:
+					self.set_var_type(cast_var, cast_type)
+					self.add_type_cast(vuc, cast_type, var_type)
+					continue
+
+				# TODO check if conflicting uses
 
 			elif node.is_type_cast():
-				# FIXME kostyl
-				if vuc.is_var_chain():
-					continue
-
 				self.add_type_cast(vuc, node.tif, var_type)
 
 			else:
@@ -550,22 +569,35 @@ class TypeAnalyzer(FunctionManager):
 			return utils.ShiftedStruct(strucid, offset)
 		return None
 
-	def analyze_call_cast_type(self, call_cast:Node) -> idaapi.tinfo_t:
-		address = self.get_call_address(call_cast.sexpr)
-		if address == -1:
-			return utils.UNKNOWN_TYPE
+	def analyze_call_address(self, func_call:SExpr) -> int:
+		if func_call.is_function():
+			return func_call.func_addr
 
-		return self.analyze_var(Var(address, call_cast.arg_id))
+		if (vuc := func_call.var_use_chain) is None:
+			return -1
+
+		if (var_tif := self.analyze_var(vuc.var)) is utils.UNKNOWN_TYPE:
+			return -1
+
+		member = vuc.transform_type(var_tif)
+		if isinstance(member, utils.ShiftedStruct):
+			addr = utils.str2addr(member.comment)
+			if addr == -1:
+				addr = utils.str2addr(member.name)
+		else:
+			addr = -1
+			utils.log_warn(f"failed to get final member from {var_tif} {vuc}")
+
+		return addr
 
 	def get_call_address(self, func_call:SExpr) -> int:
 		if func_call.is_function():
 			return func_call.func_addr
 
-		if func_call.var_use_chain is None:
+		if (vuc := func_call.var_use_chain) is None:
 			return -1
-		vuc = func_call.var_use_chain
-		var_tif = self.get_var_type(vuc.var)
-		if var_tif is utils.UNKNOWN_TYPE:
+
+		if (var_tif := self.get_var_type(vuc.var)) is utils.UNKNOWN_TYPE:
 			return -1
 
 		member = vuc.transform_type(var_tif)
