@@ -7,6 +7,7 @@ from pyphrank.function_manager import FunctionManager
 from pyphrank.ast_parts import Var, SExpr, VarUseChain, Node, UNKNOWN_SEXPR, NOP_NODE
 from pyphrank.containers.structure import Structure
 from pyphrank.ast_analyzer import ASTAnalysis, chain_nodes
+from pyphrank.analysis_state import AnalysisState
 from pyphrank.containers.vtable import Vtable
 from pyphrank.container_manager import ContainerManager
 import pyphrank.utils as utils
@@ -88,8 +89,7 @@ class TypeAnalyzer(FunctionManager):
 		self.container_manager = ContainerManager()
 		self.ast_analysis_cache : dict[int,ASTAnalysis ]= {}
 
-		self.var2tinfo : dict[Var, idaapi.tinfo_t] = {}
-		self.retval2tinfo : dict[int, idaapi.tinfo_t] = {}
+		self.state = AnalysisState()
 
 	def cache_analysis(self, addr:int, analysis:ASTAnalysis):
 		self.ast_analysis_cache[addr] = analysis
@@ -118,22 +118,15 @@ class TypeAnalyzer(FunctionManager):
 			if rv == 0:
 				utils.log_warn(f"setting {hex(var.obj_ea)} to {var_type} failed")
 
-	def set_var_type(self, var:Var, var_tinfo:idaapi.tinfo_t):
-		self.var2tinfo[var] = var_tinfo
-
-	def get_var_type(self, var:Var) -> idaapi.tinfo_t:
-		return self.var2tinfo.get(var, utils.UNKNOWN_TYPE)
-
 	def skip_analysis(self):
 		# delete new temporarily created types
 		self.container_manager.delete_containers()
 
-		self.var2tinfo.clear()
-		self.retval2tinfo.clear()
+		self.state.clear()
 
 	def apply_analysis(self):
 		touched_functions = set()
-		for var in self.var2tinfo.keys():
+		for var in self.state.vars.keys():
 			touched_functions.update(var.get_functions())
 
 		new_xrefs = []
@@ -158,28 +151,27 @@ class TypeAnalyzer(FunctionManager):
 			if not rv:
 				utils.log_warn(f"failed to add code reference from {hex(frm)} to {hex(to)}")
 
-		for var, new_type_tif in self.var2tinfo.items():
+		for var, new_type_tif in self.state.vars.items():
 			if new_type_tif is utils.UNKNOWN_TYPE:
 				continue
 
 			self.set_db_var_type(var, new_type_tif)
 
-		self.var2tinfo.clear()
-		self.retval2tinfo.clear()
+		self.state.clear()
 		# new types are already created, simply skip them without deleting
 		self.container_manager.clear()
 
 	def analyze_var(self, var:Var) -> idaapi.tinfo_t:
-		current_lvar_tinfo = self.var2tinfo.get(var)
+		current_lvar_tinfo = self.state.get_var(var, default=None)
 		if current_lvar_tinfo is not None:
 			return current_lvar_tinfo
 
 		var_tinfo = self.analyze_by_heuristics(var)
 		if var_tinfo is not utils.UNKNOWN_TYPE:
-			self.var2tinfo[var] = var_tinfo
+			self.state.vars[var] = var_tinfo
 			return var_tinfo
 
-		self.var2tinfo[var] = utils.UNKNOWN_TYPE # to break recursion
+		self.state.vars[var] = utils.UNKNOWN_TYPE # to break recursion
 
 		var_uses = self.get_all_var_uses(var)
 		if var_uses.uses_len(var) == 0:
@@ -192,7 +184,7 @@ class TypeAnalyzer(FunctionManager):
 			if mtype not in moves_types:
 				moves_types.append(mtype)
 		if len(moves_types) != 0 and (var_tinfo := select_type(*moves_types)) is not utils.UNKNOWN_TYPE:
-			self.var2tinfo[var] = var_tinfo
+			self.state.vars[var] = var_tinfo
 			self.propagate_var(var)
 			return var_tinfo
 
@@ -206,19 +198,19 @@ class TypeAnalyzer(FunctionManager):
 			var_tinfo = lvar_struct.ptr_tinfo
 			self.add_type_uses_to_var(var, var_uses, var_tinfo)
 
-		self.var2tinfo[var] = var_tinfo
+		self.state.vars[var] = var_tinfo
 		return var_tinfo
 
 	def analyze_retval(self, func_ea:int) -> idaapi.tinfo_t:
-		rv = self.retval2tinfo.get(func_ea)
+		rv = self.state.retvals.get(func_ea)
 		if rv is not None:
 			return rv
-		self.retval2tinfo[func_ea] = utils.UNKNOWN_TYPE # to break recursion
+		self.state.retvals[func_ea] = utils.UNKNOWN_TYPE # to break recursion
 
 		aa = self.get_ast_analysis(func_ea)
 		r_types = [self.analyze_sexpr_type(r) for r in aa.iterate_return_sexprs()]
 		retval_type = select_type(*r_types)
-		self.retval2tinfo[func_ea] = retval_type
+		self.state.retvals[func_ea] = retval_type
 		return retval_type
 
 	def analyze_sexpr_type(self, sexpr:SExpr) -> idaapi.tinfo_t:
@@ -258,7 +250,7 @@ class TypeAnalyzer(FunctionManager):
 		return utils.UNKNOWN_TYPE
 
 	def propagate_var(self, var:Var):
-		var_type = self.get_var_type(var)
+		var_type = self.state.get_var(var)
 		if utils.tif2strucid(var_type) == -1:
 			return
 
@@ -283,10 +275,10 @@ class TypeAnalyzer(FunctionManager):
 			self.propagate_type_to_var(arg_var, var_type)
 
 	def propagate_type_to_var(self, var:Var, new_type:idaapi.tinfo_t):
-		current_type = self.var2tinfo.get(var, utils.UNKNOWN_TYPE)
+		current_type = self.state.get_var(var)
 		if current_type is utils.UNKNOWN_TYPE:
 			lvar_uses = self.get_all_var_uses(var)
-			self.var2tinfo[var] = new_type
+			self.state.vars[var] = new_type
 			self.propagate_var(var)
 			self.add_type_uses_to_var(var, lvar_uses, new_type)
 			return
@@ -510,7 +502,7 @@ class TypeAnalyzer(FunctionManager):
 					self.add_type_cast(vuc, cast_type, var_type)
 					continue
 
-				cast_type = self.get_var_type(cast_var)
+				cast_type = self.state.get_var(var)
 				if cast_type == var_type:
 					continue
 
@@ -527,7 +519,7 @@ class TypeAnalyzer(FunctionManager):
 
 				# if existing type
 				if (cast_type := self.analyze_existing_type_by_var_uses(cast_var, cast_var_uses)) is not utils.UNKNOWN_TYPE:
-					self.set_var_type(cast_var, cast_type)
+					self.state.vars[cast_var] = cast_type
 					self.add_type_cast(vuc, cast_type, var_type)
 					continue
 
@@ -602,7 +594,7 @@ class TypeAnalyzer(FunctionManager):
 		if (vuc := func_call.var_use_chain) is None:
 			return -1
 
-		if (var_tif := self.get_var_type(vuc.var)) is utils.UNKNOWN_TYPE:
+		if (var_tif := self.state.get_var(vuc.var)) is utils.UNKNOWN_TYPE:
 			return -1
 
 		member = vuc.transform_type(var_tif)
