@@ -133,14 +133,11 @@ class TypeAnalyzer(FunctionManager):
 		for func_ea in touched_functions:
 			func_aa = self.get_ast_analysis(func_ea)
 			for func_call in func_aa.iterate_implicit_calls():
-				if not func_call.is_var_use_chain():
-					continue
-
 				frm = func_call.expr_ea
 				if frm == idaapi.BADADDR:
 					continue
 
-				call_ea = self.get_call_address(func_call)
+				call_ea = self.get_call_address(func_call.function)
 				if call_ea == -1:
 					continue
 
