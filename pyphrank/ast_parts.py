@@ -284,19 +284,19 @@ class SExpr:
 
 	def __str__(self) -> str:
 		if self.is_int():
-			return f"IntExpr({self.tif},{hex(self.int_value)})"
+			return f"Int[{self.tif},{hex(self.int_value)}]"
 		elif self.is_var_use_chain():
-			return f"VucExpr({self.var_use_chain})"
+			return f"VucExpr[{self.var_use_chain}]"
 		elif self.is_function():
-			return f"FuncExpr({idaapi.get_name(self.func_addr)})"
+			return f"Func[{idaapi.get_name(self.func_addr)}]"
 		elif self.is_bool_op():
-			return f"BoolOpExpr({self.x}&&{self.y})"
+			return f"BoolOp[{self.x}&&{self.y}]"
 		elif self.is_call():
-			return f"CallExpr({self.function})"
+			return f"Call[{self.function}]"
 		elif self.is_assign():
-			return f"AsgExpr({self.x}={self.y})"
+			return f"{self.x}={self.y}"
 		elif self.is_binary_op():
-			return f"BinOpExpr({self.x}*{self.y})"
+			return f"BinOp[{self.x},{self.y}]"
 		else:
 			return ""
 
