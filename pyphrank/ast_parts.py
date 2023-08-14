@@ -452,8 +452,13 @@ class Node:
 			self.EXPR: "Expr",
 			self.CALL_CAST: "CallCast",
 			self.TYPE_CAST: "TypeCast",
-		}.get(self.node_type)
-		return f"{node_type}Node\n{str(self.sexpr)}"
+		}.get(self.node_type, "UnknownNode")
+		sexpr_text = str(self.sexpr)
+		diff = (len(sexpr_text) - len(node_type)) // 2 - 1
+		if diff > 0:
+			node_type = diff * ' ' + node_type
+		rv = f"{node_type}Node\n{sexpr_text}"
+		return rv
 
 	def max_depth(self):
 		m = 1
