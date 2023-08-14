@@ -1,3 +1,4 @@
+from __future__ import annotations
 
 # forward imports
 from pyphrank.analyzers.cpp_class_analyzer import CppClassAnalyzer
@@ -18,3 +19,22 @@ from pyphrank.ast_parts import *
 
 def get_plugin_instance():
     return IDAPlugin.get_instance()
+
+
+def get_type_flow_graph(addr:int) -> ASTAnalysis|None:
+    assert isinstance(addr, int)
+    func_ea = get_func_start(addr)
+    if func_ea == -1:
+        log_err(f"{hex(addr)} is not a function")
+        return None
+
+    return TypeAnalyzer().get_ast_analysis(func_ea)
+
+
+def print_type_flow_graph(addr:int):
+    aa = get_type_flow_graph(addr)
+    if aa is None:
+        return
+
+    func_ea = get_func_start(addr)
+    aa.print_graph(f"{idaapi.get_name(func_ea)} TypeFlowGraph")
