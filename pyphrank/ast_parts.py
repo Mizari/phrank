@@ -226,6 +226,8 @@ class VarUseChain:
 		return None
 
 	def __str__(self) -> str:
+		if len(self.uses) == 0:
+			return str(self.var)
 		return f"{str(self.var)},{self.uses_str()}"
 
 
