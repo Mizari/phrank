@@ -286,6 +286,8 @@ class SExpr:
 		if self.is_int():
 			return f"Int[{self.tif},{hex(self.int_value)}]"
 		elif self.is_var_use_chain():
+			if self.is_var():
+				return f"{self.var_use_chain}"
 			return f"VarUseChain[{self.var_use_chain}]"
 		elif self.is_function():
 			return f"Func[{idaapi.get_name(self.func_addr)}]"
