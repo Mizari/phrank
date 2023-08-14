@@ -296,7 +296,7 @@ class SExpr:
 		elif self.is_call():
 			return f"Call[{self.function}]"
 		elif self.is_assign():
-			return f"{self.x}={self.y}"
+			return f"{self.x} = {self.y}"
 		elif self.is_binary_op():
 			return f"BinOp[{self.x},{self.y}]"
 		else:
@@ -458,6 +458,11 @@ class Node:
 			self.TYPE_CAST: "TypeCast",
 		}.get(self.node_type, "UnknownNode")
 		sexpr_text = str(self.sexpr)
+		if self.is_call_cast():
+			sexpr_text += f" -> [{self.func_call},{self.arg_id}]"
+		elif self.is_type_cast():
+			sexpr_text += f" -> {self.tif}"
+
 		diff = (len(sexpr_text) - len(node_type)) // 2 - 1
 		if diff > 0:
 			node_type = diff * ' ' + node_type
