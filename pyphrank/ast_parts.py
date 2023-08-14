@@ -180,14 +180,14 @@ class VarUse:
 
 	def __str__(self) -> str:
 		use_type_str = {
-			self.VAR_ADD: "ADD",
-			self.VAR_PTR: "PTR",
-			self.VAR_HELPER: "HLP",
-			self.VAR_REF: "REF",
+			self.VAR_ADD: "Add",
+			self.VAR_PTR: "Ptr",
+			self.VAR_HELPER: "Hlp",
+			self.VAR_REF: "Ref",
 		}.get(self.use_type)
 		if use_type_str is None:
 			raise RuntimeError("Object is initialized incorrectly")
-		return f"{use_type_str}Use({str(self.offset)})"
+		return f"{use_type_str}({str(self.offset)})"
 
 
 class VarUseChain:
