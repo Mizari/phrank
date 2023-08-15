@@ -83,9 +83,9 @@ def shrink_tfg(aa:TFG):
 		aa.entry = new_entry
 
 
-class TypeAnalyzer(FunctionManager):
-	def __init__(self, cfunc_factory=None) -> None:
-		super().__init__(cfunc_factory=cfunc_factory)
+class TypeAnalyzer:
+	def __init__(self) -> None:
+		self.func_manager = FunctionManager()
 		self.container_manager = ContainerManager()
 		self.tfg_cache : dict[int,TFG ]= {}
 
@@ -99,20 +99,20 @@ class TypeAnalyzer(FunctionManager):
 		if cached is not None:
 			return cached
 
-		aa = super().get_tfg(func_ea)
+		aa = self.func_manager.get_tfg(func_ea)
 		shrink_tfg(aa)
 		self.tfg_cache[func_ea] = aa
 		return aa
 
 	def get_db_var_type(self, var:Var) -> idaapi.tinfo_t:
 		if var.is_local():
-			return self.get_cfunc_lvar_type(var.func_ea, var.lvar_id)
+			return self.func_manager.get_cfunc_lvar_type(var.func_ea, var.lvar_id)
 		else:
 			return utils.addr2tif(var.obj_ea)
 
 	def set_db_var_type(self, var:Var, var_type:idaapi.tinfo_t):
 		if var.is_local():
-			self.set_lvar_tinfo(var.func_ea, var.lvar_id, var_type)
+			self.func_manager.set_lvar_tinfo(var.func_ea, var.lvar_id, var_type)
 		else:
 			rv = idc.SetType(var.obj_ea, str(var_type) + ';')
 			if rv == 0:
@@ -222,7 +222,7 @@ class TypeAnalyzer(FunctionManager):
 			return stype
 
 		elif sexpr.is_function():
-			return self.get_func_tinfo(sexpr.func_addr)
+			return self.func_manager.get_func_tinfo(sexpr.func_addr)
 
 		elif sexpr.is_explicit_call():
 			return self.analyze_retval(sexpr.function.func_addr)
@@ -349,7 +349,7 @@ class TypeAnalyzer(FunctionManager):
 
 		# local/global specific analysis
 		if var.is_local():
-			cfunc_lvar = self.get_cfunc_lvar(var.func_ea, var.lvar_id)
+			cfunc_lvar = self.func_manager.get_cfunc_lvar(var.func_ea, var.lvar_id)
 			if cfunc_lvar is not None and cfunc_lvar.is_stk_var() and not cfunc_lvar.is_arg_var:
 				return utils.UNKNOWN_TYPE
 

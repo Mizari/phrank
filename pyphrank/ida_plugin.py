@@ -82,7 +82,7 @@ class HRActionHandler(idaapi.action_handler_t):
 class StructMaker(HRActionHandler):
 	def handle_function(self, func_ea):
 		struct_analyzer = TypeAnalyzer()
-		for i in range(struct_analyzer.get_lvars_counter(func_ea)):
+		for i in range(struct_analyzer.func_manager.get_lvars_counter(func_ea)):
 			struct_analyzer.analyze_var(Var(func_ea, i))
 
 		struct_analyzer.analyze_retval(func_ea)
