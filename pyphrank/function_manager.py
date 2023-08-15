@@ -4,9 +4,9 @@ import idaapi
 
 import pyphrank.utils as utils
 
-from pyphrank.ast_analyzer import CTreeAnalyzer, ASTAnalysis
+from pyphrank.ast_analyzer import CTreeAnalyzer, TFG
 from pyphrank.cfunction_factory import CFunctionFactory
-from pyphrank.ast_parts import Node, UNKNOWN_SEXPR
+from pyphrank.type_flow_graph_parts import Node, UNKNOWN_SEXPR
 
 def get_funcname(func_ea: int) -> str:
 	return idaapi.get_name(func_ea)
@@ -18,14 +18,14 @@ class FunctionManager:
 			cfunc_factory = CFunctionFactory()
 		self.func_factory = cfunc_factory
 
-	def get_ast_analysis(self, func_ea:int) -> ASTAnalysis:
+	def get_tfg(self, func_ea:int) -> TFG:
 		if not utils.is_func_start(func_ea):
 			utils.log_warn(f"{hex(func_ea)} is not a function")
 
 		cfunc = self.get_cfunc(func_ea)
 		if cfunc is None:
 			nop_node = Node(Node.EXPR, UNKNOWN_SEXPR)
-			analysis = ASTAnalysis(nop_node)
+			analysis = TFG(nop_node)
 		else:
 			analysis = CTreeAnalyzer(cfunc).lift_cfunc()
 		return analysis

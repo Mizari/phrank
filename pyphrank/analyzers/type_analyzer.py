@@ -4,9 +4,9 @@ import idc
 import idaapi
 
 from pyphrank.function_manager import FunctionManager
-from pyphrank.ast_parts import Var, SExpr, VarUseChain, Node, UNKNOWN_SEXPR, NOP_NODE
+from pyphrank.type_flow_graph_parts import Var, SExpr, VarUseChain, Node, UNKNOWN_SEXPR, NOP_NODE
 from pyphrank.containers.structure import Structure
-from pyphrank.ast_analyzer import ASTAnalysis, chain_nodes
+from pyphrank.ast_analyzer import TFG, chain_nodes
 from pyphrank.analysis_state import AnalysisState
 from pyphrank.containers.vtable import Vtable
 from pyphrank.container_manager import ContainerManager
@@ -50,7 +50,7 @@ def is_typeful_node(node:Node) -> bool:
 		return False
 	return True
 
-def shrink_ast_analysis(aa:ASTAnalysis):
+def shrink_tfg(aa:TFG):
 	def remove_node(node:Node):
 		for parent in node.parents:
 			parent.children.remove(node)
@@ -87,21 +87,21 @@ class TypeAnalyzer(FunctionManager):
 	def __init__(self, cfunc_factory=None) -> None:
 		super().__init__(cfunc_factory=cfunc_factory)
 		self.container_manager = ContainerManager()
-		self.ast_analysis_cache : dict[int,ASTAnalysis ]= {}
+		self.tfg_cache : dict[int,TFG ]= {}
 
 		self.state = AnalysisState()
 
-	def cache_analysis(self, addr:int, analysis:ASTAnalysis):
-		self.ast_analysis_cache[addr] = analysis
+	def cache_tfg(self, addr:int, analysis:TFG):
+		self.tfg_cache[addr] = analysis
 
-	def get_ast_analysis(self, func_ea:int) -> ASTAnalysis:
-		cached = self.ast_analysis_cache.get(func_ea)
+	def get_tfg(self, func_ea:int) -> TFG:
+		cached = self.tfg_cache.get(func_ea)
 		if cached is not None:
 			return cached
 
-		aa = super().get_ast_analysis(func_ea)
-		shrink_ast_analysis(aa)
-		self.ast_analysis_cache[func_ea] = aa
+		aa = super().get_tfg(func_ea)
+		shrink_tfg(aa)
+		self.tfg_cache[func_ea] = aa
 		return aa
 
 	def get_db_var_type(self, var:Var) -> idaapi.tinfo_t:
@@ -131,7 +131,7 @@ class TypeAnalyzer(FunctionManager):
 
 		new_xrefs = []
 		for func_ea in touched_functions:
-			func_aa = self.get_ast_analysis(func_ea)
+			func_aa = self.get_tfg(func_ea)
 			for func_call in func_aa.iterate_implicit_calls():
 				frm = func_call.expr_ea
 				if frm == idaapi.BADADDR:
@@ -204,7 +204,7 @@ class TypeAnalyzer(FunctionManager):
 			return rv
 		self.state.retvals[func_ea] = utils.UNKNOWN_TYPE # to break recursion
 
-		aa = self.get_ast_analysis(func_ea)
+		aa = self.get_tfg(func_ea)
 		r_types = [self.analyze_sexpr_type(r) for r in aa.iterate_return_sexprs()]
 		retval_type = select_type(*r_types)
 		self.state.retvals[func_ea] = retval_type
@@ -287,8 +287,8 @@ class TypeAnalyzer(FunctionManager):
 				f"because variable has different type {current_type}"
 			)
 
-	def get_func_var_uses(self, func_ea:int, var:Var) -> ASTAnalysis:
-		aa = self.get_ast_analysis(func_ea).copy()
+	def get_func_var_uses(self, func_ea:int, var:Var) -> TFG:
+		aa = self.get_tfg(func_ea).copy()
 		node_replacements : dict[Node, list[Node]] = {}
 		for node in aa.iterate_nodes():
 			sexpr = node.sexpr
@@ -325,10 +325,10 @@ class TypeAnalyzer(FunctionManager):
 
 		if aa.entry in node_replacements:
 			aa.entry = node_replacements[aa.entry][0]
-		shrink_ast_analysis(aa)
+		shrink_tfg(aa)
 		return aa
 
-	def get_all_var_uses(self, var:Var) -> ASTAnalysis:
+	def get_all_var_uses(self, var:Var) -> TFG:
 		funcs = var.get_functions()
 		if len(funcs) == 1:
 			func_ea = funcs.pop()
@@ -339,7 +339,7 @@ class TypeAnalyzer(FunctionManager):
 			va = self.get_func_var_uses(func_ea, var)
 			new_entry.children.add(va.entry)
 			va.entry.parents.add(new_entry)
-		return ASTAnalysis(new_entry)
+		return TFG(new_entry)
 
 	def analyze_by_heuristics(self, var:Var) -> idaapi.tinfo_t:
 		original_var_tinfo = self.get_db_var_type(var)
@@ -362,7 +362,7 @@ class TypeAnalyzer(FunctionManager):
 			return vtbl.tinfo
 		return utils.UNKNOWN_TYPE
 
-	def analyze_existing_type_by_var_uses(self, var:Var, var_uses:ASTAnalysis) -> idaapi.tinfo_t:
+	def analyze_existing_type_by_var_uses(self, var:Var, var_uses:TFG) -> idaapi.tinfo_t:
 		rw_ptr_uses = set()
 		max_ptr_offset = 0
 		for w in var_uses.iterate_var_writes(var):
@@ -449,7 +449,7 @@ class TypeAnalyzer(FunctionManager):
 			self.add_type_uses_to_var(var, var_uses, arg_type)
 			return arg_type
 
-	def add_type_uses_to_var(self, var:Var, var_uses:ASTAnalysis, var_type:idaapi.tinfo_t):
+	def add_type_uses_to_var(self, var:Var, var_uses:TFG, var_type:idaapi.tinfo_t):
 		for node in var_uses.iterate_nodes():
 			sexpr = node.sexpr
 			# nop node
@@ -605,7 +605,7 @@ class TypeAnalyzer(FunctionManager):
 
 		return addr
 
-	def is_var_possible_ptr(self, var:Var, var_uses:ASTAnalysis) -> bool:
+	def is_var_possible_ptr(self, var:Var, var_uses:TFG) -> bool:
 		for node in var_uses.iterate_nodes():
 			for vuc in node.sexpr.extract_var_use_chains():
 				if vuc.var != var:

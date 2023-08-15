@@ -13,26 +13,26 @@ from pyphrank.containers.structure import Structure
 from pyphrank.containers.union import Union
 from pyphrank.containers.ida_struc_wrapper import IdaStrucWrapper
 from pyphrank.containers.vtable import Vtable
-from pyphrank.ast_analysis import ASTAnalysis, VarWrite
+from pyphrank.type_flow_graph import TFG, VarWrite
 from pyphrank.ida_plugin import IDAPlugin
 import pyphrank.settings as settings
 
 from pyphrank.utils import *
-from pyphrank.ast_parts import *
+from pyphrank.type_flow_graph_parts import *
 
 
 def get_plugin_instance():
     return IDAPlugin.get_instance()
 
 
-def get_type_flow_graph(addr:int) -> ASTAnalysis|None:
+def get_type_flow_graph(addr:int) -> TFG|None:
     assert isinstance(addr, int)
     func_ea = get_func_start(addr)
     if func_ea == -1:
         log_err(f"{hex(addr)} is not a function")
         return None
 
-    return TypeAnalyzer().get_ast_analysis(func_ea)
+    return TypeAnalyzer().get_tfg(func_ea)
 
 
 def print_type_flow_graph(addr:int):

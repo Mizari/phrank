@@ -7,7 +7,7 @@ from pyphrank.containers.cpp_class import CDtor, CppClass
 from pyphrank.containers.vtable import Vtable
 from pyphrank.containers.vtables_union import VtablesUnion
 from pyphrank.analyzers.type_analyzer import TypeAnalyzer
-from pyphrank.ast_parts import Var
+from pyphrank.type_flow_graph_parts import Var
 
 class ClassConstructionContext(object):
 	def __init__(self) -> None:
@@ -142,7 +142,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 			return
 
 		vtbls = set()
-		func_fav = self.get_ast_analysis(func_addr)
+		func_fav = self.get_tfg(func_addr)
 		var = Var(func_addr, 0)
 		for w in func_fav.iterate_var_assigns(var):
 			intval = utils.get_int(w.value)
@@ -236,7 +236,7 @@ class CppClassAnalyzer(TypeAnalyzer):
 		return cpp_class
 
 	def create_class_per_cdtor(self, cdtor: CDtor):
-		fav = self.get_ast_analysis(cdtor.get_ea())
+		fav = self.get_tfg(cdtor.get_ea())
 		var = Var(cdtor.get_ea(), 0)
 		writes = [w for w in fav.iterate_var_assigns(var)]
 		if len(writes) == 0:

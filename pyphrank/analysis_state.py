@@ -1,6 +1,6 @@
 import idaapi
 
-from pyphrank.ast_parts import Var
+from pyphrank.type_flow_graph_parts import Var
 import pyphrank.utils as utils
 
 

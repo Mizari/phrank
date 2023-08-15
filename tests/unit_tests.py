@@ -45,11 +45,11 @@ def test_basic_struct_content() -> bool:
 
 def test_var_uses_collection() -> bool:
 	var = phrank.Var(0x123456, 0)
-	mock_analysis = phrank.ASTAnalysis(phrank.ASTCtx(0x123456))
+	mock_analysis = phrank.TFG(phrank.ASTCtx(0x123456))
 	mock_analysis.assigns.append(make_ptr_write(0))
 
 	ta = phrank.TypeAnalyzer()
-	ta.cache_analysis(0x123456, mock_analysis)
+	ta.cache_tfg(0x123456, mock_analysis)
 	vu = ta.get_all_var_uses(var)
 	if len(vu) != 1:
 		return False

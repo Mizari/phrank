@@ -7,7 +7,7 @@ import pyphrank.utils as utils
 from pyphrank.containers.structure import Structure
 from pyphrank.containers.vtables_union import VtablesUnion
 from pyphrank.containers.vtable import Vtable
-from pyphrank.ast_analysis import ASTAnalysis, ASTCtx
+from pyphrank.type_flow_graph import TFG, ASTCtx
 
 
 class CppClass(Structure):
@@ -135,7 +135,7 @@ class CDtor(object):
 		factory = VtableAnalyzer()
 		self._vtbl_writes : dict[int,list] = {}
 		ctx = ASTCtx(fea)
-		for write in ASTAnalysis(ctx).get_writes_into_var(0):
+		for write in TFG(ctx).get_writes_into_var(0):
 			int_write_val = write.get_int()
 			if int_write_val is None:
 				continue

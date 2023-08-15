@@ -3,9 +3,9 @@ from __future__ import annotations
 import idaapi
 
 import pyphrank.utils as utils
-from pyphrank.ast_parts import SExpr, ASTCtx, Node, NOP_NODE
-from pyphrank.ast_parts import Var, VarUse, VarUseChain, UNKNOWN_SEXPR
-from pyphrank.ast_analysis import ASTAnalysis
+from pyphrank.type_flow_graph_parts import SExpr, ASTCtx, Node, NOP_NODE
+from pyphrank.type_flow_graph_parts import Var, VarUse, VarUseChain, UNKNOWN_SEXPR
+from pyphrank.type_flow_graph import TFG
 
 
 bool_operations = {
@@ -190,9 +190,9 @@ class CTreeAnalyzer:
 		self.cfunc = cfunc
 		self.actx = ASTCtx.from_cfunc(cfunc)
 
-	def lift_cfunc(self) -> ASTAnalysis:
+	def lift_cfunc(self) -> TFG:
 		entry = self.lift_instr(self.cfunc.body)
-		return ASTAnalysis(entry)
+		return TFG(entry)
 
 	def lift_instr(self, cinstr) -> Node:
 		sexpr_nodes = []

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import idaapi
 
-from pyphrank.ast_parts import SExpr, ASTCtx, Var, VarUseChain, Node
+from pyphrank.type_flow_graph_parts import SExpr, ASTCtx, Var, VarUseChain, Node
 
 
 def extract_implicit_calls(sexpr:SExpr):
@@ -32,7 +32,7 @@ def extract_var_reads(sexpr:SExpr, var:Var):
 		yield from extract_var_reads(sexpr.y, var)
 
 
-class ASTAnalysisGraphView(idaapi.GraphViewer):
+class TFGView(idaapi.GraphViewer):
 	def __init__(self, name:str):
 		super().__init__(name)
 
@@ -49,11 +49,11 @@ class VarWrite:
 		self.value = value
 
 
-class ASTAnalysis:
+class TFG:
 	def __init__(self, entry:Node):
 		self.entry = entry
 
-	def copy(self) -> ASTAnalysis:
+	def copy(self) -> TFG:
 		node2new : dict[Node,Node] = {}
 		for node in self.iterate_nodes():
 			new_node = node.copy()
@@ -67,10 +67,10 @@ class ASTAnalysis:
 				new_node.children.add(new_child)
 
 		new_entry = node2new[self.entry]
-		return ASTAnalysis(new_entry)
+		return TFG(new_entry)
 
 	def print_graph(self, graph_title:str):
-		gv = ASTAnalysisGraphView(graph_title)
+		gv = TFGView(graph_title)
 		node2id = {}
 		for node in self.iterate_nodes():
 			node2id[node] = gv.AddNode(str(node))

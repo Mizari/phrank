@@ -5,7 +5,7 @@ import time
 import pyphrank.utils as utils
 import pyphrank.settings as settings
 
-from pyphrank.ast_parts import Var, ASTCtx
+from pyphrank.type_flow_graph_parts import Var, ASTCtx
 from pyphrank.ast_analyzer import extract_vars
 from pyphrank.analyzers.type_analyzer import TypeAnalyzer
 
