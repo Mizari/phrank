@@ -1,3 +1,4 @@
+from __future__ import annotations
 import idaapi
 import idaapi
 import time
@@ -18,12 +19,13 @@ def get_lvar_id(cfunc, lvar_arg):
 	return -1
 
 
-class HRActionHandler(idaapi.action_handler_t):
+class PluginActionHandler(idaapi.action_handler_t):
 	def __init__(self, action_name, hotkey, label):
 		idaapi.action_handler_t.__init__(self)
 		self.action_name = action_name
 		self.hotkey = hotkey
 		self.label = label
+		self.plugin: IDAPlugin|None = None
 	
 	def can_activate(self, ctx):
 		if ctx.widget_type != idaapi.BWN_PSEUDOCODE:
@@ -63,7 +65,7 @@ class HRActionHandler(idaapi.action_handler_t):
 	def handle_var(self, var:Var) -> int:
 		raise NotImplementedError()
 
-	def handle_function(self, cfunc) -> int:
+	def handle_function(self, func_ea) -> int:
 		raise NotImplementedError()
 
 	def update(self, ctx):
@@ -74,14 +76,19 @@ class HRActionHandler(idaapi.action_handler_t):
 		if current_state[0]:
 			idaapi.unregister_action(self.action_name)
 		idaapi.register_action(
-			idaapi.action_desc_t(self.action_name, "qwe", self, self.hotkey)
+			idaapi.action_desc_t(self.action_name, self.label, self, self.hotkey)
 		)
 		idaapi.update_action_state(self.action_name, idaapi.AST_ENABLE_ALWAYS)
 
 
-class StructMaker(HRActionHandler):
+class StructMaker(PluginActionHandler):
+	def _get_analyzer(self):
+		if self.plugin is None:
+			raise ValueError("Plugin is not set in its action")
+		return self.plugin.type_analyzer
+
 	def handle_function(self, func_ea):
-		struct_analyzer = TypeAnalyzer()
+		struct_analyzer = self._get_analyzer()
 		for i in range(struct_analyzer.func_manager.get_lvars_counter(func_ea)):
 			struct_analyzer.analyze_var(Var(func_ea, i))
 
@@ -91,7 +98,7 @@ class StructMaker(HRActionHandler):
 
 	def handle_var(self, var:Var) -> int:
 		start = time.time()
-		struct_analyzer = TypeAnalyzer()
+		struct_analyzer = self._get_analyzer()
 		struct_analyzer.analyze_var(var)
 		struct_analyzer.apply_analysis()
 		utils.log_info(f"Analysis completed in {time.time() - start}")
@@ -138,7 +145,8 @@ class IDAPlugin(idaapi.plugin_t):
 		# will calculate size of the pointer in variable at cursor
 		# then will create struct structure with that size or adjust size of existing one
 		# then will set variable to new type, if created
-		self.action = StructMaker("phrank::struct_maker", "Shift-A", "make struct")
+		self.actions: list[PluginActionHandler] = []
+		self.type_analyzer = TypeAnalyzer()
 
 	@classmethod
 	def get_instance(cls):
@@ -152,7 +160,13 @@ class IDAPlugin(idaapi.plugin_t):
 
 		utils.create_logger()
 		settings.PTRSIZE = utils.get_pointer_size()
-		self.action.register()
+
+		self.actions.append(
+			StructMaker("phrank::struct_maker", "Shift-A", "make struct")
+		)
+		for action in self.actions:
+			action.plugin = self
+			action.register()
 
 		return idaapi.PLUGIN_KEEP
 
