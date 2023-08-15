@@ -94,7 +94,8 @@ class ItemAnalyzer(PluginActionHandler):
 			analyzer.analyze_var(Var(func_ea, i))
 
 		analyzer.analyze_retval(func_ea)
-		analyzer.apply_analysis()
+		if self.plugin.should_apply_analysis:
+			analyzer.apply_analysis()
 		utils.log_info(f"Analysis completed in {time.time() - start}")
 		return 1
 
@@ -102,7 +103,8 @@ class ItemAnalyzer(PluginActionHandler):
 		analyzer = self._get_analyzer()
 		start = time.time()
 		analyzer.analyze_var(var)
-		analyzer.apply_analysis()
+		if self.plugin.should_apply_analysis:
+			analyzer.apply_analysis()
 		utils.log_info(f"Analysis completed in {time.time() - start}")
 		return 1
 
@@ -149,6 +151,7 @@ class IDAPlugin(idaapi.plugin_t):
 		# then will set variable to new type, if created
 		self.actions: list[PluginActionHandler] = []
 		self.type_analyzer = TypeAnalyzer()
+		self.should_apply_analysis = True
 
 	@classmethod
 	def get_instance(cls):
