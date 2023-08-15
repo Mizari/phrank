@@ -86,7 +86,7 @@ class PluginActionHandler(idaapi.action_handler_t):
 		idaapi.update_action_state(self.action_name, idaapi.AST_ENABLE_ALWAYS)
 
 
-class StructMaker(PluginActionHandler):
+class ItemAnalyzer(PluginActionHandler):
 	def handle_function(self, func_ea):
 		analyzer = self._get_analyzer()
 		start = time.time()
@@ -164,7 +164,7 @@ class IDAPlugin(idaapi.plugin_t):
 		settings.PTRSIZE = utils.get_pointer_size()
 
 		self.actions.append(
-			StructMaker("phrank::struct_maker", "Shift-A", "make struct")
+			ItemAnalyzer("phrank::struct_maker", "Shift-A", "make struct")
 		)
 		for action in self.actions:
 			action.plugin = self
