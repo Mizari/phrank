@@ -69,7 +69,7 @@ def phrank_help():
 	funcs = {}
 	modules = {}
 	classes = {}
-	skips = {"sys", "idaapi", "typing", "ida_struct", "re", "logging", "idautils", "idc", "Any"}
+	skips = {"sys", "idaapi", "typing", "ida_struct", "re", "logging", "idautils", "idc", "Any", "utils"}
 	for k, v in vars(mod).items():
 		if k.startswith("__"): continue
 		if k in skips:
