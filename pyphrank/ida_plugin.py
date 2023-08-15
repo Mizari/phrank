@@ -20,7 +20,7 @@ def get_lvar_id(cfunc, lvar_arg):
 
 
 class PluginActionHandler(idaapi.action_handler_t):
-	def __init__(self, action_name, hotkey, label):
+	def __init__(self, action_name, label, hotkey=None):
 		idaapi.action_handler_t.__init__(self)
 		self.action_name = action_name
 		self.hotkey = hotkey
@@ -167,7 +167,7 @@ class IDAPlugin(idaapi.plugin_t):
 		settings.PTRSIZE = utils.get_pointer_size()
 
 		self.actions.append(
-			ItemAnalyzer("phrank::struct_maker", "Shift-A", "make struct")
+			ItemAnalyzer("phrank::struct_maker", "make struct")
 		)
 		for action in self.actions:
 			action.plugin = self
