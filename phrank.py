@@ -15,6 +15,7 @@ from pyphrank.containers.ida_struc_wrapper import IdaStrucWrapper
 from pyphrank.containers.vtable import Vtable
 from pyphrank.type_flow_graph import TFG
 from pyphrank.ida_plugin import IDAPlugin
+from pyphrank.analysis_state import AnalysisState
 import pyphrank.settings as settings
 
 from pyphrank.utils import *
@@ -23,6 +24,15 @@ from pyphrank.type_flow_graph_parts import *
 
 def get_plugin_instance():
     return IDAPlugin.get_instance()
+
+
+def get_plugin_state() -> AnalysisState:
+	return get_plugin_instance().type_analyzer.state
+
+
+def apply_plugin_state():
+	plugin = get_plugin_instance()
+	plugin.type_analyzer.apply_analysis()
 
 
 def get_type_flow_graph(addr:int) -> TFG|None:
