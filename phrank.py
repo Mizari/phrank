@@ -1,4 +1,8 @@
+"""Aggregator module for all underlying phrank API"""
+
 from __future__ import annotations
+
+import sys
 
 # forward imports
 from pyphrank.analyzers.cpp_class_analyzer import CppClassAnalyzer
@@ -38,3 +42,51 @@ def print_type_flow_graph(addr:int):
 
     func_ea = get_func_start(addr)
     aa.print_graph(f"{idaapi.get_name(func_ea)} TypeFlowGraph")
+
+def __print_padded(*args, padlen=0):
+	padlen -= 1
+	print(' ' * padlen, *args, )
+
+
+def __help_objects(name, objs):
+	if len(objs) == 0:
+		return
+
+	print(name)
+	for modname in sorted(objs.keys()):
+		m = objs[modname]
+		__print_padded(modname, padlen=4)
+		if m.__doc__:
+			__print_padded(m.__doc__, padlen=8)
+		print()
+	print()
+
+def phrank_help():
+	"""Print this help"""
+	from inspect import isclass, isfunction, ismodule
+
+	mod = sys.modules[__name__]
+	funcs = {}
+	modules = {}
+	classes = {}
+	skips = {"sys", "idaapi", "typing", "ida_struct", "re", "logging", "idautils", "idc", "Any"}
+	for k, v in vars(mod).items():
+		if k.startswith("__"): continue
+		if k in skips:
+			continue
+		if isfunction(v):
+			funcs[k] = v
+		elif ismodule(v):
+			modules[k] = v
+		elif isclass(v):
+			classes[k] = v
+		else:
+			pass
+
+	print("DESCRIPTION")
+	__print_padded(mod.__doc__, padlen=4)
+	print()
+
+	__help_objects("MODULES", modules)
+	__help_objects("CLASSES", classes)
+	__help_objects("FUNCTIONS", funcs)
