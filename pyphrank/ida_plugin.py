@@ -167,7 +167,7 @@ class IDAPlugin(idaapi.plugin_t):
 		settings.PTRSIZE = utils.get_pointer_size()
 
 		self.actions.append(
-			ItemAnalyzer("phrank::struct_maker", "make struct")
+			ItemAnalyzer("phrank::item_analyzer", "analyze item under cursor")
 		)
 		for action in self.actions:
 			action.plugin = self
