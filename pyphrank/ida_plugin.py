@@ -20,12 +20,12 @@ def get_lvar_id(cfunc, lvar_arg):
 
 
 class PluginActionHandler(idaapi.action_handler_t):
-	def __init__(self, action_name, label, hotkey=None):
+	def __init__(self, action_name, label, plugin:IDAPlugin, hotkey=None):
 		idaapi.action_handler_t.__init__(self)
 		self.action_name = action_name
 		self.hotkey = hotkey
 		self.label = label
-		self.plugin: IDAPlugin|None = None
+		self.plugin = plugin
 
 	def _get_analyzer(self):
 		if self.plugin is None:
@@ -167,10 +167,9 @@ class IDAPlugin(idaapi.plugin_t):
 		settings.PTRSIZE = utils.get_pointer_size()
 
 		self.actions.append(
-			ItemAnalyzer("phrank::item_analyzer", "analyze item under cursor")
+			ItemAnalyzer("phrank::item_analyzer", "analyze item under cursor and its dependencies", self)
 		)
 		for action in self.actions:
-			action.plugin = self
 			action.register()
 
 		return idaapi.PLUGIN_KEEP
