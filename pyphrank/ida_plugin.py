@@ -26,6 +26,11 @@ class PluginActionHandler(idaapi.action_handler_t):
 		self.hotkey = hotkey
 		self.label = label
 		self.plugin: IDAPlugin|None = None
+
+	def _get_analyzer(self):
+		if self.plugin is None:
+			raise ValueError("Plugin is not set in its action")
+		return self.plugin.type_analyzer
 	
 	def can_activate(self, ctx):
 		if ctx.widget_type != idaapi.BWN_PSEUDOCODE:
@@ -82,11 +87,6 @@ class PluginActionHandler(idaapi.action_handler_t):
 
 
 class StructMaker(PluginActionHandler):
-	def _get_analyzer(self):
-		if self.plugin is None:
-			raise ValueError("Plugin is not set in its action")
-		return self.plugin.type_analyzer
-
 	def handle_function(self, func_ea):
 		struct_analyzer = self._get_analyzer()
 		for i in range(struct_analyzer.func_manager.get_lvars_counter(func_ea)):
