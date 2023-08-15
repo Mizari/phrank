@@ -88,19 +88,21 @@ class PluginActionHandler(idaapi.action_handler_t):
 
 class StructMaker(PluginActionHandler):
 	def handle_function(self, func_ea):
-		struct_analyzer = self._get_analyzer()
-		for i in range(struct_analyzer.func_manager.get_lvars_counter(func_ea)):
-			struct_analyzer.analyze_var(Var(func_ea, i))
+		analyzer = self._get_analyzer()
+		start = time.time()
+		for i in range(analyzer.func_manager.get_lvars_counter(func_ea)):
+			analyzer.analyze_var(Var(func_ea, i))
 
-		struct_analyzer.analyze_retval(func_ea)
-		struct_analyzer.apply_analysis()
+		analyzer.analyze_retval(func_ea)
+		analyzer.apply_analysis()
+		utils.log_info(f"Analysis completed in {time.time() - start}")
 		return 1
 
 	def handle_var(self, var:Var) -> int:
+		analyzer = self._get_analyzer()
 		start = time.time()
-		struct_analyzer = self._get_analyzer()
-		struct_analyzer.analyze_var(var)
-		struct_analyzer.apply_analysis()
+		analyzer.analyze_var(var)
+		analyzer.apply_analysis()
 		utils.log_info(f"Analysis completed in {time.time() - start}")
 		return 1
 
