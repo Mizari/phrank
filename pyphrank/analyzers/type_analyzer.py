@@ -366,7 +366,9 @@ class TypeAnalyzer(FunctionManager):
 		rw_ptr_uses = set()
 		max_ptr_offset = 0
 		for w in var_uses.iterate_var_writes(var):
-			vuc = w.target
+			vuc = w.target.var_use_chain
+			if vuc is None:
+				continue
 			write_offset = vuc.get_ptr_offset()
 			if write_offset is None:
 				continue

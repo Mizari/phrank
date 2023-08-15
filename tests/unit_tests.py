@@ -12,8 +12,7 @@ def make_ptr_write(offset, value=None):
 	target = phrank.SExpr.create_var_use_chain(-1, phrank.VarUseChain(phrank.Var(0x123456, 0), phrank.VarUse(offset, phrank.VarUse.VAR_PTR)))
 	if value is None:
 		value = phrank.SExpr.create_int(-1, 0, phrank.str2tif("int"))
-	vw = phrank.VarWrite(target, value)
-	return vw
+	return phrank.SExpr.create_assign(-1, target, value)
 
 def test_basic_struct_creation() -> bool:
 	"""testing creating new struct with two int assigns"""

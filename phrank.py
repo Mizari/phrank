@@ -13,7 +13,7 @@ from pyphrank.containers.structure import Structure
 from pyphrank.containers.union import Union
 from pyphrank.containers.ida_struc_wrapper import IdaStrucWrapper
 from pyphrank.containers.vtable import Vtable
-from pyphrank.type_flow_graph import TFG, VarWrite
+from pyphrank.type_flow_graph import TFG
 from pyphrank.ida_plugin import IDAPlugin
 import pyphrank.settings as settings
 

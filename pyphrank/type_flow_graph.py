@@ -43,12 +43,6 @@ class TFGView(idaapi.GraphViewer):
 		return self[node_id]
 
 
-class VarWrite:
-	def __init__(self, target:VarUseChain, value:SExpr) -> None:
-		self.target = target
-		self.value = value
-
-
 class TFG:
 	def __init__(self, entry:Node):
 		self.entry = entry
@@ -188,4 +182,4 @@ class TFG:
 			if vuc is None or len(vuc) == 0 or vuc.var != var:
 				continue
 
-			yield VarWrite(vuc, asg.value)
+			yield asg
