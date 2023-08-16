@@ -309,12 +309,11 @@ class TypeAnalyzer:
 					continue
 
 				if sexpr.value.is_var_use(var):
-					# moving from var is not considered as var use
-					if not sexpr.value.is_var(var):
-						node_replacements[node] = [NOP_NODE.copy()]
+					# moving from var is OK
+					if sexpr.value.is_var(var):
 						continue
 
-					# otherwise var read is OK
+					# otherwise var read is OK, no need to know where this is read
 					new_node = Node(Node.EXPR, sexpr.value)
 					node_replacements[node] = [new_node]
 					continue
