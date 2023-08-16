@@ -398,8 +398,13 @@ class TypeAnalyzer:
 			if entry.is_return() and sexpr.is_var_use(var):
 				return True
 
-			if entry.is_call_cast() and self.analyze_call_address(entry.func_call) == -1:
-				return True
+			if entry.is_call_cast():
+				addr = self.analyze_call_address(entry.func_call)
+				if addr == -1:
+					return True
+				arg = Var(addr, entry.arg_id)
+				if self.analyze_var(arg) is utils.UNKNOWN_TYPE:
+					return True
 
 			return False
 
