@@ -304,7 +304,19 @@ class TypeAnalyzer:
 				continue
 
 			if node.is_expr() and sexpr.is_assign():
-				if sexpr.target.is_var_use(var) or sexpr.value.is_var_use(var):
+				# writing into var or moving to var is OK
+				if sexpr.target.is_var_use(var):
+					continue
+
+				if sexpr.value.is_var_use(var):
+					# moving from var is not considered as var use
+					if not sexpr.value.is_var(var):
+						node_replacements[node] = [NOP_NODE.copy()]
+						continue
+
+					# otherwise var read is OK
+					new_node = Node(Node.EXPR, sexpr.value)
+					node_replacements[node] = [new_node]
 					continue
 
 			new_nodes = []
