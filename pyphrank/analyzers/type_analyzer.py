@@ -386,9 +386,15 @@ class TypeAnalyzer:
 			return True
 
 		if entry.is_leaf():
+			# single read or move from var is unknown
 			if entry.is_expr() and sexpr.is_var_use(var):
 				return True
+			
+			# single read or move from var is unknown
+			if entry.is_expr() and sexpr.is_assign() and var not in sexpr.target.extract_vars():
+				return True
 
+			# single read or move from var is unknown
 			if entry.is_return() and sexpr.is_var_use(var):
 				return True
 
