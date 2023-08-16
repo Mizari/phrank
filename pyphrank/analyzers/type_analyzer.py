@@ -25,6 +25,7 @@ def select_type(*tifs):
 	# try to resolve multiple assigns
 	# prefer types over non-types
 	strucid_assign_types = []
+	others = []
 	for tif in tifs:
 		if tif is utils.UNKNOWN_TYPE:
 			continue
@@ -32,13 +33,26 @@ def select_type(*tifs):
 		strucid = utils.tif2strucid(tif)
 		if strucid != -1:
 			strucid_assign_types.append(tif)
+		else:
+			others.append(tif)
 
 	if len(strucid_assign_types) == 1:
 		return strucid_assign_types[0]
 
-	# multiple different assignments is unknown
-	else:
+	# multiple different strucid types is unknown
+	if len(strucid_assign_types) > 0:
 		return utils.UNKNOWN_TYPE
+	
+	if len(others) == 1:
+		return others[0]
+	
+	if all(tif.is_integral() for tif in others):
+		max_size_int = others[0]
+		for i in range(1, len(others)):
+			if others[i].get_size() > max_size_int.get_size():
+				max_size_int = others[i]
+		return max_size_int
+	return utils.UNKNOWN_TYPE
 
 def is_typeful_node(node:Node) -> bool:
 	""" Typeful node is a node, that can affect types """
