@@ -51,7 +51,7 @@ def print_type_flow_graph(addr:int):
         return
 
     func_ea = get_func_start(addr)
-    aa.print_graph(f"{idaapi.get_name(func_ea)} TypeFlowGraph")
+    aa.print(f"{idaapi.get_name(func_ea)} TypeFlowGraph")
 
 def __print_padded(*args, padlen=0):
 	padlen -= 1

@@ -63,7 +63,7 @@ class TFG:
 		new_entry = node2new[self.entry]
 		return TFG(new_entry)
 
-	def print_graph(self, graph_title:str):
+	def print(self, graph_title:str = "no title"):
 		gv = TFGView(graph_title)
 		node2id = {}
 		for node in self.iterate_nodes():
