@@ -407,6 +407,13 @@ class TypeAnalyzer:
 					return True
 
 			return False
+		
+		if len(entry.children) == 1 and (second := next(iter(entry.children))).is_return():
+			if entry.is_expr() and sexpr.is_move_to_var(var):
+				return self.analyze_sexpr_type(sexpr.value) is utils.UNKNOWN_TYPE
+
+			if entry.is_expr() and sexpr.is_var_write(var):
+				return self.analyze_sexpr_type(sexpr.value) is utils.UNKNOWN_TYPE
 
 		return False
 
