@@ -27,12 +27,14 @@ class AnalysisState:
 
 		if strucid == -1:
 			return
+		name = idaapi.get_struc_name(strucid)
 
 		for var, tif in self.vars.items():
 			if utils.tif2strucid(tif) != strucid:
 				continue
-			print(f"found type in {var}")
+			print(f"found type {name} in {var}")
+
 		for func_ea, tif in self.retvals.items():
 			if utils.tif2strucid(tif) != strucid:
 				continue
-			print(f"found type in {idaapi.get_name(func_ea)}")
+			print(f"found type {name} in {idaapi.get_name(func_ea)}")
