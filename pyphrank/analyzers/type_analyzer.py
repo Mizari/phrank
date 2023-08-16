@@ -309,6 +309,8 @@ class TypeAnalyzer:
 
 			new_nodes = []
 			for vuc in sexpr.extract_var_use_chains():
+				if vuc.var != var:
+					continue
 				new_node = Node(Node.EXPR, SExpr.create_var_use_chain(-1, vuc))
 				new_nodes.append(new_node)
 			chain_nodes(*new_nodes)
