@@ -86,6 +86,31 @@ class PluginActionHandler(idaapi.action_handler_t):
 		idaapi.update_action_state(self.action_name, idaapi.AST_ENABLE_ALWAYS)
 
 
+class VarUsesGraphPrinter(PluginActionHandler):
+	def handle_function(self, func_ea):
+		return 0
+
+	def handle_var(self, var:Var) -> int:
+		analyzer = self._get_analyzer()
+		tfg = analyzer.get_all_var_uses(var)
+		tfg.print(f"TypeFlowGraph for {var}")
+		return 0
+
+	def handle_expr(self, cfunc, citem) -> int:
+		citem = utils.strip_casts(citem)
+
+		if citem.op == idaapi.cot_obj and not utils.is_func_start(citem.obj_ea):
+			var = Var(citem.obj_ea)
+			return self.handle_var(var)
+
+		elif citem.op == idaapi.cot_var:
+			var = Var(cfunc.entry_ea, citem.v.idx)
+			return self.handle_var(var)
+
+		utils.log_info(f"no variable under cursor {citem.opname}")
+		return 0
+
+
 class ItemAnalyzer(PluginActionHandler):
 	def handle_function(self, func_ea):
 		analyzer = self._get_analyzer()
@@ -168,6 +193,9 @@ class IDAPlugin(idaapi.plugin_t):
 
 		self.actions.append(
 			ItemAnalyzer("phrank::item_analyzer", "analyze item under cursor and its dependencies", self)
+		)
+		self.actions.append(
+			VarUsesGraphPrinter("phrank::var_uses_graph_printer", "print TypeFlowGraph for variable under cursor", self)
 		)
 		for action in self.actions:
 			action.register()
