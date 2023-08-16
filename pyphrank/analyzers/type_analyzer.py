@@ -188,6 +188,10 @@ class TypeAnalyzer:
 		if not self.is_var_possible_ptr(var, var_uses):
 			return utils.UNKNOWN_TYPE
 
+		if self.analyze_unknown_type_by_var_uses(var, var_uses):
+			self.state.vars[var] = utils.UNKNOWN_TYPE
+			return utils.UNKNOWN_TYPE
+
 		var_tinfo = self.analyze_existing_type_by_var_uses(var, var_uses)
 		if var_tinfo is utils.UNKNOWN_TYPE:
 			lvar_struct = Structure.new()
@@ -361,6 +365,26 @@ class TypeAnalyzer:
 			self.container_manager.add_struct(vtbl)
 			return vtbl.tinfo
 		return utils.UNKNOWN_TYPE
+
+	def analyze_unknown_type_by_var_uses(self, var:Var, var_uses:TFG) -> bool:
+		entry = var_uses.entry
+		sexpr = entry.sexpr
+		if entry.is_expr() and sexpr is UNKNOWN_SEXPR:
+			return True
+
+		if entry.is_leaf():
+			if entry.is_expr() and sexpr.is_var_use(var):
+				return True
+
+			if entry.is_return() and sexpr.is_var_use(var):
+				return True
+
+			if entry.is_call_cast() and self.analyze_call_address(entry.func_call) == -1:
+				return True
+
+			return False
+
+		return False
 
 	def analyze_existing_type_by_var_uses(self, var:Var, var_uses:TFG) -> idaapi.tinfo_t:
 		rw_ptr_uses = set()
