@@ -380,40 +380,44 @@ class TypeAnalyzer:
 		return utils.UNKNOWN_TYPE
 
 	def analyze_unknown_type_by_var_uses(self, var:Var, var_uses:TFG) -> bool:
-		entry = var_uses.entry
-		sexpr = entry.sexpr
-		if entry.is_expr() and sexpr is UNKNOWN_SEXPR:
-			return True
-
-		if entry.is_leaf():
-			# single read or move from var is unknown
-			if entry.is_expr() and sexpr.is_var_use(var):
-				return True
-			
-			# single read or move from var is unknown
-			if entry.is_expr() and sexpr.is_assign() and var not in sexpr.target.extract_vars():
+		def is_unknown_use_node(node:Node) -> bool:
+			sexpr = node.sexpr
+			if node.is_expr() and sexpr is UNKNOWN_SEXPR:
 				return True
 
 			# single read or move from var is unknown
-			if entry.is_return() and sexpr.is_var_use(var):
+			if node.is_expr() and sexpr.is_var_use(var):
 				return True
 
-			if entry.is_call_cast():
-				addr = self.analyze_call_address(entry.func_call)
+			# single read or move from var is unknown
+			if node.is_expr() and sexpr.is_assign() and var not in sexpr.target.extract_vars():
+				return True
+
+			# single read or move from var is unknown
+			if node.is_return() and sexpr.is_var_use(var):
+				return True
+
+			# casting to unknown is unknown
+			if node.is_call_cast():
+				addr = self.analyze_call_address(node.func_call)
 				if addr == -1:
 					return True
-				arg = Var(addr, entry.arg_id)
+				arg = Var(addr, node.arg_id)
 				if self.analyze_var(arg) is utils.UNKNOWN_TYPE:
 					return True
 
-			return False
-		
-		if len(entry.children) == 1 and (second := next(iter(entry.children))).is_return():
-			if entry.is_expr() and sexpr.is_move_to_var(var):
+			# moving unknown to var is unknown
+			if node.is_expr() and sexpr.is_move_to_var(var):
 				return self.analyze_sexpr_type(sexpr.value) is utils.UNKNOWN_TYPE
 
-			if entry.is_expr() and sexpr.is_var_write(var):
+			# writing unknown into var is unknown
+			if node.is_expr() and sexpr.is_var_write(var):
 				return self.analyze_sexpr_type(sexpr.value) is utils.UNKNOWN_TYPE
+
+			return False
+
+		if all(is_unknown_use_node(node) for node in var_uses.iterate_nodes()):
+			return True
 
 		return False
 
