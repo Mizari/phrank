@@ -431,6 +431,9 @@ class Node:
 		self.children : set[Node] = set()
 		self.parents : set[Node] = set()
 
+	def is_leaf(self):
+		return len(self.children) == 0
+
 	def copy(self) -> Node:
 		""" Copy node without edges """
 		return Node(self.node_type, self.sexpr, self.y, self.z)
