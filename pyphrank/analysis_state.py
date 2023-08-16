@@ -37,4 +37,4 @@ class AnalysisState:
 		for func_ea, tif in self.retvals.items():
 			if utils.tif2strucid(tif) != strucid:
 				continue
-			print(f"found type {name} in {idaapi.get_name(func_ea)}")
+			print(f"found type {name} in return value of {idaapi.get_name(func_ea)}")
