@@ -266,6 +266,38 @@ class SExpr:
 			return vuc.var == var
 		return True
 
+	def is_var_write(self, var:Var|None=None) -> bool:
+		"""
+		e.g: some_uses(var) = anything
+		"""
+		if not self.is_assign():
+			return False
+		if (vuc := self.target.var_use_chain) is None:
+			return False
+		if vuc.var != var:
+			return False
+		return len(vuc.uses) != 0
+
+	def is_move_to_var(self, var:Var|None=None) -> bool:
+		"""
+		e.g.: var = anything
+		"""
+		if not self.is_assign():
+			return False
+		if (vuc := self.target.var_use_chain) is None:
+			return False
+		if vuc.var != var:
+			return False
+		return len(vuc.uses) == 0
+
+	def is_move_from_var(self, var:Var|None=None) -> bool:
+		"""
+		e.g: anything = var
+		"""
+		if not self.is_assign():
+			return False
+		return self.value.is_var(var)
+
 	def is_explicit_call(self):
 		if self.op != self.TYPE_CALL:
 			return False
