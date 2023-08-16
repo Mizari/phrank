@@ -32,8 +32,9 @@ def select_type(*tifs):
 
 		strucid = utils.tif2strucid(tif)
 		if strucid != -1:
-			strucid_assign_types.append(tif)
-		else:
+			if tif not in strucid_assign_types:
+				strucid_assign_types.append(tif)
+		elif tif not in others:
 			others.append(tif)
 
 	if len(strucid_assign_types) == 1:
