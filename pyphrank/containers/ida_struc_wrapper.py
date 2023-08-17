@@ -41,26 +41,26 @@ class IdaStrucWrapper(object):
 		return cls(strucid)
 
 	@property
-	def name(self):
+	def name(self) -> str:
 		return idc.get_struc_name(self.strucid, 0)
 
 	@property
-	def size(self):
+	def size(self) -> int:
 		return ida_struct.get_struc_size(self.strucid)
 
 	@property
-	def tinfo(self):
+	def tinfo(self) -> idaapi.tinfo_t:
 		tif = idaapi.tinfo_t()
 		assert tif.get_named_type(idaapi.get_idati(), self.name)
 		return tif.copy()
 
 	@property
-	def ptr_tinfo(self):
+	def ptr_tinfo(self) -> idaapi.tinfo_t:
 		ptr_tinfo = idaapi.tinfo_t()
 		ptr_tinfo.create_ptr(self.tinfo)
 		return ptr_tinfo
 
-	def is_union(self):
+	def is_union(self) -> bool:
 		return idaapi.is_union(self.strucid)
 
 	def delete(self):
