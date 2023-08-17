@@ -37,6 +37,10 @@ class Vtable(Structure):
 			vtbl.append_member(member_name, voidptr_tif, hex(func_addr))
 		return vtbl
 
+	def add_member(self, member_offset: int, name=None) -> bool:
+		# vtbl is only created from data
+		return False
+
 	@classmethod
 	def get_vtable_at_address(cls, addr: int):
 		addr_tif = utils.addr2tif(addr)

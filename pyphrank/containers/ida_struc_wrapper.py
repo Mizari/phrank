@@ -155,11 +155,12 @@ class IdaStrucWrapper(object):
 			return rv
 		return rv
 
-	def add_member(self, member_offset:int, name=None):
+	def add_member(self, member_offset:int, name=None) -> bool:
 		if name is None:
 			name = "field_" + hex(member_offset)[2:]
 		ret = idc.add_struc_member(self.strucid, name, member_offset, idaapi.FF_DATA | idaapi.FF_BYTE, -1, 1)
 		self.handle_addstrucmember_ret(ret)
+		return ret >= 0
 
 	def append_member(self, name:str, member_type:idaapi.tinfo_t, member_comment=None):
 		size = member_type.get_size()

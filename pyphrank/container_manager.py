@@ -32,10 +32,9 @@ class ContainerManager:
 			return
 
 		# do not modificate existing types
-		if strucid not in self.new_types:
+		lvar_struct = self.new_types.get(strucid)
+		if lvar_struct is None:
 			return
-
-		lvar_struct = Structure(strucid)
 
 		# use of the member exists, thus there should be the field
 		if not lvar_struct.member_exists(offset):
@@ -49,14 +48,14 @@ class ContainerManager:
 			return
 
 		# do not modificate existing types
-		if strucid not in self.new_types:
+		lvar_struct = self.new_types.get(strucid)
+		if lvar_struct is None:
 			return
-
-		lvar_struct = Structure(strucid)
 
 		# use of the member exists, thus there should be the field
 		if not lvar_struct.member_exists(offset):
-			lvar_struct.add_member(offset)
+			if not lvar_struct.add_member(offset):
+				return
 
 		# if unknown, then simply creating new member is enough
 		if member_type is utils.UNKNOWN_TYPE:
