@@ -41,6 +41,10 @@ class IdaStrucWrapper(object):
 		return cls(strucid)
 
 	@property
+	def sptr(self) -> idaapi.struc_t:
+		return idaapi.get_struc(self.strucid)
+
+	@property
 	def name(self) -> str:
 		return idc.get_struc_name(self.strucid, 0)
 
@@ -99,7 +103,7 @@ class IdaStrucWrapper(object):
 		return rv
 
 	def member_offsets(self, skip_holes=True):
-		sptr = ida_struct.get_struc(self.strucid)
+		sptr = self.sptr
 		off = ida_struct.get_struc_first_offset(sptr)
 		while off != idaapi.BADADDR:
 			if skip_holes and not self.get_member_name(off):
@@ -132,8 +136,7 @@ class IdaStrucWrapper(object):
 			if member_offset >= self.size:
 				raise BaseException("Offset too big")
 
-		sptr = ida_struct.get_struc(self.strucid)
-		mptr = ida_struct.get_member(sptr, member_offset)
+		mptr = ida_struct.get_member(self.sptr, member_offset)
 		# member is unset
 		if mptr is None:
 			return None
@@ -147,9 +150,8 @@ class IdaStrucWrapper(object):
 	def set_member_type(self, member_offset: int, member_type: idaapi.tinfo_t):
 		#if member_type.get_size() != self.get_member_size(member_offset):
 		#	self.unset_members(member_offset + self.get_member_size(member_offset), member_type.get_size() - self.get_member_size(member_offset))
-		sptr = ida_struct.get_struc(self.strucid)
-		mptr = ida_struct.get_member(sptr, member_offset)
-		rv = ida_struct.set_member_tinfo(sptr, mptr, member_offset, member_type, ida_struct.SET_MEMTI_COMPATIBLE | ida_struct.SET_MEMTI_MAY_DESTROY)
+		mptr = ida_struct.get_member(self.sptr, member_offset)
+		rv = ida_struct.set_member_tinfo(self.sptr, mptr, member_offset, member_type, ida_struct.SET_MEMTI_COMPATIBLE | ida_struct.SET_MEMTI_MAY_DESTROY)
 		if rv == 0:
 			utils.log_err(f"failed to change member type in {self.name} to {str(member_type)} at {hex(member_offset)}")
 			return rv
