@@ -43,6 +43,9 @@ def select_type(*tifs):
 	# multiple different strucid types is unknown
 	if len(strucid_assign_types) > 0:
 		return utils.UNKNOWN_TYPE
+
+	if len(others) == 0:
+		return utils.UNKNOWN_TYPE
 	
 	if len(others) == 1:
 		return others[0]
