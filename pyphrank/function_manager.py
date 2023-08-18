@@ -45,6 +45,12 @@ class FunctionManager:
 			return None
 		return func_details
 
+	def get_args_count(self, func_ea:int) -> int:
+		cfunc = self.get_cfunc(func_ea)
+		if cfunc is None:
+			return 0
+		return len(cfunc.arguments)
+
 	def get_cfunc_lvar_type(self, func_ea:int, var_id:int) -> idaapi.tinfo_t:
 		func_tif = self.get_func_tinfo(func_ea)
 		if func_tif is not None and var_id > func_tif.get_nargs():

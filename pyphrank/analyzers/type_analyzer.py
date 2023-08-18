@@ -198,6 +198,10 @@ class TypeAnalyzer:
 			mtype = self.analyze_sexpr_type(m)
 			if mtype not in moves_types:
 				moves_types.append(mtype)
+
+		if var.is_local() and var.lvar_id < self.func_manager.get_args_count(var.func_ea) and len(moves_types) != 0:
+			utils.log_err(f"argument {var} has moves to it, will most likely result in incorrect analysis")
+
 		if len(moves_types) != 0 and (var_tinfo := select_type(*moves_types)) is not utils.UNKNOWN_TYPE:
 			self.state.vars[var] = var_tinfo
 			self.propagate_var(var)
