@@ -78,11 +78,16 @@ class ContainerManager:
 
 		member_offset = lvar_struct.get_member_start(offset)
 		current_type = lvar_struct.get_member_type(offset)
-		if  current_type is not None and \
-			current_type.is_struct() and \
+		if current_type is None:
+			lvar_struct.set_member_type(offset, member_type)
+			return
+
+		if current_type.is_integral() and current_type.get_size() <= member_type.get_size() and member_type.is_ptr():
+			lvar_struct.set_member_type(offset, member_type)
+			return
+
+		if current_type.is_struct() and \
 			current_type.get_size() > member_type.get_size():
 
 			strucid = utils.tif2strucid(current_type)
 			self.add_member_type(strucid, offset - member_offset, member_type)
-		else:
-			lvar_struct.set_member_type(offset, member_type)
