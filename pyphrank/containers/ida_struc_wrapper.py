@@ -104,8 +104,9 @@ class IdaStrucWrapper(object):
 
 	def member_offsets(self, skip_holes=True):
 		sptr = self.sptr
+		size = self.size
 		off = ida_struct.get_struc_first_offset(sptr)
-		while off != idaapi.BADADDR:
+		while off != idaapi.BADADDR and off < size:
 			if skip_holes and not self.get_member_name(off):
 				off = ida_struct.get_struc_next_offset(sptr, off)
 			else:
