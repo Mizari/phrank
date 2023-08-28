@@ -86,12 +86,14 @@ class PluginActionHandler(idaapi.action_handler_t):
 		idaapi.update_action_state(self.action_name, idaapi.AST_ENABLE_ALWAYS)
 
 
-class VarUsesGraphPrinter(PluginActionHandler):
+class TFG(PluginActionHandler):
 	def print_var_tfg(self, var:Var):
 		tfg = self._get_analyzer().get_all_var_uses(var)
 		tfg.print(f"TypeFlowGraph for {var}")
 
 	def activate_function(self, func_ea):
+		tfg = self._get_analyzer().get_tfg(func_ea)
+		tfg.print(f"TypeFlowGraph for {idaapi.get_name(func_ea)}")
 		return 0
 
 	def activate_var(self, var:Var) -> int:
@@ -204,7 +206,7 @@ class IDAPlugin(idaapi.plugin_t):
 			ItemAnalyzer("phrank::item_analyzer", "analyze item under cursor and its dependencies", self)
 		)
 		self.actions.append(
-			VarUsesGraphPrinter("phrank::var_uses_graph_printer", "print TypeFlowGraph for variable under cursor", self)
+			TFG("phrank::var_uses_graph_printer", "print TypeFlowGraph for variable under cursor", self)
 		)
 		for action in self.actions:
 			action.register()
