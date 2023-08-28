@@ -70,7 +70,7 @@ class PluginActionHandler(idaapi.action_handler_t):
 	def activate_var(self, var:Var) -> int:
 		raise NotImplementedError()
 
-	def activate_function(self, func_ea) -> int:
+	def activate_function(self, func_ea:int) -> int:
 		raise NotImplementedError()
 
 	def update(self, ctx):
@@ -91,7 +91,7 @@ class TFGPrinter(PluginActionHandler):
 		tfg = self._get_analyzer().get_all_var_uses(var)
 		tfg.print(f"TypeFlowGraph for {var}")
 
-	def activate_function(self, func_ea):
+	def activate_function(self, func_ea:int):
 		tfg = self._get_analyzer().get_tfg(func_ea)
 		tfg.print(f"TypeFlowGraph for {idaapi.get_name(func_ea)}")
 		return 0
@@ -123,9 +123,25 @@ class ItemAnalyzer(PluginActionHandler):
 		if self.plugin.should_apply_analysis:
 			analyzer.apply_analysis()
 		utils.log_info(f"Analysis completed in {time.time() - start}")
-		return
 
-	def activate_function(self, func_ea):
+	def handle_function(self, func_ea:int):
+		"""
+		Will analyze retval and all arguments
+		"""
+		analyzer = self._get_analyzer()
+		start = time.time()
+		for i in range(analyzer.func_manager.get_args_count(func_ea)):
+			analyzer.analyze_var(Var(func_ea, i))
+
+		analyzer.analyze_retval(func_ea)
+		if self.plugin.should_apply_analysis:
+			analyzer.apply_analysis()
+		utils.log_info(f"Analysis completed in {time.time() - start}")
+
+	def activate_function(self, func_ea:int):
+		"""
+		Will analyze retval and all local variables
+		"""
 		analyzer = self._get_analyzer()
 		start = time.time()
 		for i in range(analyzer.func_manager.get_lvars_counter(func_ea)):
@@ -149,13 +165,16 @@ class ItemAnalyzer(PluginActionHandler):
 
 		if citem.op == idaapi.cot_obj:
 			if utils.is_func_start(citem.obj_ea):
-				return self.activate_function(citem.obj_ea)
+				self.handle_function(citem.obj_ea)
+				return 1
 
 			var = Var(citem.obj_ea)
 			return self.activate_var(var)
 
-		if citem.op == idaapi.cot_call and citem.x.op == idaapi.cot_obj:
-			return self.activate_function(citem.x.obj_ea)
+		if citem.op == idaapi.cot_call:
+			if citem.x.op == idaapi.cot_obj and utils.is_func_start(citem.x.obj_ea):
+				self.handle_function(citem.obj_ea)
+				return 1
 
 		if citem.op == idaapi.cot_var:
 			var = Var(cfunc.entry_ea, citem.v.idx)
