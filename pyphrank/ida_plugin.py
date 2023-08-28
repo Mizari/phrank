@@ -139,7 +139,7 @@ class ItemAnalyzer(PluginActionHandler):
 		self.handle_var(var)
 		return 1
 
-	def activate_expr(self, cfunc, citem) -> int:
+	def activate_item(self, cfunc, citem) -> int:
 		citem = utils.strip_casts(citem)
 
 		if citem.op == idaapi.cot_obj:
