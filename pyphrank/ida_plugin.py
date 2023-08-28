@@ -48,7 +48,7 @@ class PluginActionHandler(idaapi.action_handler_t):
 		should_refresh = 0
 		if citem.citype == idaapi.VDI_EXPR:
 			citem = citem.it.to_specific_type
-			should_refresh = self.handle_expr(cfunc, citem)
+			should_refresh = self.activate_item(cfunc, citem)
 		elif citem.citype == idaapi.VDI_LVAR:
 			lvar_id = get_lvar_id(cfunc, citem.l)
 			if lvar_id == -1:
@@ -56,21 +56,21 @@ class PluginActionHandler(idaapi.action_handler_t):
 				should_refresh = 0
 			else:
 				var = Var(cfunc.entry_ea, lvar_id)
-				should_refresh = self.handle_var(var)
+				should_refresh = self.activate_var(var)
 		elif citem.citype == idaapi.VDI_FUNC:
-			should_refresh = self.handle_function(cfunc.entry_ea)
+			should_refresh = self.activate_function(cfunc.entry_ea)
 
 		if should_refresh == 1:
 			hx_view.refresh_view(1)
 		return should_refresh
 
-	def handle_expr(self, cfunc, citem) -> int:
+	def activate_item(self, cfunc, citem) -> int:
 		raise NotImplementedError()
 
-	def handle_var(self, var:Var) -> int:
+	def activate_var(self, var:Var) -> int:
 		raise NotImplementedError()
 
-	def handle_function(self, func_ea) -> int:
+	def activate_function(self, func_ea) -> int:
 		raise NotImplementedError()
 
 	def update(self, ctx):
@@ -87,32 +87,43 @@ class PluginActionHandler(idaapi.action_handler_t):
 
 
 class VarUsesGraphPrinter(PluginActionHandler):
-	def handle_function(self, func_ea):
-		return 0
-
-	def handle_var(self, var:Var) -> int:
-		analyzer = self._get_analyzer()
-		tfg = analyzer.get_all_var_uses(var)
+	def print_var_tfg(self, var:Var):
+		tfg = self._get_analyzer().get_all_var_uses(var)
 		tfg.print(f"TypeFlowGraph for {var}")
+
+	def activate_function(self, func_ea):
 		return 0
 
-	def handle_expr(self, cfunc, citem) -> int:
+	def activate_var(self, var:Var) -> int:
+		self.print_var_tfg(var)
+		return 0
+
+	def activate_expr(self, cfunc, citem) -> int:
 		citem = utils.strip_casts(citem)
 
 		if citem.op == idaapi.cot_obj and not utils.is_func_start(citem.obj_ea):
 			var = Var(citem.obj_ea)
-			return self.handle_var(var)
+			self.print_var_tfg(var)
 
 		elif citem.op == idaapi.cot_var:
 			var = Var(cfunc.entry_ea, citem.v.idx)
-			return self.handle_var(var)
+			self.print_var_tfg(var)
 
 		utils.log_info(f"no variable under cursor {citem.opname}")
 		return 0
 
 
 class ItemAnalyzer(PluginActionHandler):
-	def handle_function(self, func_ea):
+	def handle_var(self, var:Var):
+		analyzer = self._get_analyzer()
+		start = time.time()
+		analyzer.analyze_var(var)
+		if self.plugin.should_apply_analysis:
+			analyzer.apply_analysis()
+		utils.log_info(f"Analysis completed in {time.time() - start}")
+		return
+
+	def activate_function(self, func_ea):
 		analyzer = self._get_analyzer()
 		start = time.time()
 		for i in range(analyzer.func_manager.get_lvars_counter(func_ea)):
@@ -124,37 +135,32 @@ class ItemAnalyzer(PluginActionHandler):
 		utils.log_info(f"Analysis completed in {time.time() - start}")
 		return 1
 
-	def handle_var(self, var:Var) -> int:
-		analyzer = self._get_analyzer()
-		start = time.time()
-		analyzer.analyze_var(var)
-		if self.plugin.should_apply_analysis:
-			analyzer.apply_analysis()
-		utils.log_info(f"Analysis completed in {time.time() - start}")
+	def activate_var(self, var:Var) -> int:
+		self.handle_var(var)
 		return 1
 
-	def handle_expr(self, cfunc, citem) -> int:
+	def activate_expr(self, cfunc, citem) -> int:
 		citem = utils.strip_casts(citem)
 
 		if citem.op == idaapi.cot_obj:
 			if utils.is_func_start(citem.obj_ea):
-				return self.handle_function(citem.obj_ea)
+				return self.activate_function(citem.obj_ea)
 
 			var = Var(citem.obj_ea)
-			return self.handle_var(var)
+			return self.activate_var(var)
 
 		if citem.op == idaapi.cot_call and citem.x.op == idaapi.cot_obj:
-			return self.handle_function(citem.x.obj_ea)
+			return self.activate_function(citem.x.obj_ea)
 
 		if citem.op == idaapi.cot_var:
 			var = Var(cfunc.entry_ea, citem.v.idx)
-			return self.handle_var(var)
+			return self.activate_var(var)
 
 		actx = ASTCtx.from_cfunc(cfunc)
 		vars = extract_vars(citem, actx)
 		if len(vars) == 1:
 			var = vars.pop()
-			return self.handle_var(var)
+			return self.activate_var(var)
 
 		utils.log_info(f"unknown citem under cursor {citem.opname}")
 		return 0
