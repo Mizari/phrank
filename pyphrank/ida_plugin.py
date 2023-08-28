@@ -140,6 +140,9 @@ class ItemAnalyzer(PluginActionHandler):
 		return 1
 
 	def activate_item(self, cfunc, citem) -> int:
+		if not citem.is_expr():
+			return 0
+
 		citem = utils.strip_casts(citem)
 
 		if citem.op == idaapi.cot_obj:
