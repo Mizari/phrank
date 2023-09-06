@@ -62,7 +62,7 @@ def select_type(*tifs):
 
 def is_typeful_node(node:Node) -> bool:
 	""" Typeful node is a node, that can affect types """
-	if node.is_call_cast() and node.sexpr.is_int():
+	if node.is_call_cast() and node.sexpr.is_type_literal():
 		return False
 	if node.is_expr() and node.sexpr.is_explicit_call():
 		return False
@@ -282,8 +282,8 @@ class TypeAnalyzer:
 			if stype.is_func():
 				return stype.get_rettype()
 
-		elif sexpr.is_int():
-			return sexpr.tif
+		elif sexpr.is_type_literal():
+			return sexpr.literal_tinfo
 
 		utils.log_warn(f"unknown sexpr value in {idaapi.get_name(sexpr.func_ea)}")
 		return utils.UNKNOWN_TYPE

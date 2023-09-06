@@ -11,7 +11,7 @@ from typing import Callable
 def make_ptr_write(offset, value=None):
 	target = phrank.SExpr.create_var_use_chain(-1, phrank.VarUseChain(phrank.Var(0x123456, 0), phrank.VarUse(offset, phrank.VarUse.VAR_PTR)))
 	if value is None:
-		value = phrank.SExpr.create_int(-1, 0, phrank.str2tif("int"))
+		value = phrank.SExpr.create_type_literal(-1, 0, phrank.str2tif("int"))
 	return phrank.SExpr.create_assign(-1, target, value)
 
 def test_basic_struct_creation() -> bool:

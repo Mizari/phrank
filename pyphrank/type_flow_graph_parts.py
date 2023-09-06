@@ -232,7 +232,7 @@ class VarUseChain:
 
 
 class SExpr:
-	TYPE_INT = 0
+	TYPE_LITERAL = 0
 	TYPE_VAR_USE_CHAIN = 1
 	TYPE_FUNCTION = 2
 	TYPE_BOOL_OP = 3
@@ -240,7 +240,7 @@ class SExpr:
 	TYPE_ASSIGN = 5
 	TYPE_BINARY_OP = 6
 
-	def is_int(self): return self.op == self.TYPE_INT
+	def is_type_literal(self): return self.op == self.TYPE_LITERAL
 	def is_var_use_chain(self): return self.op == self.TYPE_VAR_USE_CHAIN
 	def is_function(self): return self.op == self.TYPE_FUNCTION
 	def is_bool_op(self): return self.op == self.TYPE_BOOL_OP
@@ -315,8 +315,8 @@ class SExpr:
 		self._y:Any = None
 
 	def __str__(self) -> str:
-		if self.is_int():
-			return f"Int[{self.tif}]"
+		if self.is_type_literal():
+			return f"TypeLiteral[{self.literal_tinfo}]"
 		elif self.is_var_use_chain():
 			if self.is_var():
 				return f"{self.var_use_chain}"
@@ -380,8 +380,8 @@ class SExpr:
 		return obj
 
 	@classmethod
-	def create_int(cls, expr_ea:int, int_type:idaapi.tinfo_t):
-		obj = cls(cls.TYPE_INT, expr_ea)
+	def create_type_literal(cls, expr_ea:int, int_type:idaapi.tinfo_t):
+		obj = cls(cls.TYPE_LITERAL, expr_ea)
 		obj._x = int_type
 		return obj
 
@@ -438,7 +438,7 @@ class SExpr:
 		return self._y
 
 	@property
-	def tif(self) -> idaapi.tinfo_t:
+	def literal_tinfo(self) -> idaapi.tinfo_t:
 		return self._x
 
 
