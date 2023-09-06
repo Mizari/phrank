@@ -316,7 +316,7 @@ class SExpr:
 
 	def __str__(self) -> str:
 		if self.is_int():
-			return f"Int[{self.tif},{hex(self.int_value)}]"
+			return f"Int[{self.tif}]"
 		elif self.is_var_use_chain():
 			if self.is_var():
 				return f"{self.var_use_chain}"
@@ -437,10 +437,6 @@ class SExpr:
 	@property
 	def y(self) -> SExpr:
 		return self._y
-
-	@property
-	def int_value(self) -> int:
-		return self._x
 
 	@property
 	def tif(self) -> idaapi.tinfo_t:
