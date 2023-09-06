@@ -309,12 +309,16 @@ class CTreeAnalyzer:
 
 		elif expr.op in bool_operations:
 			x_nodes = self.lift_cexpr(expr.x, False)
-			x = x_nodes.pop().sexpr
 			y_nodes = self.lift_cexpr(expr.y, False)
-			y = y_nodes.pop().sexpr
-			boolop = SExpr.create_bool_op(expr.ea, x, y)
+			boolop = SExpr.create_type_literal(expr.ea, utils.str2tif("bool"))
 			node = Node(Node.EXPR, boolop)
 			new_nodes = x_nodes + y_nodes + [node]
+
+		elif expr.op == idaapi.cot_lnot:
+			new_nodes = self.lift_cexpr(expr.x, False)
+			boolop = SExpr.create_type_literal(expr.ea, utils.str2tif("bool"))
+			node = Node(Node.EXPR, boolop)
+			new_nodes.append(node)
 
 		elif (vuc := get_var_use_chain(expr, self.actx)) is not None:
 			vuc = SExpr.create_var_use_chain(expr.ea, vuc)
