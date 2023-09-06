@@ -8,8 +8,10 @@ from pyphrank.type_flow_graph_parts import Var, SExpr, VarUseChain, Node, UNKNOW
 from pyphrank.containers.structure import Structure
 from pyphrank.ast_analyzer import TFG, chain_nodes
 from pyphrank.analysis_state import AnalysisState
-from pyphrank.containers.vtable import Vtable
 from pyphrank.container_manager import ContainerManager
+from pyphrank.type_constructors.type_constructor_interface import ITypeConstructor
+from pyphrank.type_constructors.vtable_constructor import VtableConstructor
+from pyphrank.type_constructors.struct_constructor import StructConstructor
 import pyphrank.utils as utils
 
 
@@ -108,6 +110,11 @@ class TypeAnalyzer:
 		self.tfg_cache : dict[int,TFG ]= {}
 
 		self.state = AnalysisState()
+
+		self.constructors: list[ITypeConstructor] = [
+			VtableConstructor(),
+			StructConstructor(self),
+		]
 
 	def cache_tfg(self, addr:int, analysis:TFG):
 		self.tfg_cache[addr] = analysis
@@ -212,22 +219,26 @@ class TypeAnalyzer:
 			self.propagate_var(var)
 			return var_tinfo
 
-		if not self.is_var_possible_ptr(var, var_uses):
-			return utils.UNKNOWN_TYPE
-
 		if self.analyze_unknown_type_by_var_uses(var, var_uses):
 			self.state.vars[var] = utils.UNKNOWN_TYPE
 			return utils.UNKNOWN_TYPE
 
 		var_tinfo = self.analyze_existing_type_by_var_uses(var, var_uses)
-		if var_tinfo is utils.UNKNOWN_TYPE:
-			lvar_struct = Structure.new()
+		if var_tinfo is not utils.UNKNOWN_TYPE:
+			self.state.vars[var] = var_tinfo
+			return var_tinfo
+
+		for cont in self.constructors:
+			if (lvar_struct := cont.from_tfg(var, var_uses)) is None:
+				continue
+
 			self.container_manager.add_struct(lvar_struct)
 			var_tinfo = lvar_struct.ptr_tinfo
 			self.add_type_uses_to_var(var, var_uses, var_tinfo)
+			self.state.vars[var] = var_tinfo
+			return var_tinfo
 
-		self.state.vars[var] = var_tinfo
-		return var_tinfo
+		return utils.UNKNOWN_TYPE
 
 	def analyze_retval(self, func_ea:int) -> idaapi.tinfo_t:
 		rv = self.state.retvals.get(func_ea)
@@ -400,10 +411,11 @@ class TypeAnalyzer:
 			if utils.is_func_import(var.func_ea):
 				return original_var_tinfo
 
-		# global var is vtbl
-		elif (vtbl := Vtable.from_data(var.obj_ea)) is not None:
-			self.container_manager.add_struct(vtbl)
-			return vtbl.tinfo
+		else:
+			for ctor in self.constructors:
+				if (struc := ctor.from_data(var.obj_ea)) is not None:
+					self.container_manager.add_struct(struc)
+					return struc.tinfo
 		return utils.UNKNOWN_TYPE
 
 	def analyze_unknown_type_by_var_uses(self, var:Var, var_uses:TFG) -> bool:
@@ -449,6 +461,9 @@ class TypeAnalyzer:
 		return False
 
 	def analyze_existing_type_by_var_uses(self, var:Var, var_uses:TFG) -> idaapi.tinfo_t:
+		if not self.is_var_possible_ptr(var, var_uses):
+			return utils.UNKNOWN_TYPE
+
 		rw_ptr_uses = set()
 		max_ptr_offset = 0
 		for w in var_uses.iterate_var_writes(var):
@@ -603,7 +618,7 @@ class TypeAnalyzer:
 					continue
 
 				# if existing type
-				if (cast_type := self.analyze_existing_type_by_var_uses(cast_var, cast_var_uses)) is not utils.UNKNOWN_TYPE:
+				if (cast_type := self.analyze_var(cast_var)) is not utils.UNKNOWN_TYPE:
 					self.state.vars[cast_var] = cast_type
 					self.add_type_cast(vuc, cast_type, var_type)
 					continue

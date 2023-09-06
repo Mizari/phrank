@@ -6,7 +6,7 @@ import pyphrank.utils as utils
 from pyphrank.containers.cpp_class import CDtor, CppClass
 from pyphrank.containers.vtable import Vtable
 from pyphrank.containers.vtables_union import VtablesUnion
-from pyphrank.analyzers.type_analyzer import TypeAnalyzer
+from pyphrank.type_analyzer import TypeAnalyzer
 from pyphrank.type_flow_graph_parts import Var
 
 class ClassConstructionContext(object):

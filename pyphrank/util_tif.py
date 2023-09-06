@@ -180,3 +180,47 @@ def get_tif_member(tif:idaapi.tinfo_t, offset:int) -> ShiftedStruct|None:
 		return None
 
 	return ShiftedStruct(strucid, offset)
+
+def select_type(*tifs):
+	if len(tifs) == 0:
+		return UNKNOWN_TYPE
+
+	# single assign can only be one type
+	if len(tifs) == 1:
+		return tifs[0]
+
+	# try to resolve multiple assigns
+	# prefer types over non-types
+	strucid_assign_types = []
+	others = []
+	for tif in tifs:
+		if tif is UNKNOWN_TYPE:
+			continue
+
+		strucid = tif2strucid(tif)
+		if strucid != -1:
+			if tif not in strucid_assign_types:
+				strucid_assign_types.append(tif)
+		elif tif not in others:
+			others.append(tif)
+
+	if len(strucid_assign_types) == 1:
+		return strucid_assign_types[0]
+
+	# multiple different strucid types is unknown
+	if len(strucid_assign_types) > 0:
+		return UNKNOWN_TYPE
+
+	if len(others) == 0:
+		return UNKNOWN_TYPE
+	
+	if len(others) == 1:
+		return others[0]
+	
+	if all(tif.is_integral() for tif in others):
+		max_size_int = others[0]
+		for i in range(1, len(others)):
+			if others[i].get_size() > max_size_int.get_size():
+				max_size_int = others[i]
+		return max_size_int
+	return UNKNOWN_TYPE
