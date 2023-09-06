@@ -380,10 +380,9 @@ class SExpr:
 		return obj
 
 	@classmethod
-	def create_int(cls, expr_ea:int, value:int, int_type:idaapi.tinfo_t):
+	def create_int(cls, expr_ea:int, int_type:idaapi.tinfo_t):
 		obj = cls(cls.TYPE_INT, expr_ea)
-		obj._x = value
-		obj._y = int_type
+		obj._x = int_type
 		return obj
 
 	@classmethod
@@ -440,7 +439,7 @@ class SExpr:
 
 	@property
 	def tif(self) -> idaapi.tinfo_t:
-		return self._y
+		return self._x
 
 
 UNKNOWN_SEXPR = SExpr(-1, -1)

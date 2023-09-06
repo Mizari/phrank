@@ -298,7 +298,7 @@ class CTreeAnalyzer:
 			new_nodes.append(node)
 
 		elif expr.op == idaapi.cot_num:
-			sint = SExpr.create_int(expr.ea, expr.n._value, expr.type)
+			sint = SExpr.create_int(expr.ea, expr.type)
 			node = Node(Node.EXPR, sint)
 			new_nodes = [node]
 
