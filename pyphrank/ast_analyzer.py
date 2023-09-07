@@ -277,6 +277,39 @@ class CTreeAnalyzer:
 			node = Node(Node.EXPR, asg)
 			new_nodes.append(node)
 
+		elif is_known_call(expr, "memset"):
+			new_nodes = self.lift_cexpr(expr.a[0], False)
+			arg_sexpr = new_nodes.pop().sexpr
+			n = utils.get_int(expr.a[2])
+			if n is None:
+				n = 1
+			type_cast = Node(Node.TYPE_CAST, arg_sexpr, utils.str2tif(f"char [{n}]"))
+			new_nodes.append(type_cast)
+			# TODO potential type casts of arg1 and arg2
+			node = NOP_NODE.copy()
+			new_nodes.append(node)
+
+		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_obj and utils.is_func_import(expr.x.obj_ea):
+			func_tif = idaapi.tinfo_t()
+			idaapi.get_type(expr.x.obj_ea, func_tif, 0)
+			if utils.is_tif_correct(func_tif) and func_tif.is_func():
+				tif = func_tif.get_rettype()
+			else:
+				tif = utils.UNKNOWN_TYPE
+			call_func = SExpr.create_type_literal(expr.x.ea, tif)
+
+			new_nodes = []
+			for arg_id, arg in enumerate(expr.a):
+				arg = utils.strip_casts(arg)
+				new_nodes += self.lift_cexpr(arg, False)
+				arg_sexpr = new_nodes.pop().sexpr
+				arg_type = func_tif.get_nth_arg(arg_id)
+				type_cast = Node(Node.TYPE_CAST, arg_sexpr, arg_type)
+				new_nodes.append(type_cast)
+			call = SExpr.create_call(expr.ea, call_func)
+			node = Node(Node.EXPR, call)
+			new_nodes.append(node)
+
 		elif expr.op == idaapi.cot_call and expr.x.op != idaapi.cot_helper:
 			call_nodes = self.lift_cexpr(expr.x, False)
 			call_func = call_nodes.pop().sexpr
@@ -289,19 +322,7 @@ class CTreeAnalyzer:
 				new_nodes.append(call_cast)
 			call = SExpr.create_call(expr.ea, call_func)
 			node = Node(Node.EXPR, call)
-			new_nodes.append(node)
 			new_nodes += call_nodes
-
-		elif is_known_call(expr, "memset"):
-			new_nodes = self.lift_cexpr(expr.a[0], False)
-			arg_sexpr = new_nodes.pop().sexpr
-			n = utils.get_int(expr.a[2])
-			if n is None:
-				n = 1
-			type_cast = Node(Node.TYPE_CAST, arg_sexpr, utils.str2tif(f"char [{n}]"))
-			new_nodes.append(type_cast)
-			# TODO potential type casts of arg1 and arg2
-			node = NOP_NODE.copy()
 			new_nodes.append(node)
 
 		elif expr.op == idaapi.cot_num:
