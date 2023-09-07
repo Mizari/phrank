@@ -248,6 +248,10 @@ class TypeAnalyzer:
 
 		aa = self.get_tfg(func_ea)
 		r_types = [self.analyze_sexpr_type(r) for r in aa.iterate_return_sexprs()]
+		if len(r_types) == 0:
+			utils.log_err(f"trying to get return type without returns in {idaapi.get_name(func_ea)}")
+			return utils.UNKNOWN_TYPE
+
 		retval_type = select_type(*r_types)
 		self.state.retvals[func_ea] = retval_type
 		return retval_type
