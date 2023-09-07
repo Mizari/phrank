@@ -21,10 +21,17 @@ binary_operations = {
 	idaapi.cot_mul, idaapi.cot_sub,
 }
 
-rw_operations = {
+int_rw_operations = {
 	idaapi.cot_postdec, idaapi.cot_predec, idaapi.cot_preinc,
-	idaapi.cot_postinc, idaapi.cot_asgadd, idaapi.cot_asgmul,
-	idaapi.cot_asgsub, idaapi.cot_asgbor,
+	idaapi.cot_postinc,
+}
+
+value_rw_operations = {
+	idaapi.cot_asgadd, idaapi.cot_asgband, idaapi.cot_asgbor,
+	idaapi.cot_asgmul, idaapi.cot_asgsdiv, idaapi.cot_asgshl,
+	idaapi.cot_asgsmod, idaapi.cot_asgsshr, idaapi.cot_asgsub,
+	idaapi.cot_asgudiv, idaapi.cot_asgumod, idaapi.cot_asgushr,
+	idaapi.cot_asgxor,
 }
 
 helper2offset = {
@@ -325,10 +332,22 @@ class CTreeAnalyzer:
 			node = Node(Node.EXPR, vuc)
 			new_nodes = [node]
 
-		elif expr.op in rw_operations:
-			# TODO not implemented
-			node = NOP_NODE.copy()
-			new_nodes = [node]
+		elif expr.op in int_rw_operations:
+			target_nodes = self.lift_cexpr(expr.x, False)
+			target = target_nodes.pop().sexpr
+			value = SExpr.create_type_literal(-1, utils.str2tif("int"))
+			sexpr = SExpr.create_rw_op(expr.ea, target, value)
+			node = Node(Node.EXPR, sexpr)
+			new_nodes = target_nodes + [node]
+
+		elif expr.op in value_rw_operations:
+			target_nodes = self.lift_cexpr(expr.x, False)
+			target = target_nodes.pop().sexpr
+			value_nodes = self.lift_cexpr(expr.y, False)
+			value = value_nodes.pop().sexpr
+			sexpr = SExpr.create_rw_op(expr.ea, target, value)
+			node = Node(Node.EXPR, sexpr)
+			new_nodes = target_nodes + value_nodes + [node]
 
 		elif expr.op in binary_operations and len(extract_vars(expr, self.actx)) > 1:
 			x_nodes = self.lift_cexpr(expr.x, False)

@@ -239,6 +239,7 @@ class SExpr:
 	TYPE_CALL = 4
 	TYPE_ASSIGN = 5
 	TYPE_BINARY_OP = 6
+	TYPE_RW_OP = 7
 
 	def is_type_literal(self): return self.op == self.TYPE_LITERAL
 	def is_var_use_chain(self): return self.op == self.TYPE_VAR_USE_CHAIN
@@ -247,6 +248,7 @@ class SExpr:
 	def is_binary_op(self): return self.op == self.TYPE_BINARY_OP
 	def is_call(self): return self.op == self.TYPE_CALL
 	def is_assign(self): return self.op == self.TYPE_ASSIGN
+	def is_rw_op(self): return self.op == self.TYPE_RW_OP
 
 	def is_var_use(self, var:Var|None=None) -> bool:
 		if self.var_use_chain is None:
@@ -387,6 +389,13 @@ class SExpr:
 
 	@classmethod
 	def create_assign(cls, expr_ea:int, target:SExpr, value:SExpr):
+		obj = cls(cls.TYPE_ASSIGN, expr_ea)
+		obj._x = target
+		obj._y = value
+		return obj
+
+	@classmethod
+	def create_rw_op(cls, expr_ea:int, target:SExpr, value:SExpr):
 		obj = cls(cls.TYPE_ASSIGN, expr_ea)
 		obj._x = target
 		obj._y = value
