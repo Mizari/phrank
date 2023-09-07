@@ -152,7 +152,9 @@ class TypeAnalyzer:
 	def apply_analysis(self):
 		for struct in self.container_manager.new_types.values():
 			offsets = [o for o in struct.member_offsets()]
-			if offsets == [0]:
+			if len(offsets) == 0:
+				utils.log_err(f"{struct.name} has no members, this is analysis error")
+			elif offsets == [0]:
 				utils.log_err(f"{struct.name} has only one member at offset 0, most likely this is analysis error")
 
 		touched_functions = set()
