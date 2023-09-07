@@ -9,16 +9,16 @@ from pyphrank.type_flow_graph import TFG
 
 
 bool_operations = {
-	idaapi.cot_bor, idaapi.cot_uge, idaapi.cot_band, idaapi.cot_sge,
+	idaapi.cot_uge, idaapi.cot_sge,
 	idaapi.cot_sgt, idaapi.cot_eq, idaapi.cot_ne, idaapi.cot_slt,
 	idaapi.cot_land, idaapi.cot_sle, idaapi.cot_ult,
 	idaapi.cot_ule, idaapi.cot_lor, idaapi.cot_ugt,
 }
 
-# idaapi.cot_lnot, idaapi.cot_neg
-
 binary_operations = {
-	idaapi.cot_mul, idaapi.cot_sub,
+	idaapi.cot_mul, idaapi.cot_sub, idaapi.cot_bor, idaapi.cot_band,
+	idaapi.cot_sshr, idaapi.cot_ushr, idaapi.cot_shl,
+	idaapi.cot_sdiv, idaapi.cot_udiv, idaapi.cot_smod, idaapi.cot_umod,
 }
 
 int_rw_operations = {
@@ -339,6 +339,10 @@ class CTreeAnalyzer:
 			sexpr = SExpr.create_rw_op(expr.ea, target, value)
 			node = Node(Node.EXPR, sexpr)
 			new_nodes = target_nodes + [node]
+
+		# cot_neg does not change type
+		elif expr.op == idaapi.cot_neg:
+			new_nodes = self.lift_cexpr(expr.x, should_chain=False)
 
 		elif expr.op in value_rw_operations:
 			target_nodes = self.lift_cexpr(expr.x, False)
