@@ -374,7 +374,7 @@ class CTreeAnalyzer:
 			node = Node(Node.EXPR, sexpr)
 			new_nodes = target_nodes + value_nodes + [node]
 
-		elif expr.op in binary_operations and len(extract_vars(expr, self.actx)) > 1:
+		elif expr.op in binary_operations:
 			x_nodes = self.lift_cexpr(expr.x, False)
 			x = x_nodes.pop().sexpr
 			y_nodes = self.lift_cexpr(expr.y, False)
