@@ -289,7 +289,7 @@ class TypeAnalyzer:
 		elif sexpr.is_type_literal():
 			return sexpr.literal_tinfo
 
-		utils.log_warn(f"unknown sexpr value in {idaapi.get_name(sexpr.func_ea)}")
+		utils.log_warn(f"unknown sexpr value={sexpr} in {idaapi.get_name(sexpr.func_ea)}")
 		return utils.UNKNOWN_TYPE
 
 	def propagate_var(self, var:Var):
@@ -655,7 +655,7 @@ class TypeAnalyzer:
 				self.container_manager.add_member_type(strucid, offset, cast_type)
 				return
 
-		utils.log_warn(f"cant cast {var_type} transformed by {cast_arg} into {tif} to {cast_type}")
+		utils.log_warn(f"cant add cast to {var_type} transformed by {cast_arg}={tif}-->{cast_type}")
 
 	def analyze_target(self, var_type:idaapi.tinfo_t, target:VarUseChain) -> utils.ShiftedStruct|None:
 		tif = target.transform_type(var_type)
