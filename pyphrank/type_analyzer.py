@@ -150,13 +150,6 @@ class TypeAnalyzer:
 		self.state.clear()
 
 	def apply_analysis(self):
-		for struct in self.container_manager.new_types.values():
-			offsets = [o for o in struct.member_offsets()]
-			if len(offsets) == 0:
-				utils.log_err(f"{struct.name} has no members, this is analysis error")
-			elif offsets == [0]:
-				utils.log_err(f"{struct.name} has only one member at offset 0, most likely this is analysis error")
-
 		touched_functions = set()
 		for var in self.state.vars.keys():
 			touched_functions.update(var.get_functions())
@@ -185,6 +178,13 @@ class TypeAnalyzer:
 				continue
 
 			self.set_db_var_type(var, new_type_tif)
+
+		for struct in self.container_manager.new_types.values():
+			offsets = [o for o in struct.member_offsets()]
+			if len(offsets) == 0:
+				utils.log_err(f"{struct.name} has no members, this is analysis error")
+			elif offsets == [0]:
+				utils.log_err(f"{struct.name} has only one member at offset 0, most likely this is analysis error")
 
 		self.state.clear()
 		# new types are already created, simply skip them without deleting
