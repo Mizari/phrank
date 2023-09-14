@@ -347,6 +347,10 @@ class CTreeAnalyzer:
 			node = Node(Node.EXPR, sint)
 			new_nodes = [node]
 
+		elif expr.op == idaapi.cot_sizeof:
+			node = Node(Node.EXPR, SExpr.create_type_literal(expr.ea, utils.str2tif("int")))
+			new_nodes = [node]
+
 		elif expr.op == idaapi.cot_obj and (utils.is_func_start(expr.obj_ea) or utils.is_func_import(expr.obj_ea)):
 			func = SExpr.create_function(expr.ea, expr.obj_ea)
 			node = Node(Node.EXPR, func)
@@ -418,7 +422,6 @@ class CTreeAnalyzer:
 
 		else:
 			utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
-			print(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
 			node = NOP_NODE.copy()
 			new_nodes = [node]
 
