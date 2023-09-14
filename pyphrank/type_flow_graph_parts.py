@@ -240,6 +240,8 @@ class SExpr:
 	TYPE_ASSIGN = 5
 	TYPE_BINARY_OP = 6
 	TYPE_RW_OP = 7
+	TYPE_REF = 8
+	TYPE_PTR = 9
 
 	def is_type_literal(self): return self.op == self.TYPE_LITERAL
 	def is_var_use_chain(self): return self.op == self.TYPE_VAR_USE_CHAIN
@@ -249,6 +251,8 @@ class SExpr:
 	def is_call(self): return self.op == self.TYPE_CALL
 	def is_assign(self): return self.op == self.TYPE_ASSIGN
 	def is_rw_op(self): return self.op == self.TYPE_RW_OP
+	def is_ref(self): return self.op == self.TYPE_REF
+	def is_ptr(self): return self.op == self.TYPE_PTR
 
 	def is_var_use(self, var:Var|None=None) -> bool:
 		if self.var_use_chain is None:
@@ -401,6 +405,18 @@ class SExpr:
 		obj._y = value
 		return obj
 
+	@classmethod
+	def create_ref(cls, expr_ea:int, base:SExpr):
+		obj = cls(cls.TYPE_REF, expr_ea)
+		obj._x = base
+		return obj
+
+	@classmethod
+	def create_ptr(cls, expr_ea:int, base:SExpr):
+		obj = cls(cls.TYPE_PTR, expr_ea)
+		obj._x = base
+		return obj
+
 	@property
 	def func_ea(self) -> int:
 		rv = utils.get_func_start(self.expr_ea)
@@ -448,6 +464,10 @@ class SExpr:
 
 	@property
 	def literal_tinfo(self) -> idaapi.tinfo_t:
+		return self._x
+
+	@property
+	def base(self) -> SExpr:
 		return self._x
 
 

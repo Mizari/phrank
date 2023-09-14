@@ -376,6 +376,22 @@ class CTreeAnalyzer:
 			node = Node(Node.EXPR, sexpr)
 			new_nodes = target_nodes + value_nodes + [node]
 
+		elif expr.op == idaapi.cot_ref:
+			assert expr.x is not None
+			base_nodes = self.lift_cexpr(expr.x, False)
+			base = base_nodes.pop().sexpr
+			sexpr = SExpr.create_ref(expr.ea, base)
+			node = Node(Node.EXPR, sexpr)
+			new_nodes = base_nodes + [node]
+
+		elif expr.op == idaapi.cot_ptr:
+			assert expr.x is not None
+			base_nodes = self.lift_cexpr(expr.x, False)
+			base = base_nodes.pop().sexpr
+			sexpr = SExpr.create_ptr(expr.ea, base)
+			node = Node(Node.EXPR, sexpr)
+			new_nodes = base_nodes + [node]
+
 		elif expr.op in binary_operations:
 			x_nodes = self.lift_cexpr(expr.x, False)
 			x = x_nodes.pop().sexpr
@@ -387,6 +403,7 @@ class CTreeAnalyzer:
 
 		else:
 			utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
+			print(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
 			node = NOP_NODE.copy()
 			new_nodes = [node]
 
