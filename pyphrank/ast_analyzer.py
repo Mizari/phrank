@@ -49,6 +49,15 @@ helper2offset = {
 	"SHIDWORD": 4,
 }
 
+known_helpers = {
+	"memset",
+	"memcpy",
+	"qmemcpy",
+	"strcmp",
+	"strcpy",
+	"strlen",
+}
+
 
 def is_known_call(func_expr:idaapi.cexpr_t, funcnames:set[str]) -> bool:
 	if func_expr.op != idaapi.cot_call:
@@ -285,17 +294,17 @@ class CTreeAnalyzer:
 			node = Node(Node.EXPR, asg)
 			new_nodes.append(node)
 
-		elif is_known_call(expr, settings.memset_funcs):
-			new_nodes = self.lift_cexpr(expr.a[0], False)
-			arg_sexpr = new_nodes.pop().sexpr
-			n = utils.get_int(expr.a[2])
-			if n is None:
-				n = 1
-			type_cast = Node(Node.TYPE_CAST, arg_sexpr, utils.str2tif(f"char [{n}]"))
-			new_nodes.append(type_cast)
-			# TODO potential type casts of arg1 and arg2
-			node = NOP_NODE.copy()
-			new_nodes.append(node)
+		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper and expr.x.helper in known_helpers:
+			new_nodes = []
+			for i, arg in enumerate(expr.a):
+				arg_nodes = self.lift_cexpr(arg, False)
+				arg_sexpr = arg_nodes.pop().sexpr
+				arg_cast = Node(Node.TYPE_CAST, arg_sexpr, expr.x.type.get_nth_arg(i))
+				new_nodes += arg_nodes
+				new_nodes.append(arg_cast)
+			res = SExpr.create_type_literal(expr.ea, expr.x.type.get_rettype())
+			res = Node(Node.EXPR, res)
+			new_nodes.append(res)
 
 		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_obj and utils.is_func_import(expr.x.obj_ea):
 			func_tif = idaapi.tinfo_t()
