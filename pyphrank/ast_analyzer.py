@@ -3,6 +3,7 @@ from __future__ import annotations
 import idaapi
 
 import pyphrank.utils as utils
+import pyphrank.settings as settings
 from pyphrank.type_flow_graph_parts import SExpr, ASTCtx, Node, NOP_NODE
 from pyphrank.type_flow_graph_parts import Var, VarUse, VarUseChain, UNKNOWN_SEXPR
 from pyphrank.type_flow_graph import TFG
@@ -17,7 +18,7 @@ bool_operations = {
 
 binary_operations = {
 	idaapi.cot_mul, idaapi.cot_sub, idaapi.cot_bor, idaapi.cot_band,
-	idaapi.cot_sshr, idaapi.cot_ushr, idaapi.cot_shl,
+	idaapi.cot_sshr, idaapi.cot_ushr, idaapi.cot_shl, idaapi.cot_add,
 	idaapi.cot_sdiv, idaapi.cot_udiv, idaapi.cot_smod, idaapi.cot_umod,
 }
 
@@ -43,25 +44,26 @@ helper2offset = {
 }
 
 
-def is_known_call(func_expr:idaapi.cexpr_t, funcname:str) -> bool:
+def is_known_call(func_expr:idaapi.cexpr_t, funcnames:set[str]) -> bool:
 	if func_expr.op != idaapi.cot_call:
 		return False
 
-	x = func_expr.x
-	if x.op == idaapi.cot_helper and x.helper == funcname:
-		return True
+	called_func = func_expr.x
+	if called_func.op == idaapi.cot_helper:
+		funcname = called_func.helper
 
-	if x.op != idaapi.cot_obj or not utils.is_func_start(x.obj_ea):
+	elif called_func.op == idaapi.cot_obj and utils.is_func_start(called_func.obj_ea):
+		func_addr = called_func.obj_ea
+		if (target := utils.get_trampoline_func_target(func_addr)) == -1:
+			funcname = idaapi.get_name(target)
+		else:
+			funcname = idaapi.get_name(func_addr)
+
+	else:
 		return False
 
-	func_addr = x.obj_ea
-	if idaapi.get_name(func_addr) == funcname:
-		return True
+	return funcname in funcnames
 
-	if (target := utils.get_trampoline_func_target(func_addr)) == -1:
-		return False
-
-	return idaapi.get_name(target) == funcname
 
 def get_var(expr:idaapi.cexpr_t, actx:ASTCtx) -> Var|None:
 	expr = utils.strip_casts(expr)
@@ -277,7 +279,7 @@ class CTreeAnalyzer:
 			node = Node(Node.EXPR, asg)
 			new_nodes.append(node)
 
-		elif is_known_call(expr, "memset"):
+		elif is_known_call(expr, settings.memset_funcs):
 			new_nodes = self.lift_cexpr(expr.a[0], False)
 			arg_sexpr = new_nodes.pop().sexpr
 			n = utils.get_int(expr.a[2])
