@@ -35,12 +35,18 @@ value_rw_operations = {
 	idaapi.cot_asgxor,
 }
 
+# https://hex-rays.com/blog/igors-tip-of-the-week-67-decompiler-helpers/
 helper2offset = {
-	"HIBYTE": 1,
 	"LOBYTE": 0,
-	"HIWORD": 2,
 	"LOWORD": 0,
+	"LODWORD": 0,
+	"SLODWORD": 0, 
+	"BYTE1": 1,
+	"BYTE2": 2,
+	"HIBYTE": 4,
+	"HIWORD": 2,
 	"HIDWORD": 4,
+	"SHIDWORD": 4,
 }
 
 
