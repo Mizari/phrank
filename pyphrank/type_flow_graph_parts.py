@@ -487,6 +487,16 @@ class Node:
 		self.children : set[Node] = set()
 		self.parents : set[Node] = set()
 
+	def remove_node(self):
+		for parent in self.parents:
+			parent.children.remove(self)
+		for child in self.children:
+			child.parents.remove(self)
+		for parent in self.parents:
+			for child in self.children:
+				parent.children.add(child)
+				child.parents.add(parent)
+
 	def is_leaf(self):
 		return len(self.children) == 0
 

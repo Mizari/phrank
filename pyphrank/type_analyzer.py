@@ -26,19 +26,9 @@ def is_typeful_node(node:Node) -> bool:
 	return True
 
 def shrink_tfg(aa:TFG):
-	def remove_node(node:Node):
-		for parent in node.parents:
-			parent.children.remove(node)
-		for child in node.children:
-			child.parents.remove(node)
-		for parent in node.parents:
-			for child in node.children:
-				parent.children.add(child)
-				child.parents.add(parent)
-
 	bad_nodes = {n for n in aa.entry.iterate_children() if not is_typeful_node(n)}
 	for node in bad_nodes:
-		remove_node(node)
+		node.remove_node()
 
 	entry = aa.entry
 	if not is_typeful_node(entry):
