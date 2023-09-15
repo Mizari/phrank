@@ -242,6 +242,7 @@ class SExpr:
 	TYPE_RW_OP = 7
 	TYPE_REF = 8
 	TYPE_PTR = 9
+	TYPE_TERN = 10
 
 	def is_type_literal(self): return self.op == self.TYPE_LITERAL
 	def is_var_use_chain(self): return self.op == self.TYPE_VAR_USE_CHAIN
@@ -253,6 +254,7 @@ class SExpr:
 	def is_rw_op(self): return self.op == self.TYPE_RW_OP
 	def is_ref(self): return self.op == self.TYPE_REF
 	def is_ptr(self): return self.op == self.TYPE_PTR
+	def is_tern(self): return self.op == self.TYPE_TERN
 
 	def is_var_use(self, var:Var|None=None) -> bool:
 		if self.var_use_chain is None:
@@ -415,6 +417,13 @@ class SExpr:
 	def create_ptr(cls, expr_ea:int, base:SExpr):
 		obj = cls(cls.TYPE_PTR, expr_ea)
 		obj._x = base
+		return obj
+
+	@classmethod
+	def create_tern(cls, expr_ea:int, x:SExpr, y:SExpr):
+		obj = cls(cls.TYPE_TERN, expr_ea)
+		obj._x = x
+		obj._y = y
 		return obj
 
 	@property

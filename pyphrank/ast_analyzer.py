@@ -368,6 +368,14 @@ class CTreeAnalyzer:
 			# end will be later added, just easier to remove it here
 			type_node.remove_node()
 
+		elif expr.op == idaapi.cot_tern:
+			s, _ = self.lift_cexpr(expr.x)
+			trees.append(s)
+			x = lift_reuse(expr.y)
+			y = lift_reuse(expr.z)
+			tern = SExpr.create_tern(expr.ea, x, y)
+			type_node = Node(Node.EXPR, tern)
+
 		elif expr.op in value_rw_operations:
 			target = lift_reuse(expr.x)
 			value = lift_reuse(expr.y)
