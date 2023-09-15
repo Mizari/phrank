@@ -15,51 +15,6 @@ from pyphrank.type_constructors.struct_constructor import StructConstructor
 import pyphrank.utils as utils
 
 
-def select_type(*tifs):
-	if len(tifs) == 0:
-		utils.log_warn(f"trying to select type from 0 types")
-		return utils.UNKNOWN_TYPE
-
-	# single assign can only be one type
-	if len(tifs) == 1:
-		return tifs[0]
-
-	# try to resolve multiple assigns
-	# prefer types over non-types
-	strucid_assign_types = []
-	others = []
-	for tif in tifs:
-		if tif is utils.UNKNOWN_TYPE:
-			continue
-
-		strucid = utils.tif2strucid(tif)
-		if strucid != -1:
-			if tif not in strucid_assign_types:
-				strucid_assign_types.append(tif)
-		elif tif not in others:
-			others.append(tif)
-
-	if len(strucid_assign_types) == 1:
-		return strucid_assign_types[0]
-
-	# multiple different strucid types is unknown
-	if len(strucid_assign_types) > 0:
-		return utils.UNKNOWN_TYPE
-
-	if len(others) == 0:
-		return utils.UNKNOWN_TYPE
-	
-	if len(others) == 1:
-		return others[0]
-	
-	if all(tif.is_integral() for tif in others):
-		max_size_int = others[0]
-		for i in range(1, len(others)):
-			if others[i].get_size() > max_size_int.get_size():
-				max_size_int = others[i]
-		return max_size_int
-	return utils.UNKNOWN_TYPE
-
 def is_typeful_node(node:Node) -> bool:
 	""" Typeful node is a node, that can affect types """
 	if node.is_call_cast() and node.sexpr.is_type_literal():
@@ -216,7 +171,7 @@ class TypeAnalyzer:
 		if var.is_local() and var.lvar_id < self.func_manager.get_args_count(var.func_ea) and len(moves_types) != 0:
 			utils.log_err(f"argument {var} has moves to it, will most likely result in incorrect analysis")
 
-		if len(moves_types) != 0 and (var_tinfo := select_type(*moves_types)) is not utils.UNKNOWN_TYPE:
+		if len(moves_types) != 0 and (var_tinfo := utils.select_type(*moves_types)) is not utils.UNKNOWN_TYPE:
 			self.state.vars[var] = var_tinfo
 			self.propagate_var(var)
 			return var_tinfo
@@ -254,7 +209,7 @@ class TypeAnalyzer:
 			utils.log_err(f"trying to get return type without returns in {idaapi.get_name(func_ea)}")
 			return utils.UNKNOWN_TYPE
 
-		retval_type = select_type(*r_types)
+		retval_type = utils.select_type(*r_types)
 		self.state.retvals[func_ea] = retval_type
 		return retval_type
 
@@ -506,7 +461,7 @@ class TypeAnalyzer:
 				return utils.UNKNOWN_TYPE
 
 			write_types = [self.analyze_sexpr_type(w.value) for w in var_uses.iterate_var_writes(var)]
-			write_type = select_type(*write_types)
+			write_type = utils.select_type(*write_types)
 			if write_type is utils.UNKNOWN_TYPE:
 				return utils.UNKNOWN_TYPE
 			write_type.create_ptr(write_type)
