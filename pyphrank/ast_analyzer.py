@@ -219,18 +219,14 @@ class CTreeAnalyzer:
 		return TFG(entry)
 
 	def lift_instr(self, cinstr) -> Node:
-		sexpr_nodes = []
 		if cinstr.op == idaapi.cit_expr:
-			sexpr_nodes = self.lift_cexpr(cinstr.cexpr, True)
-			entry = sexpr_nodes[0]
+			entry, _ = self.lift_cexpr(cinstr.cexpr)
 		elif cinstr.op == idaapi.cit_block:
 			instr_entries = [self.lift_instr(i) for i in cinstr.cblock]
 			entry = instr_entries[0]
 			chain_trees(*instr_entries)
 		elif cinstr.op == idaapi.cit_if:
-			sexpr_nodes = self.lift_cexpr(cinstr.cif.expr, True)
-			entry = sexpr_nodes[0]
-			exit = sexpr_nodes[-1]
+			entry, exit = self.lift_cexpr(cinstr.cif.expr)
 			ithen = self.lift_instr(cinstr.cif.ithen)
 			if cinstr.cif.ielse is not None:
 				ielse = self.lift_instr(cinstr.cif.ielse)
@@ -239,27 +235,22 @@ class CTreeAnalyzer:
 			chain_nodes(exit, ithen)
 			chain_nodes(exit, ielse)
 		elif cinstr.op == idaapi.cit_for:
-			init_nodes = self.lift_cexpr(cinstr.cfor.init, True)
-			expr_nodes = self.lift_cexpr(cinstr.cfor.expr, True)
-			step_nodes = self.lift_cexpr(cinstr.cfor.step, True)
+			entry, init_end = self.lift_cexpr(cinstr.cfor.init)
+			expr_start, _ = self.lift_cexpr(cinstr.cfor.expr)
+			step_start, _ = self.lift_cexpr(cinstr.cfor.step)
 			cfor_entry = self.lift_instr(cinstr.cfor.body)
-			entry = init_nodes[0]
-			chain_trees(entry, expr_nodes[0], cfor_entry, step_nodes[0])
+			chain_trees(init_end, expr_start, cfor_entry, step_start)
 		elif cinstr.op == idaapi.cit_while:
-			sexprs = self.lift_cexpr(cinstr.cwhile.expr, True)
-			entry = sexprs[0]
-			exit = sexprs[-1]
+			entry, exit = self.lift_cexpr(cinstr.cwhile.expr)
 			cwhile_entry = self.lift_instr(cinstr.cwhile.body)
 			chain_nodes(exit, cwhile_entry)
 		elif cinstr.op == idaapi.cit_do:
-			sexpr_entry = self.lift_cexpr(cinstr.cdo.expr, True)[0]
+			sexpr_entry = self.lift_cexpr(cinstr.cdo.expr)[0]
 			entry = self.lift_instr(cinstr.cdo.body)
 			chain_trees(entry, sexpr_entry)
 		elif cinstr.op == idaapi.cit_return:
-			sexpr_nodes = self.lift_cexpr(cinstr.creturn.expr, True)
-			last_node = sexpr_nodes[-1]
-			last_node.node_type = Node.RETURN
-			entry = sexpr_nodes[0]
+			entry, exit = self.lift_cexpr(cinstr.creturn.expr)
+			exit.node_type = Node.RETURN
 		elif cinstr.op == idaapi.cit_switch:
 			# cinstr.cswitch.cases + cinstr.cswitch.expr
 			entry = NOP_NODE.copy()
@@ -271,156 +262,139 @@ class CTreeAnalyzer:
 
 		return entry
 
-	def lift_cexpr(self, expr:idaapi.cexpr_t, should_chain:bool) -> list[Node]:
+	def lift_cexpr(self, expr:idaapi.cexpr_t) -> tuple[Node,Node]:
 		"""
-		last node holds type of final expr
-		returned nodes are chained, if should_chain is True
-		returned list is always non-empty
-		returned nodes do not contain return node
+		returns tuple (tree_start, tree_end)
+		tree_end holds type of final expr
+		tree_start can be the same as tree_end
 		"""
 		if expr.op == idaapi.cot_cast:
 			expr = expr.x
 
+		trees = []
+
+		def lift_reuse(expr:idaapi.cexpr_t) -> SExpr:
+			"""
+			get a tree and later reuse sexpr of end node
+			if start and end are the same, then reusing both of them and no start is return
+			if start and end are different, then add start to trees to chain later
+			"""
+			s,e = self.lift_cexpr(expr)
+			if s is not e:
+				e.remove_node()
+				trees.append(s)
+			return e.sexpr
+
 		if expr.op == idaapi.cot_asg:
-			new_nodes = self.lift_cexpr(expr.x, False)
-			target = new_nodes.pop().sexpr
-			new_nodes += self.lift_cexpr(expr.y, False)
-			value = new_nodes.pop().sexpr
+			target = lift_reuse(expr.x)
+			value = lift_reuse(expr.y)
 			asg = SExpr.create_assign(expr.ea, target, value)
-			node = Node(Node.EXPR, asg)
-			new_nodes.append(node)
+			type_node = Node(Node.EXPR, asg)
 
 		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper and expr.x.helper in known_helpers:
-			new_nodes = []
 			for i, arg in enumerate(expr.a):
-				arg_nodes = self.lift_cexpr(arg, False)
-				arg_sexpr = arg_nodes.pop().sexpr
+				arg_sexpr = lift_reuse(arg)
 				arg_cast = Node(Node.TYPE_CAST, arg_sexpr, expr.x.type.get_nth_arg(i))
-				new_nodes += arg_nodes
-				new_nodes.append(arg_cast)
-			res = SExpr.create_type_literal(expr.ea, expr.x.type.get_rettype())
-			res = Node(Node.EXPR, res)
-			new_nodes.append(res)
+				trees.append(arg_cast)
+			type_node = SExpr.create_type_literal(expr.ea, expr.x.type.get_rettype())
+			type_node = Node(Node.EXPR, type_node)
 
 		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_obj and utils.is_func_import(expr.x.obj_ea):
 			func_tif = idaapi.tinfo_t()
 			idaapi.get_type(expr.x.obj_ea, func_tif, 0)
 			if utils.is_tif_correct(func_tif) and func_tif.is_func():
-				tif = func_tif.get_rettype()
+				retval_tif = func_tif.get_rettype()
 			else:
-				tif = utils.UNKNOWN_TYPE
-			call_func = SExpr.create_type_literal(expr.x.ea, tif)
+				retval_tif = utils.UNKNOWN_TYPE
+			call_func = SExpr.create_type_literal(expr.x.ea, retval_tif)
 
-			new_nodes = []
 			for arg_id, arg in enumerate(expr.a):
 				arg = utils.strip_casts(arg)
-				new_nodes += self.lift_cexpr(arg, False)
-				arg_sexpr = new_nodes.pop().sexpr
+				arg_sexpr = lift_reuse(arg)
 				arg_type = func_tif.get_nth_arg(arg_id)
 				type_cast = Node(Node.TYPE_CAST, arg_sexpr, arg_type)
-				new_nodes.append(type_cast)
+				trees.append(type_cast)
 			call = SExpr.create_call(expr.ea, call_func)
-			node = Node(Node.EXPR, call)
-			new_nodes.append(node)
+			type_node = Node(Node.EXPR, call)
 
 		elif expr.op == idaapi.cot_call and expr.x.op != idaapi.cot_helper:
-			call_nodes = self.lift_cexpr(expr.x, False)
-			call_func = call_nodes.pop().sexpr
-			new_nodes = []
+			call_func = lift_reuse(expr.x)
 			for arg_id, arg in enumerate(expr.a):
 				arg = utils.strip_casts(arg)
-				new_nodes += self.lift_cexpr(arg, False)
-				arg_sexpr = new_nodes.pop().sexpr
+				arg_sexpr = lift_reuse(arg)
 				call_cast = Node(Node.CALL_CAST, arg_sexpr, arg_id, call_func)
-				new_nodes.append(call_cast)
+				trees.append(call_cast)
 			call = SExpr.create_call(expr.ea, call_func)
-			node = Node(Node.EXPR, call)
-			new_nodes += call_nodes
-			new_nodes.append(node)
+			type_node = Node(Node.EXPR, call)
 
 		elif expr.op == idaapi.cot_num:
 			sint = SExpr.create_type_literal(expr.ea, expr.type)
-			node = Node(Node.EXPR, sint)
-			new_nodes = [node]
+			type_node = Node(Node.EXPR, sint)
 
 		elif expr.op == idaapi.cot_sizeof:
-			node = Node(Node.EXPR, SExpr.create_type_literal(expr.ea, utils.str2tif("int")))
-			new_nodes = [node]
+			type_node = Node(Node.EXPR, SExpr.create_type_literal(expr.ea, utils.str2tif("int")))
 
 		elif expr.op == idaapi.cot_obj and (utils.is_func_start(expr.obj_ea) or utils.is_func_import(expr.obj_ea)):
 			func = SExpr.create_function(expr.ea, expr.obj_ea)
-			node = Node(Node.EXPR, func)
-			new_nodes = [node]
+			type_node = Node(Node.EXPR, func)
 
 		elif expr.op in bool_operations:
-			x_nodes = self.lift_cexpr(expr.x, False)
-			y_nodes = self.lift_cexpr(expr.y, False)
+			x, _ = self.lift_cexpr(expr.x)
+			y, _ = self.lift_cexpr(expr.y)
 			boolop = SExpr.create_type_literal(expr.ea, utils.str2tif("bool"))
-			node = Node(Node.EXPR, boolop)
-			new_nodes = x_nodes + y_nodes + [node]
+			type_node = Node(Node.EXPR, boolop)
+			trees += [x, y]
 
 		elif expr.op == idaapi.cot_lnot:
-			new_nodes = self.lift_cexpr(expr.x, False)
+			s, _ = self.lift_cexpr(expr.x)
+			trees.append(s)
 			boolop = SExpr.create_type_literal(expr.ea, utils.str2tif("bool"))
-			node = Node(Node.EXPR, boolop)
-			new_nodes.append(node)
+			type_node = Node(Node.EXPR, boolop)
 
 		elif (vuc := get_var_use_chain(expr, self.actx)) is not None:
 			vuc = SExpr.create_var_use_chain(expr.ea, vuc)
-			node = Node(Node.EXPR, vuc)
-			new_nodes = [node]
+			type_node = Node(Node.EXPR, vuc)
 
 		elif expr.op in int_rw_operations:
-			target_nodes = self.lift_cexpr(expr.x, False)
-			target = target_nodes.pop().sexpr
+			target = lift_reuse(expr.x)
 			value = SExpr.create_type_literal(-1, utils.str2tif("int"))
 			sexpr = SExpr.create_rw_op(expr.ea, target, value)
-			node = Node(Node.EXPR, sexpr)
-			new_nodes = target_nodes + [node]
+			type_node = Node(Node.EXPR, sexpr)
 
 		# cot_neg does not change type
 		elif expr.op == idaapi.cot_neg:
-			new_nodes = self.lift_cexpr(expr.x, should_chain=False)
+			s, type_node = self.lift_cexpr(expr.x)
+			trees.append(s)
+			# end will be later added, just easier to remove it here
+			type_node.remove_node()
 
 		elif expr.op in value_rw_operations:
-			target_nodes = self.lift_cexpr(expr.x, False)
-			target = target_nodes.pop().sexpr
-			value_nodes = self.lift_cexpr(expr.y, False)
-			value = value_nodes.pop().sexpr
+			target = lift_reuse(expr.x)
+			value = lift_reuse(expr.y)
 			sexpr = SExpr.create_rw_op(expr.ea, target, value)
-			node = Node(Node.EXPR, sexpr)
-			new_nodes = target_nodes + value_nodes + [node]
+			type_node = Node(Node.EXPR, sexpr)
 
 		elif expr.op == idaapi.cot_ref:
-			assert expr.x is not None
-			base_nodes = self.lift_cexpr(expr.x, False)
-			base = base_nodes.pop().sexpr
+			base = lift_reuse(expr.x)
 			sexpr = SExpr.create_ref(expr.ea, base)
-			node = Node(Node.EXPR, sexpr)
-			new_nodes = base_nodes + [node]
+			type_node = Node(Node.EXPR, sexpr)
 
 		elif expr.op == idaapi.cot_ptr:
-			assert expr.x is not None
-			base_nodes = self.lift_cexpr(expr.x, False)
-			base = base_nodes.pop().sexpr
+			base = lift_reuse(expr.x)
 			sexpr = SExpr.create_ptr(expr.ea, base)
-			node = Node(Node.EXPR, sexpr)
-			new_nodes = base_nodes + [node]
+			type_node = Node(Node.EXPR, sexpr)
 
 		elif expr.op in binary_operations:
-			x_nodes = self.lift_cexpr(expr.x, False)
-			x = x_nodes.pop().sexpr
-			y_nodes = self.lift_cexpr(expr.y, False)
-			y = y_nodes.pop().sexpr
+			x = lift_reuse(expr.x)
+			y = lift_reuse(expr.y)
 			binop = SExpr.create_binary_op(expr.ea, x, y)
-			node = Node(Node.EXPR, binop)
-			new_nodes = x_nodes + y_nodes + [node]
+			type_node = Node(Node.EXPR, binop)
 
 		else:
 			utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
-			node = NOP_NODE.copy()
-			new_nodes = [node]
+			type_node = NOP_NODE.copy()
 
-		if should_chain:
-			chain_nodes(*new_nodes)
-		return new_nodes
+		trees.append(type_node)
+		start = trees[0]
+		chain_trees(*trees)
+		return start, type_node
