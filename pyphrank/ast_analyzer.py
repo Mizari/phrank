@@ -256,14 +256,10 @@ class CTreeAnalyzer:
 			entry = self.lift_instr(cinstr.cdo.body)
 			chain_trees(entry, sexpr_entry)
 		elif cinstr.op == idaapi.cit_return:
-			sexpr_nodes = self.lift_cexpr(cinstr.creturn.expr, False)
-			last_sexpr = sexpr_nodes.pop().sexpr
-			if len(sexpr_nodes) == 0:
-				entry = Node(Node.RETURN, last_sexpr)
-			else:
-				return_node = Node(Node.RETURN, last_sexpr)
-				entry = sexpr_nodes[0]
-				chain_nodes(*sexpr_nodes, return_node)
+			sexpr_nodes = self.lift_cexpr(cinstr.creturn.expr, True)
+			last_node = sexpr_nodes[-1]
+			last_node.node_type = Node.RETURN
+			entry = sexpr_nodes[0]
 		elif cinstr.op == idaapi.cit_switch:
 			# cinstr.cswitch.cases + cinstr.cswitch.expr
 			entry = NOP_NODE.copy()
