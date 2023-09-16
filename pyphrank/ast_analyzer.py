@@ -20,6 +20,7 @@ binary_operations = {
 	idaapi.cot_mul, idaapi.cot_sub, idaapi.cot_bor, idaapi.cot_band,
 	idaapi.cot_sshr, idaapi.cot_ushr, idaapi.cot_shl, idaapi.cot_add,
 	idaapi.cot_sdiv, idaapi.cot_udiv, idaapi.cot_smod, idaapi.cot_umod,
+	idaapi.cot_xor,
 }
 
 int_rw_operations = {
