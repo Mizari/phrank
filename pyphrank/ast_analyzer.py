@@ -47,16 +47,21 @@ helper2offset = {
 	"HIBYTE": 4,
 	"HIWORD": 2,
 	"HIDWORD": 4,
+	"DWORD2": 8,
 	"SHIDWORD": 4,
 }
 
 known_helpers = {
-	"memset",
-	"memcpy",
-	"qmemcpy",
-	"strcmp",
-	"strcpy",
-	"strlen",
+	"_enable", "_disable",
+	"__outbyte", "__inbyte",
+	"__outword", "__inword",
+	"__outdword", "__indword",
+	"va_start", "va_end", "va_arg", "va_copy",
+	"JUMPOUT",
+	"alloca",
+	"memset", "memcpy", "memcmp",
+	"qmemcpy", "qmemset",
+	"strcmp", "strcpy", "strlen",
 }
 
 
@@ -269,7 +274,7 @@ class CTreeAnalyzer:
 		tree_end holds type of final expr
 		tree_start can be the same as tree_end
 		"""
-		if expr.op == idaapi.cot_cast:
+		while expr.op == idaapi.cot_cast:
 			expr = expr.x
 
 		trees = []
@@ -362,8 +367,8 @@ class CTreeAnalyzer:
 			sexpr = SExpr.create_rw_op(expr.ea, target, value)
 			type_node = Node(Node.EXPR, sexpr)
 
-		# cot_neg does not change type
-		elif expr.op == idaapi.cot_neg:
+		# -expr and ~expr do not change type
+		elif expr.op in (idaapi.cot_neg, idaapi.cot_bnot):
 			s, type_node = self.lift_cexpr(expr.x)
 			trees.append(s)
 			# end will be later added, just easier to remove it here
@@ -398,6 +403,25 @@ class CTreeAnalyzer:
 			y = lift_reuse(expr.y)
 			binop = SExpr.create_binary_op(expr.ea, x, y)
 			type_node = Node(Node.EXPR, binop)
+
+		elif expr.op in (idaapi.cot_fadd, idaapi.cot_fdiv, idaapi.cot_fmul, idaapi.cot_fneg, idaapi.cot_fsub):
+			x, _ = self.lift_cexpr(expr.x)
+			trees.append(x)
+			y, _ = self.lift_cexpr(expr.y)
+			trees.append(y)
+			fop = SExpr.create_type_literal(expr.ea, expr.type)
+			type_node = Node(Node.EXPR, fop)
+
+		elif expr.op == idaapi.cot_fnum:
+			s = SExpr.create_type_literal(expr.ea, expr.type)
+			type_node = Node(Node.EXPR, s)
+
+		elif expr.op == idaapi.cot_str:
+			s = SExpr.create_type_literal(expr.ea, utils.str2tif("char*"))
+			type_node = Node(Node.EXPR, s)
+
+		elif expr.op == idaapi.cot_empty:
+			type_node = NOP_NODE.copy()
 
 		else:
 			utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
