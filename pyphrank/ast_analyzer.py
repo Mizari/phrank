@@ -47,7 +47,25 @@ helper2offset = {
 	"HIBYTE": 4,
 	"HIWORD": 2,
 	"HIDWORD": 4,
+	"WORD6": 12,
+	"DWORD1": 4,
 	"DWORD2": 8,
+	"SHIDWORD": 4,
+}
+
+helper2size = {
+	"LOBYTE": 1,
+	"LOWORD": 2,
+	"LODWORD": 4,
+	"SLODWORD": 4, 
+	"BYTE1": 1,
+	"BYTE2": 1,
+	"HIBYTE": 1,
+	"HIWORD": 2,
+	"HIDWORD": 4,
+	"WORD6": 2,
+	"DWORD1": 4,
+	"DWORD2": 4,
 	"SHIDWORD": 4,
 }
 
@@ -438,6 +456,13 @@ class CTreeAnalyzer:
 			trees.append(s1)
 			s2, type_node = self.lift_cexpr(expr.y)
 			trees.append(s2)
+
+		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper and expr.x.helper in helper2offset:
+			arg = lift_reuse(expr.a[0])
+			offset = helper2offset[expr.x.helper]
+			size = helper2size[expr.x.helper]
+			arg = SExpr.create_partial(expr.ea, arg, offset, size)
+			type_node = Node(Node.EXPR, arg)
 
 		else:
 			utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
