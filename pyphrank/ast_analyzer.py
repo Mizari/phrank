@@ -74,6 +74,7 @@ known_helpers = {
 	"__outbyte", "__inbyte",
 	"__outword", "__inword",
 	"__outdword", "__indword",
+	"__CFADD__", "__OFADD__", "__OFSUB__",
 	"va_start", "va_end", "va_arg", "va_copy",
 	"JUMPOUT",
 	"alloca",
