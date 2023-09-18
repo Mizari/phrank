@@ -423,6 +423,16 @@ class CTreeAnalyzer:
 		elif expr.op == idaapi.cot_empty:
 			type_node = NOP_NODE.copy()
 
+		elif expr.op == idaapi.cot_idx:
+			arr = lift_reuse(expr.x)
+			idx = lift_reuse(expr.y)
+			add_expr = SExpr.create_binary_op(expr.x.ea, arr, idx)
+			if expr.x.type.is_ptr() and expr.y.type.is_integral(): # pointer arithmetics
+				i = SExpr.create_type_literal(expr.x.ea, utils.str2tif("int"))
+				add_expr = SExpr.create_binary_op(expr.x.ea, add_expr, i)
+			ptr_expr = SExpr.create_ptr(expr.ea, add_expr)
+			type_node = Node(Node.EXPR, ptr_expr)
+
 		elif expr.op == idaapi.cot_comma:
 			s1, _ = self.lift_cexpr(expr.x)
 			trees.append(s1)
