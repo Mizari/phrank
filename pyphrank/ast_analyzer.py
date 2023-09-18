@@ -423,6 +423,12 @@ class CTreeAnalyzer:
 		elif expr.op == idaapi.cot_empty:
 			type_node = NOP_NODE.copy()
 
+		elif expr.op == idaapi.cot_comma:
+			s1, _ = self.lift_cexpr(expr.x)
+			trees.append(s1)
+			s2, type_node = self.lift_cexpr(expr.y)
+			trees.append(s2)
+
 		else:
 			utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
 			type_node = NOP_NODE.copy()
