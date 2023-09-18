@@ -418,7 +418,7 @@ class CTreeAnalyzer:
 			type_node = Node(Node.EXPR, sexpr)
 
 		# -expr and ~expr do not change type
-		elif expr.op in (idaapi.cot_neg, idaapi.cot_bnot):
+		elif expr.op in (idaapi.cot_neg, idaapi.cot_bnot, idaapi.cot_fneg):
 			s, type_node = self.lift_cexpr(expr.x)
 			trees.append(s)
 			# end will be later added, just easier to remove it here
@@ -454,7 +454,7 @@ class CTreeAnalyzer:
 			binop = SExpr.create_binary_op(expr.ea, x, y)
 			type_node = Node(Node.EXPR, binop)
 
-		elif expr.op in (idaapi.cot_fadd, idaapi.cot_fdiv, idaapi.cot_fmul, idaapi.cot_fneg, idaapi.cot_fsub):
+		elif expr.op in (idaapi.cot_fadd, idaapi.cot_fdiv, idaapi.cot_fmul, idaapi.cot_fsub):
 			x, _ = self.lift_cexpr(expr.x)
 			trees.append(x)
 			y, _ = self.lift_cexpr(expr.y)
