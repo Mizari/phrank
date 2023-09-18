@@ -69,6 +69,18 @@ helper2size = {
 	"SHIDWORD": 4,
 }
 
+
+combine_helpers = {
+	"__PAIR16__",
+	"__SPAIR16__",
+	"__PAIR32__",
+	"__SPAIR32__",
+	"__PAIR64__",
+	"__SPAIR64__",
+	"__PAIR128__",
+	"__SPAIR128__",
+}
+
 known_helpers = {
 	"_enable", "_disable",
 	"__outbyte", "__inbyte",
@@ -316,13 +328,32 @@ class CTreeAnalyzer:
 			asg = SExpr.create_assign(expr.ea, target, value)
 			type_node = Node(Node.EXPR, asg)
 
-		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper and expr.x.helper in known_helpers:
-			for i, arg in enumerate(expr.a):
-				arg_sexpr = lift_reuse(arg)
-				arg_cast = Node(Node.TYPE_CAST, arg_sexpr, expr.x.type.get_nth_arg(i))
-				trees.append(arg_cast)
-			type_node = SExpr.create_type_literal(expr.ea, expr.x.type.get_rettype())
-			type_node = Node(Node.EXPR, type_node)
+		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
+			helper = expr.x.helper
+			if helper in known_helpers:
+				for i, arg in enumerate(expr.a):
+					arg_sexpr = lift_reuse(arg)
+					arg_cast = Node(Node.TYPE_CAST, arg_sexpr, expr.x.type.get_nth_arg(i))
+					trees.append(arg_cast)
+				type_node = SExpr.create_type_literal(expr.ea, expr.x.type.get_rettype())
+				type_node = Node(Node.EXPR, type_node)
+
+			elif helper in helper2offset:
+				arg = lift_reuse(expr.a[0])
+				offset = helper2offset[helper]
+				size = helper2size[helper]
+				arg = SExpr.create_partial(expr.ea, arg, offset, size)
+				type_node = Node(Node.EXPR, arg)
+
+			elif helper in combine_helpers:
+				arg0 = lift_reuse(expr.a[0])
+				arg1 = lift_reuse(expr.a[1])
+				comb = SExpr.create_combine(expr.ea, arg0, arg1)
+				type_node = Node(Node.EXPR, comb)
+
+			else:
+				utils.log_warn(f"failed to lift helper={helper} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
+				type_node = NOP_NODE.copy()
 
 		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_obj and utils.is_func_import(expr.x.obj_ea):
 			func_tif = idaapi.tinfo_t()

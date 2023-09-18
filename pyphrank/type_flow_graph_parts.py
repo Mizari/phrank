@@ -244,6 +244,7 @@ class SExpr:
 	TYPE_PTR = 9
 	TYPE_TERN = 10
 	TYPE_PARTIAL = 11
+	TYPE_COMBINE = 12
 
 	def is_type_literal(self): return self.op == self.TYPE_LITERAL
 	def is_var_use_chain(self): return self.op == self.TYPE_VAR_USE_CHAIN
@@ -257,6 +258,7 @@ class SExpr:
 	def is_ptr(self): return self.op == self.TYPE_PTR
 	def is_tern(self): return self.op == self.TYPE_TERN
 	def is_partial(self): return self.op == self.TYPE_PARTIAL
+	def is_combine(self): return self.op == self.TYPE_COMBINE
 
 	def is_var_use(self, var:Var|None=None) -> bool:
 		if self.var_use_chain is None:
@@ -433,6 +435,13 @@ class SExpr:
 		obj = cls(cls.TYPE_PARTIAL, expr_ea)
 		obj._x = base
 		obj._y = (offset, size)
+		return obj
+
+	@classmethod
+	def create_combine(cls, expr_ea:int, x:SExpr, y:SExpr):
+		obj = cls(cls.TYPE_COMBINE, expr_ea)
+		obj._x = x
+		obj._y = y
 		return obj
 
 	@property
