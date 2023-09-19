@@ -377,6 +377,13 @@ class CTreeAnalyzer:
 				sexpr = SExpr.create_rw_op(expr.ea, target, value)
 				type_node = Node(Node.EXPR, sexpr)
 
+			elif helper == "va_arg":
+				arg_sexpr = lift_reuse(expr.a[0])
+				arg_cast = Node(Node.TYPE_CAST, arg_sexpr, expr.x.type.get_nth_arg(0))
+				trees.append(arg_cast)
+				type_node = SExpr.create_type_literal(expr.ea, expr.x.type.get_rettype())
+				type_node = Node(Node.EXPR, type_node)
+
 			else:
 				utils.log_warn(f"failed to lift helper={helper} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
 				type_node = NOP_NODE.copy()
