@@ -41,47 +41,37 @@ helper2offset = {
 	"LOBYTE": 0,
 	"LOWORD": 0,
 	"LODWORD": 0,
-	"SLODWORD": 0, 
-	"BYTE1": 1,
-	"BYTE2": 2,
-	"BYTE3": 3,
-	"BYTE4": 4,
-	"BYTE5": 5,
-	"BYTE6": 6,
-	"BYTE7": 7,
-	"BYTE8": 8,
 	"HIBYTE": 4,
 	"HIWORD": 2,
 	"HIDWORD": 4,
-	"WORD6": 12,
-	"DWORD1": 4,
-	"DWORD2": 8,
-	"SHIBYTE": 4,
-	"SHIDWORD": 4,
 }
 
 helper2size = {
 	"LOBYTE": 1,
 	"LOWORD": 2,
 	"LODWORD": 4,
-	"SLODWORD": 4, 
-	"BYTE1": 1,
-	"BYTE2": 1,
-	"BYTE3": 1,
-	"BYTE4": 1,
-	"BYTE5": 1,
-	"BYTE6": 1,
-	"BYTE7": 1,
-	"BYTE8": 1,
 	"HIBYTE": 1,
 	"HIWORD": 2,
 	"HIDWORD": 4,
-	"WORD6": 2,
-	"DWORD1": 4,
-	"DWORD2": 4,
-	"SHIBYTE": 1,
-	"SHIDWORD": 4,
 }
+
+for i in range(4, 16, 4):
+	s = "DWORD" + str(i//4)
+	helper2offset[s] = i
+	helper2size[s] = 4
+
+for i in range(2, 16, 2):
+	s = "WORD" + str(i//2)
+	helper2offset[s] = i
+	helper2size[s] = 2
+
+for i in range(1,15):
+	s = "BYTE" + str(i)
+	helper2offset[s] = i
+	helper2size[s] = 1
+
+helper2offset.update({'S'+k:v for k,v in helper2offset.items()})
+helper2size.update({'S'+k:v for k,v in helper2size.items()})
 
 
 combine_helpers = {
