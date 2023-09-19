@@ -371,10 +371,6 @@ class CTreeAnalyzer:
 				comb = SExpr.create_combine(expr.ea, arg0, arg1)
 				type_node = Node(Node.EXPR, comb)
 
-			# rogue stack reads
-			elif helper.startswith("STACK[0x") and helper[-1] == ']':
-				type_node = NOP_NODE.copy()
-
 			else:
 				utils.log_warn(f"failed to lift helper={helper} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
 				type_node = NOP_NODE.copy()
@@ -519,6 +515,10 @@ class CTreeAnalyzer:
 			size = helper2size[expr.x.helper]
 			arg = SExpr.create_partial(expr.ea, arg, offset, size)
 			type_node = Node(Node.EXPR, arg)
+
+		# rogue stack reads
+		elif expr.op == idaapi.cot_helper and expr.helper.startswith("STACK[0x"):
+			type_node = NOP_NODE.copy()
 
 		else:
 			utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
