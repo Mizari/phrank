@@ -44,12 +44,19 @@ helper2offset = {
 	"SLODWORD": 0, 
 	"BYTE1": 1,
 	"BYTE2": 2,
+	"BYTE3": 3,
+	"BYTE4": 4,
+	"BYTE5": 5,
+	"BYTE6": 6,
+	"BYTE7": 7,
+	"BYTE8": 8,
 	"HIBYTE": 4,
 	"HIWORD": 2,
 	"HIDWORD": 4,
 	"WORD6": 12,
 	"DWORD1": 4,
 	"DWORD2": 8,
+	"SHIBYTE": 4,
 	"SHIDWORD": 4,
 }
 
@@ -60,12 +67,19 @@ helper2size = {
 	"SLODWORD": 4, 
 	"BYTE1": 1,
 	"BYTE2": 1,
+	"BYTE3": 1,
+	"BYTE4": 1,
+	"BYTE5": 1,
+	"BYTE6": 1,
+	"BYTE7": 1,
+	"BYTE8": 1,
 	"HIBYTE": 1,
 	"HIWORD": 2,
 	"HIDWORD": 4,
 	"WORD6": 2,
 	"DWORD1": 4,
 	"DWORD2": 4,
+	"SHIBYTE": 1,
 	"SHIDWORD": 4,
 }
 
@@ -88,12 +102,17 @@ known_helpers = {
 	"__outdword", "__indword",
 	"__CFADD__", "__OFADD__", "__OFSUB__",
 	"va_start", "va_end", "va_arg", "va_copy",
-	"JUMPOUT", "BUG",
+	"JUMPOUT", "BUG", "__halt", "_mm_mfence",
 	"__readfsqword",
 	"alloca",
-	"memset", "memcpy", "memcmp",
+	"memset", "memcpy", "memcmp", "memset64",
 	"qmemcpy", "qmemset",
 	"strcmp", "strcpy", "strlen",
+	"_bittest64", "_BitScanReverse64", "__ROL2__",
+	"_mm_loadh_ps", "_mm_load_si128", "_mm_loadu_si128", "_mm_shuffle_pd", 
+	"_mm_unpacklo_epi64", "_mm_loadl_epi64", "_mm_add_epi64",
+	"_InterlockedExchange", "_InterlockedCompareExchange64",
+	"_InterlockedCompareExchange8",
 }
 
 
@@ -351,6 +370,10 @@ class CTreeAnalyzer:
 				arg1 = lift_reuse(expr.a[1])
 				comb = SExpr.create_combine(expr.ea, arg0, arg1)
 				type_node = Node(Node.EXPR, comb)
+
+			# rogue stack reads
+			elif helper.startswith("STACK[0x") and helper[-1] == ']':
+				type_node = NOP_NODE.copy()
 
 			else:
 				utils.log_warn(f"failed to lift helper={helper} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
