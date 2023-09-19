@@ -115,6 +115,11 @@ known_helpers = {
 	"_InterlockedCompareExchange8",
 }
 
+interlocked_helpers = {
+	"_InterlockedAdd", "_InterlockedSub",
+	"_InterlockedExchangeAdd",
+}
+
 
 def is_known_call(func_expr:idaapi.cexpr_t, funcnames:set[str]) -> bool:
 	if func_expr.op != idaapi.cot_call:
@@ -370,6 +375,13 @@ class CTreeAnalyzer:
 				arg1 = lift_reuse(expr.a[1])
 				comb = SExpr.create_combine(expr.ea, arg0, arg1)
 				type_node = Node(Node.EXPR, comb)
+
+			elif helper in interlocked_helpers:
+				target = lift_reuse(expr.a[0])
+				target = SExpr.create_ptr(expr.a[0].ea, target)
+				value = lift_reuse(expr.a[1])
+				sexpr = SExpr.create_rw_op(expr.ea, target, value)
+				type_node = Node(Node.EXPR, sexpr)
 
 			else:
 				utils.log_warn(f"failed to lift helper={helper} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
