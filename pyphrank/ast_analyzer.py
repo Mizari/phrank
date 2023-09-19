@@ -516,6 +516,11 @@ class CTreeAnalyzer:
 			arg = SExpr.create_partial(expr.ea, arg, offset, size)
 			type_node = Node(Node.EXPR, arg)
 
+		elif expr.op == idaapi.cot_memptr:
+			mem = lift_reuse(expr.x)
+			base = SExpr.create_ptr(expr.ea, mem, expr.m)
+			type_node = Node(Node.EXPR, base)
+
 		# rogue stack reads
 		elif expr.op == idaapi.cot_helper and expr.helper.startswith("STACK[0x"):
 			type_node = NOP_NODE.copy()

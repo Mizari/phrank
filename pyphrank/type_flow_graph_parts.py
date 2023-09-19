@@ -418,9 +418,10 @@ class SExpr:
 		return obj
 
 	@classmethod
-	def create_ptr(cls, expr_ea:int, base:SExpr):
+	def create_ptr(cls, expr_ea:int, base:SExpr, offset:int=0):
 		obj = cls(cls.TYPE_PTR, expr_ea)
 		obj._x = base
+		obj._y = offset
 		return obj
 
 	@classmethod
@@ -496,6 +497,10 @@ class SExpr:
 	@property
 	def base(self) -> SExpr:
 		return self._x
+
+	@property
+	def offset(self) -> int:
+		return self._y
 
 
 UNKNOWN_SEXPR = SExpr(-1, -1)
