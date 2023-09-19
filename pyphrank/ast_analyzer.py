@@ -107,6 +107,7 @@ known_helpers = {
 	"is_mul_ok", "saturated_mul",
 	"__ROL2__", "__ROL4__", "__ROL8__",
 	"__ROR2__", "__ROR4__", "__ROR8__",
+	"fabs", "fminf", "fmaxf", "abs32", "sqrt", "fmin", "fmax", "fsqrt",
 }
 
 interlocked_helpers = {
