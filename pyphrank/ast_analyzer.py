@@ -97,7 +97,7 @@ known_helpers = {
 	"alloca",
 	"memset", "memcpy", "memcmp", "memset64",
 	"qmemcpy", "qmemset",
-	"strcmp", "strcpy", "strlen",
+	"strcmp", "strcpy", "strlen", "strcat",
 	"_bittest", "_bittest64", "_bittestandset64",
 	"_BitScanReverse64", "_BitScanForward", "_BitScanReverse", "_BitScanForward64",
 	"__fastfail", "__debugbreak", "__rdtsc",
