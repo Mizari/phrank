@@ -383,7 +383,7 @@ class CTreeAnalyzer:
 				if len(expr.a) > 1:
 					value = lift_reuse(expr.a[1])
 				else:
-					value = SExpr.create_type_literal(expr.a[1].ea, utils.str2tif("int"))
+					value = SExpr.create_type_literal(-1, utils.str2tif("int"))
 				sexpr = SExpr.create_rw_op(expr.ea, target, value)
 				type_node = Node(Node.EXPR, sexpr)
 
