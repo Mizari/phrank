@@ -58,6 +58,9 @@ def tif2strucid(tif:idaapi.tinfo_t) -> int:
 	if not is_tif_correct(tif):
 		return -1
 
+	if tif.is_union():
+		return str2strucid(str(tif))
+
 	if tif.is_struct():
 		return str2strucid(str(tif))
 
