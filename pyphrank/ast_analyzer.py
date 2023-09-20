@@ -117,7 +117,8 @@ coerces = {
 
 interlocked_helpers = {
 	"_InterlockedAdd", "_InterlockedSub",
-	"_InterlockedExchangeAdd",
+	"_InterlockedAnd", "_InterlockedOr",
+	"_InterlockedDecrement", "_InterlockedIncrement",
 }
 
 
@@ -355,7 +356,7 @@ class CTreeAnalyzer:
 
 		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
 			helper = expr.x.helper
-			if helper in known_helpers:
+			if helper in known_helpers or helper.startswith("_mm"):
 				for i, arg in enumerate(expr.a):
 					arg_sexpr = lift_reuse(arg)
 					arg_cast = Node(Node.TYPE_CAST, arg_sexpr, expr.x.type.get_nth_arg(i))
@@ -379,7 +380,10 @@ class CTreeAnalyzer:
 			elif helper in interlocked_helpers:
 				target = lift_reuse(expr.a[0])
 				target = SExpr.create_ptr(expr.a[0].ea, target)
-				value = lift_reuse(expr.a[1])
+				if len(expr.a) > 1:
+					value = lift_reuse(expr.a[1])
+				else:
+					value = SExpr.create_type_literal(expr.a[1].ea, utils.str2tif("int"))
 				sexpr = SExpr.create_rw_op(expr.ea, target, value)
 				type_node = Node(Node.EXPR, sexpr)
 
