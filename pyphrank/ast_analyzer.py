@@ -115,10 +115,22 @@ coerces = {
 	"COERCE_UNSIGNED_INT", "COERCE_UNSIGNED_INT64",
 }
 
-interlocked_helpers = {
+interlocked_asg_helpers = {
+	"_InterlockedExchange", "_InterlockedExchange8",
+	"_InterlockedExchange16", "_InterlockedExchange32",
+	"_InterlockedExchange64", "_InterlockedExchange128",
+	"_InterlockedCompareExchange", "_InterlockedCompareExchange8",
+	"_InterlockedCompareExchange16", "_InterlockedCompareExchange32",
+	"_InterlockedCompareExchange64", "_InterlockedCompareExchange128",
+}
+
+interlocked_rv_helpers = {
 	"_InterlockedAdd", "_InterlockedSub",
 	"_InterlockedAnd", "_InterlockedOr",
 	"_InterlockedDecrement", "_InterlockedIncrement",
+	"_InterlockedExchangeAdd", "_InterlockedExchangeAdd8",
+	"_InterlockedExchangeAdd16", "_InterlockedExchangeAdd32",
+	"_InterlockedExchangeAdd64", "_InterlockedExchangeAdd128",
 }
 
 
@@ -377,15 +389,33 @@ class CTreeAnalyzer:
 				comb = SExpr.create_combine(expr.ea, arg0, arg1)
 				type_node = Node(Node.EXPR, comb)
 
-			elif helper in interlocked_helpers:
+			elif helper in interlocked_asg_helpers:
+				# if cmp xchg, then more info can be gained from comparand
+				if len(expr.a) == 3:
+					s, _ = self.lift_cexpr(expr.a[2])
+					trees.append(s)
+
+				target = lift_reuse(expr.a[0])
+				target = SExpr.create_ptr(expr.a[0].ea, target)
+				value = lift_reuse(expr.a[1])
+				asg = SExpr.create_assign(expr.ea, target, value)
+				asg_node = Node(Node.EXPR, asg)
+				trees.append(asg_node)
+				type_expr = SExpr.create_type_literal(expr.ea, expr.type.get_rettype())
+				type_node = Node(Node.EXPR, type_expr)
+
+			elif helper in interlocked_rv_helpers:
 				target = lift_reuse(expr.a[0])
 				target = SExpr.create_ptr(expr.a[0].ea, target)
 				if len(expr.a) > 1:
 					value = lift_reuse(expr.a[1])
 				else:
 					value = SExpr.create_type_literal(-1, utils.str2tif("int"))
-				sexpr = SExpr.create_rw_op(expr.ea, target, value)
-				type_node = Node(Node.EXPR, sexpr)
+				op = SExpr.create_rw_op(expr.ea, target, value)
+				op_node = Node(Node.EXPR, op)
+				trees.append(op_node)
+				type_expr = SExpr.create_type_literal(expr.ea, expr.type.get_rettype())
+				type_node = Node(Node.EXPR, type_expr)
 
 			elif helper == "va_arg":
 				arg_sexpr = lift_reuse(expr.a[0])
