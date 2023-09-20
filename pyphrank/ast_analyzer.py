@@ -110,6 +110,11 @@ known_helpers = {
 	"fabs", "fminf", "fmaxf", "abs32", "sqrt", "fmin", "fmax", "fsqrt",
 }
 
+coerces = {
+	"COERCE_FLOAT", "COERCE_DOUBLE", "COERCE__INT64",
+	"COERCE_UNSIGNED_INT", "COERCE_UNSIGNED_INT64",
+}
+
 interlocked_helpers = {
 	"_InterlockedAdd", "_InterlockedSub",
 	"_InterlockedExchangeAdd",
@@ -383,6 +388,11 @@ class CTreeAnalyzer:
 				arg_cast = Node(Node.TYPE_CAST, arg_sexpr, expr.x.type.get_nth_arg(0))
 				trees.append(arg_cast)
 				type_node = SExpr.create_type_literal(expr.ea, expr.x.type.get_rettype())
+				type_node = Node(Node.EXPR, type_node)
+
+			# casts are skipped
+			elif helper in coerces:
+				type_node = lift_reuse(expr.a[0])
 				type_node = Node(Node.EXPR, type_node)
 
 			else:
