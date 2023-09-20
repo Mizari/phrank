@@ -545,6 +545,23 @@ class CTreeAnalyzer:
 			base = SExpr.create_ptr(expr.ea, mem, expr.m)
 			type_node = Node(Node.EXPR, base)
 
+		elif expr.op == idaapi.cot_memref:
+			sexpr = lift_reuse(expr.x)
+			if sexpr.is_type_literal():
+				type_expr = SExpr.create_type_literal(expr.ea, expr.type)
+
+			# selecting union's field
+			elif expr.type.is_union():
+				type_expr = sexpr
+
+			# expr.type.is_struct()
+			# selecting structure's field
+			else:
+				i = SExpr.create_type_literal(-1, utils.str2tif("int"))
+				type_expr = SExpr.create_binary_op(expr.ea, sexpr, i)
+
+			type_node = Node(Node.EXPR, type_expr)
+
 		# rogue stack reads
 		elif expr.op == idaapi.cot_helper and expr.helper.startswith("STACK[0x"):
 			type_node = NOP_NODE.copy()
