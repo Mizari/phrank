@@ -517,10 +517,8 @@ class CTreeAnalyzer:
 
 		# -expr and ~expr do not change type
 		elif expr.op in (idaapi.cot_neg, idaapi.cot_bnot, idaapi.cot_fneg):
-			s, type_node = self.lift_cexpr(expr.x)
-			trees.append(s)
-			# end will be later added, just easier to remove it here
-			type_node.remove_node()
+			type_expr = lift_reuse(expr.x)
+			type_node = Node(Node.EXPR, type_expr)
 
 		elif expr.op == idaapi.cot_tern:
 			s, _ = self.lift_cexpr(expr.x)
