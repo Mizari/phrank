@@ -91,23 +91,27 @@ known_helpers = {
 	"__outword", "__inword",
 	"__outdword", "__indword",
 	"__CFSHR__", "__CFSHL__", "__CFADD__", "__OFADD__", "__OFSUB__",
+	"__SETP__", "__FSCALE__",
 	"va_start", "va_end", "va_copy",
 	"JUMPOUT", "BUG", "__halt", "_mm_mfence",
 	"__readfsqword",
 	"alloca",
-	"memset", "memcpy", "memcmp", "memset64",
+	"memset", "memcpy", "memcmp", "memset32", "memset64",
 	"qmemcpy", "qmemset",
 	"strcmp", "strcpy", "strlen", "strcat",
+	"wcscpy", "wcslen", "wcscat",
 	"_bittest", "_bittest64", "_bittestandset64",
 	"_BitScanReverse64", "_BitScanForward", "_BitScanReverse", "_BitScanForward64",
 	"__fastfail", "__debugbreak", "__rdtsc",
 	"NtCurrentPeb", "NtCurrentTeb",
-	"_m_prefetchw",
 	"_byteswap_ushort", "_byteswap_ulong", "_byteswap_uint64",
 	"is_mul_ok", "saturated_mul",
-	"__ROL2__", "__ROL4__", "__ROL8__",
-	"__ROR2__", "__ROR4__", "__ROR8__",
-	"fabs", "fminf", "fmaxf", "abs32", "sqrt", "fmin", "fmax", "fsqrt",
+	"__ROL1__", "__ROL2__", "__ROL4__", "__ROL8__",
+	"__ROR1__", "__ROR2__", "__ROR4__", "__ROR8__",
+	"__CS__", "__SS__", "__DS__", "__ES__", "__FS__", "__GS__", "MK_FP",
+	"__readeflags", "__writeeflags", "__readfsdword", "__readgsdword", "__writegsdword",
+	"__readgsqword",
+	"fabs", "fminf", "fmaxf", "abs32", "abs64", "sqrt", "fmin", "fmax", "fsqrt",
 }
 
 coerces = {
@@ -125,9 +129,25 @@ interlocked_asg_helpers = {
 }
 
 interlocked_rv_helpers = {
-	"_InterlockedAdd", "_InterlockedSub",
-	"_InterlockedAnd", "_InterlockedOr",
-	"_InterlockedDecrement", "_InterlockedIncrement",
+	"_InterlockedAdd", "_InterlockedAdd8", "_InterlockedAdd16",
+	"_InterlockedAdd32", "_InterlockedAdd64",
+	"_InterlockedSub", "_InterlockedSub8", "_InterlockedSub16",
+	"_InterlockedSub32", "_InterlockedSub64",
+	"_InterlockedAnd", "_InterlockedAnd8",
+	"_InterlockedAnd16", "_InterlockedAnd32",
+	"_InterlockedAnd64",
+	"_InterlockedOr", "_InterlockedOr8",
+	"_InterlockedOr16", "_InterlockedOr32",
+	"_InterlockedOr64",
+	"_InterlockedXor", "_InterlockedXor8",
+	"_InterlockedXor16", "_InterlockedXor32",
+	"_InterlockedXor64",
+	"_InterlockedDecrement", "_InterlockedDecrement8",
+	"_InterlockedDecrement16", "_InterlockedDecrement32",
+	"_InterlockedDecrement64",
+	"_InterlockedIncrement", "_InterlockedIncrement8",
+	"_InterlockedIncrement16", "_InterlockedIncrement32",
+	"_InterlockedIncrement64",
 	"_InterlockedExchangeAdd", "_InterlockedExchangeAdd8",
 	"_InterlockedExchangeAdd16", "_InterlockedExchangeAdd32",
 	"_InterlockedExchangeAdd64", "_InterlockedExchangeAdd128",
@@ -368,7 +388,7 @@ class CTreeAnalyzer:
 
 		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
 			helper = expr.x.helper
-			if helper in known_helpers or helper.startswith("_mm"):
+			if helper in known_helpers or helper.startswith("_mm_") or helper.startswith("_m_") or helper.startswith("sys_"):
 				for i, arg in enumerate(expr.a):
 					arg_sexpr = lift_reuse(arg)
 					arg_cast = Node(Node.TYPE_CAST, arg_sexpr, expr.x.type.get_nth_arg(i))
