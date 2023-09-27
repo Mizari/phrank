@@ -585,13 +585,6 @@ class CTreeAnalyzer:
 			s2, type_node = self.lift_cexpr(expr.y)
 			trees.append(s2)
 
-		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper and expr.x.helper in helper2offset:
-			arg = lift_reuse(expr.a[0])
-			offset = helper2offset[expr.x.helper]
-			size = helper2size[expr.x.helper]
-			arg = SExpr.create_partial(expr.ea, arg, offset, size)
-			type_node = Node(Node.EXPR, arg)
-
 		elif expr.op == idaapi.cot_memptr:
 			mem = lift_reuse(expr.x)
 			base = SExpr.create_ptr(expr.ea, mem, expr.m)
