@@ -104,7 +104,6 @@ known_helpers = {
 	"JUMPOUT", "BUG", "__halt", "_mm_mfence",
 	"__readfsqword",
 	"alloca",
-	"memset", "memcpy", "memcmp", "memset32", "memset64",
 	"qmemcpy", "qmemset",
 	"strcmp", "strcpy", "strlen", "strcat",
 	"wcscpy", "wcslen", "wcscat",
@@ -401,6 +400,20 @@ class CTreeAnalyzer:
 			target = lift_reuse(expr.x)
 			value = lift_reuse(expr.y)
 			type_expr = SExpr.create_assign(target, value)
+
+		elif is_known_call(expr, settings.MEMSET_FUNCS):
+			arr_size = utils.get_int(expr.a[2])
+			if arr_size != -1:
+				arg0_type = utils.str2tif(f"char [{arr_size}]")
+			else:
+				arg0_type = expr.x.type.get_nth_arg(1)
+			arg_cast = Node(Node.TYPE_CAST, lift_reuse(expr.a[0]), arg0_type)
+			trees.append(arg_cast)
+			arg_cast = Node(Node.TYPE_CAST, lift_reuse(expr.a[1]), expr.x.type.get_nth_arg(1))
+			trees.append(arg_cast)
+			arg_cast = Node(Node.TYPE_CAST, lift_reuse(expr.a[2]), expr.x.type.get_nth_arg(2))
+			trees.append(arg_cast)
+			type_expr = SExpr.create_type_literal(expr.x.type.get_rettype())
 
 		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
 			helper = expr.x.helper

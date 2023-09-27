@@ -27,3 +27,8 @@ def should_skip_by_prefix(fname:str) -> bool:
 	return False
 
 PTRSIZE = 8
+
+
+MEMSET_FUNCS = {
+	"memset", "memcpy", "memcmp", "memset32", "memset64",
+}
