@@ -23,6 +23,14 @@ binary_operations = {
 	idaapi.cot_xor,
 }
 
+fbinary_operations = {
+	idaapi.cot_fadd, idaapi.cot_fdiv, idaapi.cot_fmul, idaapi.cot_fsub,
+}
+
+unary_operations = {idaapi.cot_lnot, idaapi.cot_sizeof}
+
+keep_type_operations = bool_operations | fbinary_operations | unary_operations
+
 int_rw_operations = {
 	idaapi.cot_postdec, idaapi.cot_predec, idaapi.cot_preinc,
 	idaapi.cot_postinc,
@@ -477,24 +485,23 @@ class CTreeAnalyzer:
 				trees.append(call_cast)
 			type_expr = SExpr.create_call(call_func)
 
-		elif expr.op in (idaapi.cot_lnot, idaapi.cot_sizeof):
-			lift_append(expr.x)
-			type_expr = SExpr.create_type_literal(expr.type)
-
-		# CAST literals become type literals
+		# AST literals become type literals
 		elif expr.op in (idaapi.cot_num, idaapi.cot_fnum, idaapi.cot_str):
 			type_expr = SExpr.create_type_literal(expr.type)
 
 		elif expr.op == idaapi.cot_obj and (utils.is_func_start(expr.obj_ea) or utils.is_func_import(expr.obj_ea)):
 			type_expr = SExpr.create_function(expr.obj_ea)
 
-		elif expr.op in bool_operations:
-			lift_append(expr.x)
-			lift_append(expr.y)
-			type_expr = SExpr.create_type_literal(utils.str2tif("bool"))
-
 		elif (vuc := get_var_use_chain(expr, self.actx)) is not None:
 			type_expr = SExpr.create_var_use_chain(vuc)
+
+		# operations, that create type literal SExpr as result
+		elif expr.op in keep_type_operations:
+			if expr.x is not None:
+				lift_append(expr.x)
+			if expr.y is not None:
+				lift_append(expr.y)
+			type_expr = SExpr.create_type_literal(expr.type)
 
 		elif expr.op in int_rw_operations:
 			target = lift_reuse(expr.x)
@@ -528,11 +535,6 @@ class CTreeAnalyzer:
 			x = lift_reuse(expr.x)
 			y = lift_reuse(expr.y)
 			type_expr = SExpr.create_binary_op(x, y)
-
-		elif expr.op in (idaapi.cot_fadd, idaapi.cot_fdiv, idaapi.cot_fmul, idaapi.cot_fsub):
-			lift_append(expr.x)
-			lift_append(expr.y)
-			type_expr = SExpr.create_type_literal(expr.type)
 
 		elif expr.op == idaapi.cot_empty:
 			type_expr = UNKNOWN_SEXPR
