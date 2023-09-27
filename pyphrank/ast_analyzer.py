@@ -477,7 +477,12 @@ class CTreeAnalyzer:
 				trees.append(call_cast)
 			type_expr = SExpr.create_call(call_func)
 
-		elif expr.op in (idaapi.cot_num, idaapi.cot_fnum, idaapi.cot_str, idaapi.cot_lnot, idaapi.cot_sizeof):
+		elif expr.op in (idaapi.cot_lnot, idaapi.cot_sizeof):
+			lift_append(expr.x)
+			type_expr = SExpr.create_type_literal(expr.type)
+
+		# CAST literals become type literals
+		elif expr.op in (idaapi.cot_num, idaapi.cot_fnum, idaapi.cot_str):
 			type_expr = SExpr.create_type_literal(expr.type)
 
 		elif expr.op == idaapi.cot_obj and (utils.is_func_start(expr.obj_ea) or utils.is_func_import(expr.obj_ea)):
