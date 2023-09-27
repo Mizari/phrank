@@ -384,6 +384,11 @@ class CTreeAnalyzer:
 			node = Node(Node.EXPR, expr)
 			trees.append(node)
 
+		def lift_append(expr:idaapi.cexpr_t) -> Node:
+			s, e = self.lift_cexpr(expr)
+			trees.append(s)
+			return e
+
 		if expr.op == idaapi.cot_asg:
 			target = lift_reuse(expr.x)
 			value = lift_reuse(expr.y)
@@ -416,8 +421,7 @@ class CTreeAnalyzer:
 			elif helper in interlocked_asg_helpers:
 				# if cmp xchg, then more info can be gained from comparand
 				if len(expr.a) == 3:
-					s, _ = self.lift_cexpr(expr.a[2])
-					trees.append(s)
+					lift_append(expr.a[2])
 
 				target = lift_reuse(expr.a[0])
 				target = SExpr.create_ptr(expr.a[0].ea, target)
@@ -495,15 +499,13 @@ class CTreeAnalyzer:
 			type_node = Node(Node.EXPR, func)
 
 		elif expr.op in bool_operations:
-			x, _ = self.lift_cexpr(expr.x)
-			y, _ = self.lift_cexpr(expr.y)
+			lift_append(expr.x)
+			lift_append(expr.y)
 			boolop = SExpr.create_type_literal(expr.ea, utils.str2tif("bool"))
 			type_node = Node(Node.EXPR, boolop)
-			trees += [x, y]
 
 		elif expr.op == idaapi.cot_lnot:
-			s, _ = self.lift_cexpr(expr.x)
-			trees.append(s)
+			lift_append(expr.x)
 			boolop = SExpr.create_type_literal(expr.ea, utils.str2tif("bool"))
 			type_node = Node(Node.EXPR, boolop)
 
@@ -523,8 +525,7 @@ class CTreeAnalyzer:
 			type_node = Node(Node.EXPR, type_expr)
 
 		elif expr.op == idaapi.cot_tern:
-			s, _ = self.lift_cexpr(expr.x)
-			trees.append(s)
+			lift_append(expr.x)
 			x = lift_reuse(expr.y)
 			y = lift_reuse(expr.z)
 			tern = SExpr.create_tern(expr.ea, x, y)
@@ -553,10 +554,8 @@ class CTreeAnalyzer:
 			type_node = Node(Node.EXPR, binop)
 
 		elif expr.op in (idaapi.cot_fadd, idaapi.cot_fdiv, idaapi.cot_fmul, idaapi.cot_fsub):
-			x, _ = self.lift_cexpr(expr.x)
-			trees.append(x)
-			y, _ = self.lift_cexpr(expr.y)
-			trees.append(y)
+			lift_append(expr.x)
+			lift_append(expr.y)
 			fop = SExpr.create_type_literal(expr.ea, expr.type)
 			type_node = Node(Node.EXPR, fop)
 
@@ -582,10 +581,8 @@ class CTreeAnalyzer:
 			type_node = Node(Node.EXPR, ptr_expr)
 
 		elif expr.op == idaapi.cot_comma:
-			s1, _ = self.lift_cexpr(expr.x)
-			trees.append(s1)
-			s2, type_node = self.lift_cexpr(expr.y)
-			trees.append(s2)
+			lift_append(expr.x)
+			type_node = lift_append(expr.y)
 
 		elif expr.op == idaapi.cot_memptr:
 			mem = lift_reuse(expr.x)
