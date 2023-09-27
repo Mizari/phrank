@@ -100,9 +100,8 @@ class TFGPrinter(PluginActionHandler):
 		self.print_var_tfg(var)
 		return 0
 
-	def activate_expr(self, cfunc, citem) -> int:
+	def activate_item(self, cfunc, citem) -> int:
 		citem = utils.strip_casts(citem)
-
 		if citem.op == idaapi.cot_obj and not utils.is_func_start(citem.obj_ea):
 			var = Var(citem.obj_ea)
 			self.print_var_tfg(var)
@@ -111,7 +110,9 @@ class TFGPrinter(PluginActionHandler):
 			var = Var(cfunc.entry_ea, citem.v.idx)
 			self.print_var_tfg(var)
 
-		utils.log_info(f"no variable under cursor {citem.opname}")
+		else:
+			self.activate_function(cfunc.entry_ea)
+
 		return 0
 
 
