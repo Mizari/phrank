@@ -49,9 +49,9 @@ helper2offset = {
 	"LOBYTE": 0,
 	"LOWORD": 0,
 	"LODWORD": 0,
-	"HIBYTE": 4,
-	"HIWORD": 2,
-	"HIDWORD": 4,
+	"HIBYTE": -1,
+	"HIWORD": -2,
+	"HIDWORD": -4,
 }
 
 helper2size = {
@@ -415,6 +415,9 @@ class CTreeAnalyzer:
 				arg = lift_reuse(expr.a[0])
 				offset = helper2offset[helper]
 				size = helper2size[helper]
+				# when offseting from top
+				if offset < 0:
+					offset = expr.a[0].type.get_size() + offset
 				type_expr = SExpr.create_partial(arg, offset, size)
 
 			elif helper in combine_helpers:
