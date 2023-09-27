@@ -380,6 +380,10 @@ class CTreeAnalyzer:
 				trees.append(s)
 			return e.sexpr
 
+		def append_expr(expr:SExpr):
+			node = Node(Node.EXPR, expr)
+			trees.append(node)
+
 		if expr.op == idaapi.cot_asg:
 			target = lift_reuse(expr.x)
 			value = lift_reuse(expr.y)
@@ -419,8 +423,7 @@ class CTreeAnalyzer:
 				target = SExpr.create_ptr(expr.a[0].ea, target)
 				value = lift_reuse(expr.a[1])
 				asg = SExpr.create_assign(expr.ea, target, value)
-				asg_node = Node(Node.EXPR, asg)
-				trees.append(asg_node)
+				append_expr(asg)
 				type_expr = SExpr.create_type_literal(expr.ea, expr.type.get_rettype())
 				type_node = Node(Node.EXPR, type_expr)
 
@@ -432,8 +435,7 @@ class CTreeAnalyzer:
 				else:
 					value = SExpr.create_type_literal(-1, utils.str2tif("int"))
 				op = SExpr.create_rw_op(expr.ea, target, value)
-				op_node = Node(Node.EXPR, op)
-				trees.append(op_node)
+				append_expr(op)
 				type_expr = SExpr.create_type_literal(expr.ea, expr.type.get_rettype())
 				type_node = Node(Node.EXPR, type_expr)
 
