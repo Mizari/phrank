@@ -468,7 +468,7 @@ class CTreeAnalyzer:
 				trees.append(type_cast)
 			type_expr = SExpr.create_call(call_func)
 
-		elif expr.op == idaapi.cot_call and expr.x.op != idaapi.cot_helper:
+		elif expr.op == idaapi.cot_call:
 			call_func = lift_reuse(expr.x)
 			for arg_id, arg in enumerate(expr.a):
 				arg = utils.strip_casts(arg)
