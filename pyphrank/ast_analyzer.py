@@ -477,11 +477,8 @@ class CTreeAnalyzer:
 				trees.append(call_cast)
 			type_expr = SExpr.create_call(expr.ea, call_func)
 
-		elif expr.op == idaapi.cot_num:
+		elif expr.op in (idaapi.cot_num, idaapi.cot_fnum, idaapi.cot_str, idaapi.cot_lnot, idaapi.cot_sizeof):
 			type_expr = SExpr.create_type_literal(expr.ea, expr.type)
-
-		elif expr.op == idaapi.cot_sizeof:
-			type_expr = SExpr.create_type_literal(expr.ea, utils.str2tif("int"))
 
 		elif expr.op == idaapi.cot_obj and (utils.is_func_start(expr.obj_ea) or utils.is_func_import(expr.obj_ea)):
 			type_expr = SExpr.create_function(expr.ea, expr.obj_ea)
@@ -489,10 +486,6 @@ class CTreeAnalyzer:
 		elif expr.op in bool_operations:
 			lift_append(expr.x)
 			lift_append(expr.y)
-			type_expr = SExpr.create_type_literal(expr.ea, utils.str2tif("bool"))
-
-		elif expr.op == idaapi.cot_lnot:
-			lift_append(expr.x)
 			type_expr = SExpr.create_type_literal(expr.ea, utils.str2tif("bool"))
 
 		elif (vuc := get_var_use_chain(expr, self.actx)) is not None:
@@ -535,12 +528,6 @@ class CTreeAnalyzer:
 			lift_append(expr.x)
 			lift_append(expr.y)
 			type_expr = SExpr.create_type_literal(expr.ea, expr.type)
-
-		elif expr.op == idaapi.cot_fnum:
-			type_expr = SExpr.create_type_literal(expr.ea, expr.type)
-
-		elif expr.op == idaapi.cot_str:
-			type_expr = SExpr.create_type_literal(expr.ea, utils.str2tif("char*"))
 
 		elif expr.op == idaapi.cot_empty:
 			type_expr = UNKNOWN_SEXPR
