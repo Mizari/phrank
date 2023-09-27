@@ -392,7 +392,7 @@ class CTreeAnalyzer:
 		if expr.op == idaapi.cot_asg:
 			target = lift_reuse(expr.x)
 			value = lift_reuse(expr.y)
-			type_expr = SExpr.create_assign(expr.ea, target, value)
+			type_expr = SExpr.create_assign(target, value)
 
 		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_helper:
 			helper = expr.x.helper
@@ -401,18 +401,18 @@ class CTreeAnalyzer:
 					arg_sexpr = lift_reuse(arg)
 					arg_cast = Node(Node.TYPE_CAST, arg_sexpr, expr.x.type.get_nth_arg(i))
 					trees.append(arg_cast)
-				type_expr = SExpr.create_type_literal(expr.ea, expr.x.type.get_rettype())
+				type_expr = SExpr.create_type_literal(expr.x.type.get_rettype())
 
 			elif helper in helper2offset:
 				arg = lift_reuse(expr.a[0])
 				offset = helper2offset[helper]
 				size = helper2size[helper]
-				type_expr = SExpr.create_partial(expr.ea, arg, offset, size)
+				type_expr = SExpr.create_partial(arg, offset, size)
 
 			elif helper in combine_helpers:
 				arg0 = lift_reuse(expr.a[0])
 				arg1 = lift_reuse(expr.a[1])
-				type_expr = SExpr.create_combine(expr.ea, arg0, arg1)
+				type_expr = SExpr.create_combine(arg0, arg1)
 
 			elif helper in interlocked_asg_helpers:
 				# if cmp xchg, then more info can be gained from comparand
@@ -420,28 +420,28 @@ class CTreeAnalyzer:
 					lift_append(expr.a[2])
 
 				target = lift_reuse(expr.a[0])
-				target = SExpr.create_ptr(expr.a[0].ea, target)
+				target = SExpr.create_ptr(target, expr.a[0].ea)
 				value = lift_reuse(expr.a[1])
-				asg = SExpr.create_assign(expr.ea, target, value)
+				asg = SExpr.create_assign(target, value, expr.ea)
 				append_expr(asg)
-				type_expr = SExpr.create_type_literal(expr.ea, expr.type.get_rettype())
+				type_expr = SExpr.create_type_literal(expr.type.get_rettype())
 
 			elif helper in interlocked_rv_helpers:
 				target = lift_reuse(expr.a[0])
-				target = SExpr.create_ptr(expr.a[0].ea, target)
+				target = SExpr.create_ptr(target, expr.a[0].ea)
 				if len(expr.a) > 1:
 					value = lift_reuse(expr.a[1])
 				else:
-					value = SExpr.create_type_literal(-1, utils.str2tif("int"))
-				op = SExpr.create_rw_op(expr.ea, target, value)
+					value = SExpr.create_type_literal(utils.str2tif("int"))
+				op = SExpr.create_rw_op(target, value, expr.ea)
 				append_expr(op)
-				type_expr = SExpr.create_type_literal(expr.ea, expr.type.get_rettype())
+				type_expr = SExpr.create_type_literal(expr.type.get_rettype())
 
 			elif helper == "va_arg":
 				arg_sexpr = lift_reuse(expr.a[0])
 				arg_cast = Node(Node.TYPE_CAST, arg_sexpr, expr.x.type.get_nth_arg(0))
 				trees.append(arg_cast)
-				type_expr = SExpr.create_type_literal(expr.ea, expr.x.type.get_rettype())
+				type_expr = SExpr.create_type_literal(expr.x.type.get_rettype())
 
 			# casts are skipped
 			elif helper in coerces:
@@ -458,7 +458,7 @@ class CTreeAnalyzer:
 				retval_tif = func_tif.get_rettype()
 			else:
 				retval_tif = utils.UNKNOWN_TYPE
-			call_func = SExpr.create_type_literal(expr.x.ea, retval_tif)
+			call_func = SExpr.create_type_literal(retval_tif, expr.x.ea)
 
 			for arg_id, arg in enumerate(expr.a):
 				arg = utils.strip_casts(arg)
@@ -466,7 +466,7 @@ class CTreeAnalyzer:
 				arg_type = func_tif.get_nth_arg(arg_id)
 				type_cast = Node(Node.TYPE_CAST, arg_sexpr, arg_type)
 				trees.append(type_cast)
-			type_expr = SExpr.create_call(expr.ea, call_func)
+			type_expr = SExpr.create_call(call_func)
 
 		elif expr.op == idaapi.cot_call and expr.x.op != idaapi.cot_helper:
 			call_func = lift_reuse(expr.x)
@@ -475,26 +475,26 @@ class CTreeAnalyzer:
 				arg_sexpr = lift_reuse(arg)
 				call_cast = Node(Node.CALL_CAST, arg_sexpr, arg_id, call_func)
 				trees.append(call_cast)
-			type_expr = SExpr.create_call(expr.ea, call_func)
+			type_expr = SExpr.create_call(call_func)
 
 		elif expr.op in (idaapi.cot_num, idaapi.cot_fnum, idaapi.cot_str, idaapi.cot_lnot, idaapi.cot_sizeof):
-			type_expr = SExpr.create_type_literal(expr.ea, expr.type)
+			type_expr = SExpr.create_type_literal(expr.type)
 
 		elif expr.op == idaapi.cot_obj and (utils.is_func_start(expr.obj_ea) or utils.is_func_import(expr.obj_ea)):
-			type_expr = SExpr.create_function(expr.ea, expr.obj_ea)
+			type_expr = SExpr.create_function(expr.obj_ea)
 
 		elif expr.op in bool_operations:
 			lift_append(expr.x)
 			lift_append(expr.y)
-			type_expr = SExpr.create_type_literal(expr.ea, utils.str2tif("bool"))
+			type_expr = SExpr.create_type_literal(utils.str2tif("bool"))
 
 		elif (vuc := get_var_use_chain(expr, self.actx)) is not None:
-			type_expr = SExpr.create_var_use_chain(expr.ea, vuc)
+			type_expr = SExpr.create_var_use_chain(vuc)
 
 		elif expr.op in int_rw_operations:
 			target = lift_reuse(expr.x)
-			value = SExpr.create_type_literal(-1, utils.str2tif("int"))
-			type_expr = SExpr.create_rw_op(expr.ea, target, value)
+			value = SExpr.create_type_literal(utils.str2tif("int"))
+			type_expr = SExpr.create_rw_op(target, value)
 
 		# -expr and ~expr do not change type
 		elif expr.op in (idaapi.cot_neg, idaapi.cot_bnot, idaapi.cot_fneg):
@@ -504,30 +504,30 @@ class CTreeAnalyzer:
 			lift_append(expr.x)
 			x = lift_reuse(expr.y)
 			y = lift_reuse(expr.z)
-			type_expr = SExpr.create_tern(expr.ea, x, y)
+			type_expr = SExpr.create_tern(x, y)
 
 		elif expr.op in value_rw_operations:
 			target = lift_reuse(expr.x)
 			value = lift_reuse(expr.y)
-			type_expr = SExpr.create_rw_op(expr.ea, target, value)
+			type_expr = SExpr.create_rw_op(target, value)
 
 		elif expr.op == idaapi.cot_ref:
 			base = lift_reuse(expr.x)
-			type_expr = SExpr.create_ref(expr.ea, base)
+			type_expr = SExpr.create_ref(base)
 
 		elif expr.op == idaapi.cot_ptr:
 			base = lift_reuse(expr.x)
-			type_expr = SExpr.create_ptr(expr.ea, base)
+			type_expr = SExpr.create_ptr(base)
 
 		elif expr.op in binary_operations:
 			x = lift_reuse(expr.x)
 			y = lift_reuse(expr.y)
-			type_expr = SExpr.create_binary_op(expr.ea, x, y)
+			type_expr = SExpr.create_binary_op(x, y)
 
 		elif expr.op in (idaapi.cot_fadd, idaapi.cot_fdiv, idaapi.cot_fmul, idaapi.cot_fsub):
 			lift_append(expr.x)
 			lift_append(expr.y)
-			type_expr = SExpr.create_type_literal(expr.ea, expr.type)
+			type_expr = SExpr.create_type_literal(expr.type)
 
 		elif expr.op == idaapi.cot_empty:
 			type_expr = UNKNOWN_SEXPR
@@ -536,10 +536,10 @@ class CTreeAnalyzer:
 			arr = lift_reuse(expr.x)
 			idx = lift_reuse(expr.y)
 			if expr.x.type.is_ptr() and expr.y.type.is_integral(): # pointer arithmetics
-				i = SExpr.create_type_literal(expr.x.ea, utils.str2tif("int"))
-				idx = SExpr.create_binary_op(expr.x.ea, idx, i)
-			add_expr = SExpr.create_binary_op(expr.x.ea, arr, idx)
-			type_expr = SExpr.create_ptr(expr.ea, add_expr)
+				i = SExpr.create_type_literal(utils.str2tif("int"), expr.x.ea)
+				idx = SExpr.create_binary_op(idx, i, expr.x.ea)
+			add_expr = SExpr.create_binary_op(arr, idx, expr.x.ea)
+			type_expr = SExpr.create_ptr(add_expr)
 
 		elif expr.op == idaapi.cot_comma:
 			lift_append(expr.x)
@@ -547,12 +547,12 @@ class CTreeAnalyzer:
 
 		elif expr.op == idaapi.cot_memptr:
 			mem = lift_reuse(expr.x)
-			type_expr = SExpr.create_ptr(expr.ea, mem, expr.m)
+			type_expr = SExpr.create_ptr(mem, expr.m)
 
 		elif expr.op == idaapi.cot_memref:
 			sexpr = lift_reuse(expr.x)
 			if sexpr.is_type_literal():
-				type_expr = SExpr.create_type_literal(expr.ea, expr.type)
+				type_expr = SExpr.create_type_literal(expr.type)
 
 			# selecting union's field
 			elif expr.type.is_union():
@@ -561,8 +561,8 @@ class CTreeAnalyzer:
 			# expr.type.is_struct()
 			# selecting structure's field
 			else:
-				i = SExpr.create_type_literal(-1, utils.str2tif("int"))
-				type_expr = SExpr.create_binary_op(expr.ea, sexpr, i)
+				i = SExpr.create_type_literal(utils.str2tif("int"))
+				type_expr = SExpr.create_binary_op(sexpr, i)
 
 		# rogue stack reads
 		elif expr.op == idaapi.cot_helper and expr.helper.startswith("STACK[0x"):
@@ -572,6 +572,10 @@ class CTreeAnalyzer:
 			utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
 			type_expr = UNKNOWN_SEXPR
 
+		addr = expr.ea
+		if addr == idaapi.BADADDR:
+			addr = -1
+		type_expr.addr = addr
 		type_node = Node(Node.EXPR, type_expr)
 		trees.append(type_node)
 		start = trees[0]

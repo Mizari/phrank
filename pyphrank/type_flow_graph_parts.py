@@ -320,9 +320,11 @@ class SExpr:
 			return False
 		return not self.function.is_function()
 
-	def __init__(self, t:int, expr_ea:int) -> None:
+	def __init__(self, t:int, addr=-1) -> None:
 		self.op = t
-		self.expr_ea = expr_ea
+		if addr == idaapi.BADADDR:
+			addr = -1
+		self.addr = addr
 		self._x:Any = None
 		self._y:Any = None
 
@@ -360,94 +362,94 @@ class SExpr:
 		return {vuc.var for vuc in self.extract_var_use_chains()}
 
 	@classmethod
-	def create_var_use_chain(cls, expr_ea:int, vuc:VarUseChain):
-		obj = cls(cls.TYPE_VAR_USE_CHAIN, expr_ea)
+	def create_var_use_chain(cls, vuc:VarUseChain, addr=-1):
+		obj = cls(cls.TYPE_VAR_USE_CHAIN, addr=addr)
 		obj._x = vuc
 		return obj
 
 	@classmethod
-	def create_function(cls, expr_ea:int, call_ea:int):
-		obj = cls(cls.TYPE_FUNCTION, expr_ea)
+	def create_function(cls, call_ea:int, addr=-1):
+		obj = cls(cls.TYPE_FUNCTION, addr=addr)
 		obj._x = call_ea
 		return obj
 
 	@classmethod
-	def create_call(cls, expr_ea:int, function:SExpr):
-		obj = cls(cls.TYPE_CALL, expr_ea)
+	def create_call(cls, function:SExpr, addr=-1):
+		obj = cls(cls.TYPE_CALL, addr=addr)
 		obj._x = function
 		return obj
 
 	@classmethod
-	def create_bool_op(cls, expr_ea:int, x:SExpr, y:SExpr):
-		obj = cls(cls.TYPE_BOOL_OP, expr_ea)
+	def create_bool_op(cls, x:SExpr, y:SExpr, addr=-1):
+		obj = cls(cls.TYPE_BOOL_OP, addr=addr)
 		obj._x = x
 		obj._y = y
 		return obj
 
 	@classmethod
-	def create_binary_op(cls, expr_ea:int, x:SExpr, y:SExpr):
-		obj = cls(cls.TYPE_BINARY_OP, expr_ea)
+	def create_binary_op(cls, x:SExpr, y:SExpr, addr=-1):
+		obj = cls(cls.TYPE_BINARY_OP, addr=addr)
 		obj._x = x
 		obj._y = y
 		return obj
 
 	@classmethod
-	def create_type_literal(cls, expr_ea:int, int_type:idaapi.tinfo_t):
-		obj = cls(cls.TYPE_LITERAL, expr_ea)
+	def create_type_literal(cls, int_type:idaapi.tinfo_t, addr=-1):
+		obj = cls(cls.TYPE_LITERAL, addr=addr)
 		obj._x = int_type
 		return obj
 
 	@classmethod
-	def create_assign(cls, expr_ea:int, target:SExpr, value:SExpr):
-		obj = cls(cls.TYPE_ASSIGN, expr_ea)
+	def create_assign(cls, target:SExpr, value:SExpr, addr=-1):
+		obj = cls(cls.TYPE_ASSIGN, addr=addr)
 		obj._x = target
 		obj._y = value
 		return obj
 
 	@classmethod
-	def create_rw_op(cls, expr_ea:int, target:SExpr, value:SExpr):
-		obj = cls(cls.TYPE_ASSIGN, expr_ea)
+	def create_rw_op(cls, target:SExpr, value:SExpr, addr=-1):
+		obj = cls(cls.TYPE_ASSIGN, addr=addr)
 		obj._x = target
 		obj._y = value
 		return obj
 
 	@classmethod
-	def create_ref(cls, expr_ea:int, base:SExpr):
-		obj = cls(cls.TYPE_REF, expr_ea)
+	def create_ref(cls, base:SExpr, addr=-1):
+		obj = cls(cls.TYPE_REF, addr=addr)
 		obj._x = base
 		return obj
 
 	@classmethod
-	def create_ptr(cls, expr_ea:int, base:SExpr, offset:int=0):
-		obj = cls(cls.TYPE_PTR, expr_ea)
+	def create_ptr(cls, base:SExpr, offset=0, addr=-1):
+		obj = cls(cls.TYPE_PTR, addr=addr)
 		obj._x = base
 		obj._y = offset
 		return obj
 
 	@classmethod
-	def create_tern(cls, expr_ea:int, x:SExpr, y:SExpr):
-		obj = cls(cls.TYPE_TERN, expr_ea)
+	def create_tern(cls, x:SExpr, y:SExpr, addr=-1):
+		obj = cls(cls.TYPE_TERN, addr=addr)
 		obj._x = x
 		obj._y = y
 		return obj
 
 	@classmethod
-	def create_partial(cls, expr_ea:int, base:SExpr, offset:int, size:int):
-		obj = cls(cls.TYPE_PARTIAL, expr_ea)
+	def create_partial(cls, base:SExpr, offset:int, size:int, addr=-1):
+		obj = cls(cls.TYPE_PARTIAL, addr=addr)
 		obj._x = base
 		obj._y = (offset, size)
 		return obj
 
 	@classmethod
-	def create_combine(cls, expr_ea:int, x:SExpr, y:SExpr):
-		obj = cls(cls.TYPE_COMBINE, expr_ea)
+	def create_combine(cls, x:SExpr, y:SExpr, addr=-1):
+		obj = cls(cls.TYPE_COMBINE, addr=addr)
 		obj._x = x
 		obj._y = y
 		return obj
 
 	@property
 	def func_ea(self) -> int:
-		rv = utils.get_func_start(self.expr_ea)
+		rv = utils.get_func_start(self.addr)
 		if rv == idaapi.BADADDR:
 			rv = -1
 		return rv

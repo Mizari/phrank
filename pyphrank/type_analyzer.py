@@ -103,7 +103,7 @@ class TypeAnalyzer:
 		for func_ea in touched_functions:
 			func_aa = self.get_tfg(func_ea)
 			for func_call in func_aa.iterate_implicit_calls():
-				frm = func_call.expr_ea
+				frm = func_call.addr
 				if frm == idaapi.BADADDR:
 					continue
 
@@ -311,7 +311,7 @@ class TypeAnalyzer:
 			for vuc in sexpr.extract_var_use_chains():
 				if vuc.var != var:
 					continue
-				new_node = Node(Node.EXPR, SExpr.create_var_use_chain(-1, vuc))
+				new_node = Node(Node.EXPR, SExpr.create_var_use_chain(vuc))
 				new_nodes.append(new_node)
 			chain_nodes(*new_nodes)
 			node_replacements[node] = new_nodes
