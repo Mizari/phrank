@@ -44,6 +44,11 @@ value_rw_operations = {
 	idaapi.cot_asgxor,
 }
 
+segment_helpers = {
+	"__CS__", "__SS__", "__DS__",
+	"__ES__", "__FS__", "__GS__",
+}
+
 # https://hex-rays.com/blog/igors-tip-of-the-week-67-decompiler-helpers/
 helper2offset = {
 	"LOBYTE": 0,
@@ -106,7 +111,7 @@ known_helpers = {
 	"alloca",
 	"qmemcpy", "qmemset",
 	"strcmp", "strcpy", "strlen", "strcat",
-	"wcscpy", "wcslen", "wcscat",
+	"wcscpy", "wcslen", "wcscat", "wcscmp",
 	"_bittest", "_bittest64", "_bittestandset64",
 	"_BitScanReverse64", "_BitScanForward", "_BitScanReverse", "_BitScanForward64",
 	"__fastfail", "__debugbreak", "__rdtsc",
@@ -471,8 +476,24 @@ class CTreeAnalyzer:
 			elif helper in coerces:
 				type_expr = lift_reuse(expr.a[0])
 
+			elif helper == "ADJ":
+				arg = expr.a[0]
+				base, offset = utils.get_shifted_base(arg.type)
+				if base is None:
+					utils.log_err(f"failed to get shifted offset of type={arg.type} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
+					type_expr = UNKNOWN_SEXPR
+				elif arg.op == idaapi.cot_var:
+					var = Var(utils.get_func_start(expr.ea), arg.v)
+					var_use = VarUse(offset, VarUse.VAR_ADD)
+					vuc = VarUseChain(var, var_use)
+					type_expr = SExpr.create_var_use_chain(vuc)
+				else:
+					sexpr = lift_reuse(arg)
+					i = SExpr.create_type_literal(utils.str2tif("int"))
+					type_expr = SExpr.create_binary_op(sexpr, i)
+
 			else:
-				utils.log_warn(f"failed to lift helper={helper} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
+				utils.log_warn(f"failed to lift helper call {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
 				type_expr = UNKNOWN_SEXPR
 
 		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_obj and utils.is_func_import(expr.x.obj_ea):
@@ -586,6 +607,9 @@ class CTreeAnalyzer:
 			else:
 				i = SExpr.create_type_literal(utils.str2tif("int"))
 				type_expr = SExpr.create_binary_op(sexpr, i)
+
+		elif expr.op == idaapi.cot_helper and expr.helper in segment_helpers:
+			type_expr = SExpr.create_type_literal(expr.type)
 
 		# rogue stack reads
 		elif expr.op == idaapi.cot_helper and expr.helper.startswith("STACK[0x"):
