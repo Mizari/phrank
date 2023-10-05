@@ -394,9 +394,9 @@ class SExpr:
 		return obj
 
 	@classmethod
-	def create_type_literal(cls, int_type:idaapi.tinfo_t, addr=-1):
+	def create_type_literal(cls, literal_type:idaapi.tinfo_t, addr=-1):
 		obj = cls(cls.TYPE_LITERAL, addr=addr)
-		obj._x = int_type
+		obj._x = literal_type
 		return obj
 
 	@classmethod

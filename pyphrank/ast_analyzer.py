@@ -615,6 +615,9 @@ class CTreeAnalyzer:
 		elif expr.op == idaapi.cot_helper and expr.helper.startswith("STACK[0x"):
 			type_expr = UNKNOWN_SEXPR
 
+		elif expr.op == idaapi.cot_type:
+			type_expr = SExpr.create_type_literal(expr.type)
+
 		else:
 			utils.log_warn(f"failed to lift {expr.opname} {utils.expr2str(expr)} in {idaapi.get_name(self.actx.addr)}")
 			type_expr = UNKNOWN_SEXPR
