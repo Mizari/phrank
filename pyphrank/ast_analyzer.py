@@ -112,7 +112,7 @@ known_helpers = {
 	"qmemcpy", "qmemset",
 	"strcmp", "strcpy", "strlen", "strcat",
 	"wcscpy", "wcslen", "wcscat", "wcscmp",
-	"_bittest", "_bittest64", "_bittestandset64",
+	"_bittest", "_bittest64", "_bittestandset", "_bittestandset64",
 	"_BitScanReverse64", "_BitScanForward", "_BitScanReverse", "_BitScanForward64",
 	"__fastfail", "__debugbreak", "__rdtsc",
 	"NtCurrentPeb", "NtCurrentTeb",
@@ -121,9 +121,10 @@ known_helpers = {
 	"__ROL1__", "__ROL2__", "__ROL4__", "__ROL8__",
 	"__ROR1__", "__ROR2__", "__ROR4__", "__ROR8__",
 	"__CS__", "__SS__", "__DS__", "__ES__", "__FS__", "__GS__", "MK_FP",
+	"__FYL2X__", "__FSCALE__", "__F2XM1__",
 	"__readeflags", "__writeeflags", "__readfsdword", "__readgsdword", "__writegsdword",
 	"__readgsqword",
-	"fabs", "fminf", "fmaxf", "abs32", "abs64", "sqrt", "fmin", "fmax", "fsqrt",
+	"fabs", "fminf", "fmaxf", "abs32", "abs64", "sqrt", "fmin", "fmax", "fsqrt", "log10",
 }
 
 coerces = {
