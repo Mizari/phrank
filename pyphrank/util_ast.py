@@ -30,6 +30,9 @@ def get_int(expr:idaapi.cexpr_t) -> int|None:
 	if expr.op == idaapi.cot_num:
 		return expr.n._value
 
+	if expr.op == idaapi.cot_sizeof:
+		return expr.x.type.get_size()
+
 	return None
 
 def get_tif_member_name(tif:idaapi.tinfo_t, offset:int) -> str:
