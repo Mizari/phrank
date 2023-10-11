@@ -107,7 +107,6 @@ known_helpers = {
 	"__SETP__", "__FSCALE__",
 	"va_start", "va_end", "va_copy",
 	"JUMPOUT", "BUG", "__halt", "_mm_mfence",
-	"__readfsqword",
 	"alloca",
 	"qmemcpy", "qmemset",
 	"strcmp", "strcpy", "strlen", "strcat",
@@ -122,8 +121,8 @@ known_helpers = {
 	"__ROR1__", "__ROR2__", "__ROR4__", "__ROR8__",
 	"__CS__", "__SS__", "__DS__", "__ES__", "__FS__", "__GS__", "MK_FP",
 	"__FYL2X__", "__FSCALE__", "__F2XM1__",
-	"__readeflags", "__writeeflags", "__readfsdword", "__readgsdword", "__writegsdword",
-	"__readgsqword",
+	"__readeflags", "__readfsdword", "__readgsdword", "__readfsqword", "__readgsqword",
+	"__writeeflags", "__writefsdword", "__writegsdword", "__writefsqword", "__writegsqword",
 	"fabs", "fminf", "fmaxf", "abs32", "abs64", "sqrt", "fmin", "fmax", "fsqrt", "log10",
 }
 
