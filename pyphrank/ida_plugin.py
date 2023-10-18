@@ -52,7 +52,7 @@ class PluginActionHandler(idaapi.action_handler_t):
 				f"{idaapi.get_name(fea)} is bugged: "\
 				f"signature_args={[str(cfunc.type.get_nth_arg(i)) for i in range(nargs)]} but "\
 				f"args={[str(a.type()) for a in cfunc.arguments]}. "\
-				f"Pseudocode refresh, repeat action."
+				f"Pseudocode refreshed, repeat action."
 			)
 			return 1
 
