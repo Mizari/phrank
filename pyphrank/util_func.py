@@ -125,6 +125,13 @@ def is_movrax_ret(func_ea:int) -> bool:
 		return False
 	return True
 
+def is_cfunc_bugged(cfunc:idaapi.cfunc_t) -> bool:
+	# IDA can mess up variables order, need to decompile once more
+	for i, arg in enumerate(cfunc.arguments):
+		if arg.type() != cfunc.type.get_nth_arg(i):
+			return True
+	return False
+
 def decompile_function(func_ea:int) -> idaapi.cfunc_t|None:
 	try:
 		cfunc = idaapi.decompile(func_ea)
@@ -135,11 +142,7 @@ def decompile_function(func_ea:int) -> idaapi.cfunc_t|None:
 	if cfunc is None:
 		return None
 
-	# IDA can mess up variables order, need to decompile once more
-	for i, arg in enumerate(cfunc.arguments):
-		if arg.type != cfunc.type.get_nth_arg(i):
-			break
-	else:
+	if not is_cfunc_bugged(cfunc):
 		return cfunc
 
 	idaapi.mark_cfunc_dirty(func_ea)

@@ -43,6 +43,19 @@ class PluginActionHandler(idaapi.action_handler_t):
 
 		hx_view = idaapi.get_widget_vdui(ctx.widget)
 		cfunc = hx_view.cfunc
+		if utils.is_cfunc_bugged(cfunc):
+			fea = cfunc.entry_ea
+			idaapi.mark_cfunc_dirty(fea)
+			hx_view.refresh_view(1)
+			nargs = cfunc.type.get_nargs()
+			utils.log_critical(
+				f"{idaapi.get_name(fea)} is bugged: "\
+				f"signature_args={[str(cfunc.type.get_nth_arg(i)) for i in range(nargs)]} but "\
+				f"args={[str(a.type()) for a in cfunc.arguments]}. "\
+				f"Pseudocode refresh, repeat action."
+			)
+			return 1
+
 		citem = hx_view.item
 
 		should_refresh = 0
