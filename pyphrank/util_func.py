@@ -129,6 +129,20 @@ def decompile_function(func_ea:int) -> idaapi.cfunc_t|None:
 	try:
 		cfunc = idaapi.decompile(func_ea)
 		str(cfunc)
-		return cfunc
 	except idaapi.DecompilationFailure:
 		return None
+
+	# IDA can mess up variables order, need to decompile once more
+	for i, arg in enumerate(cfunc.arguments):
+		if arg.type != cfunc.type.get_nth_arg(i):
+			break
+	else:
+		return cfunc
+
+	idaapi.mark_cfunc_dirty(func_ea)
+	try:
+		cfunc = idaapi.decompile(func_ea)
+		str(cfunc)
+	except idaapi.DecompilationFailure:
+		return None
+	return cfunc
