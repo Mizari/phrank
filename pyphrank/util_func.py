@@ -132,6 +132,9 @@ def decompile_function(func_ea:int) -> idaapi.cfunc_t|None:
 	except idaapi.DecompilationFailure:
 		return None
 
+	if cfunc is None:
+		return None
+
 	# IDA can mess up variables order, need to decompile once more
 	for i, arg in enumerate(cfunc.arguments):
 		if arg.type != cfunc.type.get_nth_arg(i):
