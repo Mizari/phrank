@@ -81,11 +81,15 @@ class FunctionManager:
 			arg_type = utils.UNKNOWN_TYPE
 		return arg_type
 
-	def set_lvar_tinfo(self, func_ea:int, var_id:int, var_type:idaapi.tinfo_t):
+	def set_lvar_tinfo(self, func_ea:int, var_id:int, var_type:idaapi.tinfo_t) -> bool:
 		cfunc = self.get_cfunc(func_ea)
 		if cfunc is None:
-			utils.log_warn(f"failed to change variable type, because of decompilation failure in {get_funcname(func_ea)}")
-			return
+			utils.log_err(f"failed to change variable type in {get_funcname(func_ea)}, because of decompilation failure")
+			return False
+
+		if var_id >= len(cfunc.lvars):
+			utils.log_err(f"failed to change variable type in {get_funcname(func_ea)}, because var id is too big")
+			return False
 
 		var = cfunc.lvars[var_id]
 		# var.set_user_type()
@@ -96,9 +100,9 @@ class FunctionManager:
 		info.type = var_type
 		info.name = var.name
 		rv = idaapi.modify_user_lvar_info(func_ea, idaapi.MLI_TYPE, info)
-		assert rv, "Failed to modify lvar"
-
-		self.func_factory.clear_cfunc(func_ea)
+		if not rv:
+			utils.log_err(f"failed to change variable type in {get_funcname(func_ea)}, because of idaapi failure")
+		return rv
 
 	def get_cfunc_lvar(self, func_ea: int, lvar_id:int):
 		cfunc = self.get_cfunc(func_ea)
