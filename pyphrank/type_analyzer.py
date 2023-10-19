@@ -17,12 +17,24 @@ import pyphrank.utils as utils
 
 def is_typeful_node(node:Node) -> bool:
 	""" Typeful node is a node, that can affect types """
-	if node.is_call_cast() and node.sexpr.is_type_literal():
+
+	sexpr = node.sexpr
+	if node.is_call_cast() and sexpr.is_type_literal():
 		return False
-	if node.is_expr() and node.sexpr.is_explicit_call():
+
+	elif node.is_expr():
+		if sexpr.is_explicit_call():
+			return False
+		if sexpr is UNKNOWN_SEXPR:
+			return False
+		if sexpr.is_type_literal():
+			return False
+		if sexpr.is_var():
+			return False
+
+	if node.is_type_cast() and sexpr.is_type_literal():
 		return False
-	if node.is_expr() and node.sexpr is UNKNOWN_SEXPR:
-		return False
+
 	return True
 
 def shrink_tfg(aa:TFG):
