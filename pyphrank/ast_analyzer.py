@@ -498,12 +498,18 @@ class CTreeAnalyzer:
 
 		elif expr.op == idaapi.cot_call and expr.x.op == idaapi.cot_obj and utils.is_func_import(expr.x.obj_ea):
 			func_tif = idaapi.tinfo_t()
-			idaapi.get_type(expr.x.obj_ea, func_tif, 0)
+			rv = idaapi.get_type(expr.x.obj_ea, func_tif, 0)
+			if not rv:
+				func_tif = expr.x.type
+
+			if func_tif.is_ptr() and func_tif.get_pointed_object().is_func():
+				func_tif = func_tif.get_pointed_object()
+
 			if utils.is_tif_correct(func_tif) and func_tif.is_func():
 				retval_tif = func_tif.get_rettype()
 			else:
 				retval_tif = utils.UNKNOWN_TYPE
-			call_func = SExpr.create_type_literal(retval_tif, expr.x.ea)
+			type_expr = SExpr.create_type_literal(retval_tif, expr.x.ea)
 
 			for arg_id, arg in enumerate(expr.a):
 				arg = utils.strip_casts(arg)
@@ -511,7 +517,6 @@ class CTreeAnalyzer:
 				arg_type = func_tif.get_nth_arg(arg_id)
 				type_cast = Node(Node.TYPE_CAST, arg_sexpr, arg_type)
 				trees.append(type_cast)
-			type_expr = SExpr.create_call(call_func)
 
 		elif expr.op == idaapi.cot_call:
 			call_func = lift_reuse(expr.x)
