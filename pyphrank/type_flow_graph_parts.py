@@ -408,7 +408,7 @@ class SExpr:
 
 	@classmethod
 	def create_rw_op(cls, target:SExpr, value:SExpr, addr=-1):
-		obj = cls(cls.TYPE_ASSIGN, addr=addr)
+		obj = cls(cls.TYPE_RW_OP, addr=addr)
 		obj._x = target
 		obj._y = value
 		return obj
