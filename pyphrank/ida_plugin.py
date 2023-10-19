@@ -43,18 +43,22 @@ class PluginActionHandler(idaapi.action_handler_t):
 
 		hx_view = idaapi.get_widget_vdui(ctx.widget)
 		cfunc = hx_view.cfunc
+		func_ea = cfunc.entry_ea
 		if utils.is_cfunc_bugged(cfunc):
-			fea = cfunc.entry_ea
-			idaapi.mark_cfunc_dirty(fea)
+			idaapi.mark_cfunc_dirty(func_ea)
 			hx_view.refresh_view(1)
 			nargs = cfunc.type.get_nargs()
 			utils.log_critical(
-				f"{idaapi.get_name(fea)} is bugged: "\
+				f"{idaapi.get_name(func_ea)} is bugged: "\
 				f"signature_args={[str(cfunc.type.get_nth_arg(i)) for i in range(nargs)]} but "\
 				f"args={[str(a.type()) for a in cfunc.arguments]}. "\
 				f"Pseudocode refreshed, repeat action."
 			)
 			return 1
+
+		# updating caches
+		self.plugin.type_analyzer.func_manager.func_factory.set_cfunc(cfunc)
+		self.plugin.type_analyzer.get_tfg(func_ea, nocache=True)
 
 		citem = hx_view.item
 
@@ -68,10 +72,10 @@ class PluginActionHandler(idaapi.action_handler_t):
 				utils.log_err(f"failed to get local variable id for {citem.l}")
 				should_refresh = 0
 			else:
-				var = Var(cfunc.entry_ea, lvar_id)
+				var = Var(func_ea, lvar_id)
 				should_refresh = self.activate_var(var)
 		elif citem.citype == idaapi.VDI_FUNC:
-			should_refresh = self.activate_function(cfunc.entry_ea)
+			should_refresh = self.activate_function(func_ea)
 
 		if should_refresh == 1:
 			hx_view.refresh_view(1)
@@ -101,11 +105,11 @@ class PluginActionHandler(idaapi.action_handler_t):
 
 class TFGPrinter(PluginActionHandler):
 	def print_var_tfg(self, var:Var):
-		tfg = self._get_analyzer().get_all_var_uses(var)
+		tfg = self._get_analyzer().get_all_var_uses(var, nocache=True)
 		tfg.print(f"TypeFlowGraph for {var}")
 
 	def activate_function(self, func_ea:int):
-		tfg = self._get_analyzer().get_tfg(func_ea)
+		tfg = self._get_analyzer().get_tfg(func_ea, nocache=True)
 		tfg.print(f"TypeFlowGraph for {idaapi.get_name(func_ea)}")
 		return 0
 

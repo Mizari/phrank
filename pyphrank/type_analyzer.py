@@ -64,14 +64,14 @@ class TypeAnalyzer:
 	def cache_tfg(self, addr:int, analysis:TFG):
 		self.tfg_cache[addr] = analysis
 
-	def get_tfg(self, func_ea:int) -> TFG:
-		cached = self.tfg_cache.get(func_ea)
-		if cached is not None:
-			return cached
+	def get_tfg(self, func_ea:int, nocache=False) -> TFG:
+		if (cached := self.tfg_cache.get(func_ea)) is None or nocache:
+			aa = self.func_manager.get_tfg(func_ea)
+			shrink_tfg(aa)
+			self.tfg_cache[func_ea] = aa
+		else:
+			aa = cached
 
-		aa = self.func_manager.get_tfg(func_ea)
-		shrink_tfg(aa)
-		self.tfg_cache[func_ea] = aa
 		return aa
 
 	def get_db_var_type(self, var:Var) -> idaapi.tinfo_t:
@@ -280,8 +280,8 @@ class TypeAnalyzer:
 				f"because variable has different type {current_type}"
 			)
 
-	def get_func_var_uses(self, func_ea:int, var:Var) -> TFG:
-		aa = self.get_tfg(func_ea).copy()
+	def get_func_var_uses(self, func_ea:int, var:Var, nocache=False) -> TFG:
+		aa = self.get_tfg(func_ea, nocache=nocache).copy()
 		node_replacements : dict[Node, list[Node]] = {}
 		for node in aa.iterate_nodes():
 			sexpr = node.sexpr
@@ -334,15 +334,15 @@ class TypeAnalyzer:
 		shrink_tfg(aa)
 		return aa
 
-	def get_all_var_uses(self, var:Var) -> TFG:
+	def get_all_var_uses(self, var:Var, nocache=False) -> TFG:
 		funcs = var.get_functions()
 		if len(funcs) == 1:
 			func_ea = funcs.pop()
-			return self.get_func_var_uses(func_ea, var)
+			return self.get_func_var_uses(func_ea, var, nocache=nocache)
 
 		new_entry = NOP_NODE.copy()
 		for func_ea in funcs:
-			va = self.get_func_var_uses(func_ea, var)
+			va = self.get_func_var_uses(func_ea, var, nocache=nocache)
 			new_entry.children.add(va.entry)
 			va.entry.parents.add(new_entry)
 		return TFG(new_entry)

@@ -75,6 +75,9 @@ class CFunctionFactory:
 	def clear_cfunc(self, func_ea:int) -> None:
 		self.cached_cfuncs.pop(func_ea, None)
 
+	def set_cfunc(self, cfunc:idaapi.cfunc_t):
+		self.cached_cfuncs[cfunc.entry_ea] = cfunc
+
 	def decompile_all(self):
 		saved_decomp = settings.DECOMPILE_RECURSIVELY
 		settings.DECOMPILE_RECURSIVELY = True
