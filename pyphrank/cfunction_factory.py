@@ -31,14 +31,12 @@ class CFunctionFactory:
 
 	def get_cfunc(self, func_ea:int) -> idaapi.cfunc_t|None:
 		cfunc = self.cached_cfuncs.get(func_ea)
-		# -1 to act as bad decompilation
-		if cfunc == -1:
-			return None
-		if cfunc is not None:
+		if isinstance(cfunc, idaapi.cfunc_t):
 			return cfunc
 
 		if not settings.DECOMPILE_RECURSIVELY:
 			cfunc = utils.decompile_function(func_ea)
+			# -1 (instead of None) to cache failed decompilation
 			if cfunc is None:
 				cfunc = -1
 			self.cached_cfuncs[func_ea] = cfunc
